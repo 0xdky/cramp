@@ -925,8 +925,9 @@ Public Sub DoProfiling(arg As String)
   If arg <> "" Then
     If frmMainui.compnameText.Text <> "" _
        And frmMainui.pidText.Text <> "" Then
-      strProCon = strProCon & gstrSpace & frmMainui.compnameText.Text & ".ds" & _
+      strProCon = strProCon & gstrSpace & frmMainui.compnameText.Text & _
                   gstrSpace & frmMainui.pidText.Text + gstrSpace + arg
+      MsgBox strProCon
       hInst = Shell(strProCon, vbNormalFocus)
     End If
   End If

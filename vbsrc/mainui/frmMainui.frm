@@ -54,7 +54,7 @@ Begin VB.Form frmMainui
             Left            =   120
             TabIndex        =   34
             Top             =   480
-            Width           =   1572
+            Width           =   1692
          End
          Begin VB.Label procidLabel 
             Caption         =   "Pid"
@@ -65,12 +65,12 @@ Begin VB.Form frmMainui
             Width           =   1452
          End
          Begin VB.Label compnameLabel 
-            Caption         =   "Computer Name"
+            Caption         =   "CompName.DomName"
             Height          =   252
             Left            =   120
             TabIndex        =   35
             Top             =   240
-            Width           =   1572
+            Width           =   1692
          End
       End
       Begin VB.Frame Frame3 
@@ -658,21 +658,21 @@ Private Sub lvwAttributes_Click()
     If UCase(Selection) = UCase("ExecPath") Then
         cmdBrowse.Move PX + CellWidth - 300, PY
         cmdBrowse.Visible = True
-        SelectedIndex = lvwAttributes.SelectedItem.Index
+        SelectedIndex = lvwAttributes.SelectedItem.index
         
         Exit Sub
     ElseIf UCase(Selection) = UCase("IdRef") Then
         CreateIdRefList
-        Dim Index As Integer
+        Dim index As Integer
         cboIdRef.Clear
         cboIdRef.Move PX, PY, CellWidth - 150
         cboIdRef.Visible = True
         cboIdRef.Text = lvwAttributes.SelectedItem.SubItems(1)
-        For Index = 1 To gIdRef.Count
-            cboIdRef.AddItem gIdRef.Item(Index)
-        Next Index
+        For index = 1 To gIdRef.Count
+            cboIdRef.AddItem gIdRef.Item(index)
+        Next index
         cboIdRef.SetFocus
-        SelectedIndex = lvwAttributes.SelectedItem.Index
+        SelectedIndex = lvwAttributes.SelectedItem.index
         
         Exit Sub
     
@@ -686,7 +686,7 @@ Private Sub lvwAttributes_Click()
             cboTrueFalse.Visible = True
             cboTrueFalse.Text = Selection
             cboTrueFalse.SetFocus
-            SelectedIndex = lvwAttributes.SelectedItem.Index
+            SelectedIndex = lvwAttributes.SelectedItem.index
             
             Exit Sub
             
@@ -700,7 +700,7 @@ Private Sub lvwAttributes_Click()
     txtInput.Visible = True
     'txtInput.SelText = Selection
     txtInput.SetFocus
-    SelectedIndex = lvwAttributes.SelectedItem.Index
+    SelectedIndex = lvwAttributes.SelectedItem.index
         
 End Sub
 
@@ -766,12 +766,12 @@ End Sub
 'First save the existing scenario if it is modified
 'then open the clicked scenario
 '***********************************************************
-Private Sub mnuMRU_Click(Index As Integer)
+Private Sub mnuMRU_Click(index As Integer)
     Dim RetStatus As Boolean
     RetStatus = CheckSaveStatus
     
     Dim sScenarioName As String
-    sScenarioName = gMRUList(0, Index)
+    sScenarioName = gMRUList(0, index)
     Dim tmpStr As String
     CleanAndRestart
     
@@ -885,8 +885,8 @@ Private Sub tspMainUI_Click()
         fraMainUI(ii).Visible = False
     Next ii
     
-    fraMainUI(tspMainUI.SelectedItem.Index - 1).Visible = True
-    fraMainUI(tspMainUI.SelectedItem.Index - 1).Move 600, 840
+    fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
+    fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
     
     RenameFormWindow
 End Sub
