@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-04 16:41:05 dhruva>
+// Time-stamp: <2003-11-05 15:11:34 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -717,7 +717,7 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
       SIZE_T freesz=0,commitsz=0,reservesz=0;
       do{
         bsz=VirtualQueryEx(pin.hProcess,pvAddressBlk,&mbi,sizeof(mbi));
-        if(bsz)
+        if(!bsz)
           break;
 
         switch(mbi.State){
