@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-27 17:35:37 dhruva>
+## Time-stamp: <2003-10-27 17:55:43 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -47,6 +47,7 @@ sub SetDBFilters{
     $_[0]->filter_store_key  ( sub { $_ .= "\0" } ) ;
     $_[0]->filter_fetch_value( sub { s/\0$//    } ) ;
     $_[0]->filter_store_value( sub { $_ .= "\0" } ) ;
+
     return 0;
 }
 
@@ -87,6 +88,7 @@ sub WriteResults{
         }
     }
     close(QUERYOUT);
+
     return 0;
 }
 
@@ -116,8 +118,7 @@ sub ProcessArgs{
     $f_logdb="$cramplogdir/cramp#$g_pid.db";
 
     if($ARGV[1]=~/DUMP/){
-        UpdateDB();
-        return 0;
+        return UpdateDB();
     }elsif($ARGV[1]=~/QUERY/){
         $f_queryout="$cramplogdir/query.psf";
         unlink $f_queryout;
@@ -166,6 +167,7 @@ sub ProcessArgs{
         print STDERR "Error: Unknown command\n";
         return 1;
     }
+
     return 0;
 }
 
@@ -178,17 +180,16 @@ sub UpdateDB{
 
     if(!(-f $f_logtxt && -f $f_logfin)){
         print STDERR "Error: Log files for \"$g_pid\" PID not found\n";
-        exit 1;
+        return 1;
     }
 
     if(! -f $f_logdb){
         print STDOUT "Creating Berkeley DB from logs\n";
         if(DumpLogsToDB()){
             print STDERR "Error: Failed to dump logs to DB\n";
-            exit 1;
+            return 1;
         }
-        print STDOUT "\nSuccessfully created Berkeley DB from logs\n";
-        exit 0;
+        print STDOUT "Successfully created Berkeley DB from logs\n";
     }else{
         my $update=0;
         my @dbinfo=stat($f_logdb);
@@ -200,10 +201,10 @@ sub UpdateDB{
             print STDOUT "Updating Berkeley DB from logs\n";
             if(AddRawLogs()){
                 print STDERR "Error: Failed in adding raw logs to DB\n";
-                exit 1;
+                return 1;
             }elsif(AddTickSortedData()){
                 print STDERR "Error: Failed in adding sorted logs to DB\n";
-                exit 1;
+                return 1;
             }
         }
         if($funinfo[9]>$dbinfo[9]){
@@ -211,17 +212,17 @@ sub UpdateDB{
             print STDOUT "Updating function info in Berkeley DB from logs\n";
             if(AddFunctionInformation()){
                 print STDERR "Error: Failed in adding function info to DB\n";
-                exit 1;
+                return 1;
             }
         }
         if($update){
-            print STDOUT "\nSuccessfully updated Berkeley DB from logs\n";
-            exit 0;
+            print STDOUT "Successfully updated Berkeley DB from logs\n";
         }else{
             print STDOUT "Berkeley DB is upto date\n";
-            exit 0;
         }
     }
+
+    return 0;
 }
 
 ##-----------------------------------------------------------------------------
@@ -291,7 +292,6 @@ sub GetTickSortedValues{
         -Subname     => "TID_FUNC_SORT_TICK",
         -Flags       => DB_RDONLY,
         -Property    => DB_DUP|DB_DUPSORT,
-        -Compare     => \&TickCompare,
         -DupCompare  => \&TickCompare
         || die("Error: $BerkeleyDB::Error");
     if(!defined($db)){
@@ -527,7 +527,6 @@ sub AddTickSortedData{
         -Subname     => "TID_FUNC_SORT_TICK",
         -Flags       => DB_CREATE,
         -Property    => DB_DUP|DB_DUPSORT,
-        -Compare     => \&TickCompare,
         -DupCompare  => \&TickCompare
         || die("Error: $BerkeleyDB::Error");
     if(!defined($db)){
@@ -602,4 +601,4 @@ sub DumpLogsToDB{
 }
 
 ##------------------------ Execution starts here ------------------------------
-ProcessArgs();
+exit ProcessArgs();
