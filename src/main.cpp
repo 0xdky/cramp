@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-24 14:22:12 dhruva>
+// Time-stamp: <2003-11-24 14:49:38 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -54,9 +54,11 @@ WINAPI WinMain(HINSTANCE hinstExe,
     return(-1);
 
   // Create a MUTEX for synchronizing (could be used to make this singleton)
-  g_CRAMP_Engine.g_hMUT=OpenMutex(MUTEX_MODIFY_STATE,FALSE,"CRAMP_MUTEX");
-  if(!g_CRAMP_Engine.g_hMUT)
-    g_CRAMP_Engine.g_hMUT=CreateMutex(NULL,FALSE,"CRAMP_MUTEX");
+  g_CRAMP_Engine.g_hMUT=OpenMutex(MUTEX_MODIFY_STATE,FALSE,MUTEX_NAME);
+  if(g_CRAMP_Engine.g_hMUT&&!getenv("CRAMPENGINE_MULTIPLE"))
+    return(-1);
+  else
+    g_CRAMP_Engine.g_hMUT=CreateMutex(NULL,FALSE,MUTEX_NAME);
   if(!g_CRAMP_Engine.g_hMUT)
     return(-1);
 

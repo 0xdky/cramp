@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-24 14:14:02 dhruva>
+// Time-stamp: <2003-11-24 14:48:24 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -90,7 +90,8 @@ extern Global_CRAMP_Engine g_CRAMP_Engine;
 //-----------------------------------------------------------------------------
 
 //------------------------ MACROS AND DEFINED ---------------------------------
-#define JOB_NAME "CRAMP_JOB"
+#define JOB_NAME "CRAMPENGINE_JOB"
+#define MUTEX_NAME "CRAMPENGINE_MUTEX"
 #define CRAMP_PROFILE_LIMIT 1000
 
 #ifndef BUFSIZE
