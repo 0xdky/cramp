@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-04 11:29:37 dhruva>
+// Time-stamp: <2003-12-12 10:22:43 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -327,6 +327,7 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
   ci.funcAddr=funcAddr;
 
   ci.startTime=0;
+  ci.RawChildTicks=0;
   ci.ProfilingTicks=0;
   ci.parentFrame=parentFramePtr;
   ci.origRetAddr=*retAddrPtr;
@@ -349,6 +350,7 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
                            const TICKS &endTime){
   // Pops shadow stack until finding a call record
   // that matches the current stack layout.
+  TICKS rchildtick=0;
   TICKS childprofiletick=0;
   while(1){
     // Retrieve original call record
@@ -358,6 +360,7 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
     if(ci.parentFrame==parentFramePtr){
       logExit(ci,true);         // Record normal exit
       childprofiletick=ci.ProfilingTicks+(ci.startTime-ci.entryTime);
+      rchildtick=ci.endTime-ci.startTime;
       callInfoStack.pop_back();
       if(callInfoStack.empty())
         return;
@@ -365,12 +368,14 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
     }
     logExit(ci,false);          // Record exceptional exit
     childprofiletick+=ci.ProfilingTicks+(ci.startTime-ci.entryTime);
+    rchildtick+=(ci.endTime-ci.startTime);
     callInfoStack.pop_back();
   }
   if(callInfoStack.empty())
     return;
 
   CallInfo &prev=callInfoStack.back();
+  prev.RawChildTicks+=rchildtick;
   TICKS leave=0;
   CallMonitor::queryTicks(&leave);
   leave=leave-endTime;

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 17:30:24 dhruva>
+// Time-stamp: <2003-12-12 10:20:02 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: The CallMonitor class definition
@@ -98,6 +98,7 @@ protected:
     TICKS entryTime;            // Time function was called
     TICKS startTime;            // Time function started
     TICKS endTime;              // Time function returned
+    TICKS RawChildTicks;        // Collective RAW children ticks
     TICKS ProfilingTicks;       // Collective profile time of all children
   };
   typedef std::vector<CallInfo> CallInfoStack;
