@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-12-04 10:01:53 dhruva>
+## Time-stamp: <2003-12-09 08:51:58 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -82,7 +82,8 @@ E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(BDBBASE)/lib
 
 # Add new files here
 COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
-      $(OBJDIR)/XMLParse.obj $(OBJDIR)/ipc.obj $(OBJDIR)/ipcmsg.obj
+      $(OBJDIR)/XMLParse.obj $(OBJDIR)/ipc.obj $(OBJDIR)/ipcmsg.obj \
+      $(OBJDIR)/PerfCounters.obj
 POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj
 UOBJS=$(OBJDIR)/profileDB.obj
 OBJS=$(COBJS) $(POBJS) $(UOBJS)
@@ -117,7 +118,7 @@ $(RESDIR)/MostRecentFiles.txt:
 # For CRAMP engine
 engine: dirs res $(COBJS)
     @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(COBJS) psapi.lib shell32.lib \
-             $(XML_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
+             Pdh.lib AdvApi32.lib $(XML_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
 # Compiling
 $(OBJDIR)/main.obj: $(SRCDIR)/main.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/main.cpp \
@@ -131,6 +132,9 @@ $(OBJDIR)/ipcmsg.obj: $(SRCDIR)/ipcmsg.cpp
 $(OBJDIR)/engine.obj: $(SRCDIR)/engine.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/engine.cpp \
              /Fo$(OBJDIR)/engine.obj
+$(OBJDIR)/PerfCounters.obj: $(SRCDIR)/PerfCounters.cpp
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/PerfCounters.cpp \
+             /Fo$(OBJDIR)/PerfCounters.obj
 $(OBJDIR)/TestCaseInfo.obj: $(SRCDIR)/TestCaseInfo.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/TestCaseInfo.cpp \
              /Fo$(OBJDIR)/TestCaseInfo.obj
@@ -142,6 +146,7 @@ $(SRCDIR)/main.cpp: $(SRCDIR)/engine.h
 $(SRCDIR)/ipc.cpp: $(SRCDIR)/ipc.h
 $(SRCDIR)/ipcmsg.cpp: $(SRCDIR)/ipcmsg.h
 $(SRCDIR)/engine.cpp: $(SRCDIR)/engine.h
+$(SRCDIR)/PerfCounters.cpp: $(SRCDIR)/PerfCounters.h
 $(SRCDIR)/TestCaseInfo.cpp: $(SRCDIR)/TestCaseInfo.h
 $(SRCDIR)/XMLParse.cpp: $(SRCDIR)/XMLParse.h
 
@@ -149,6 +154,7 @@ $(INCDIR)/cramp.h:
 $(SRCDIR)/ipc.h: $(DEPS)
 $(SRCDIR)/ipcmsg.h: $(DEPS)
 $(SRCDIR)/engine.h: $(DEPS)
+$(SRCDIR)/PerfCounters.h: $(DEPS)
 $(SRCDIR)/TestCaseInfo.h: $(DEPS)
 $(SRCDIR)/XMLParse.h: $(DEPS)
 

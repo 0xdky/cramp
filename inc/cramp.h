@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-02 17:51:52 dhruva>
+// Time-stamp: <2003-12-09 11:39:52 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -18,6 +18,7 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <process.h>
+#include <Pdh.h>
 
 #include <list>
 #include <queue>
@@ -74,6 +75,7 @@ typedef struct{
   HANDLE g_hMUT;
   HANDLE g_hIOCP;
   HANDLE g_hJOBTimer;
+  PDH_HQUERY g_hQuery;
 
   char g_JOBNAME[256];
   FILE *g_fLogFile;
