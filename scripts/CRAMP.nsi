@@ -64,6 +64,7 @@ Section "CRAMP Engine" SEC01
   SetOverwrite ifnewer
   File "..\bin\CRAMP.exe"
   File "..\bin\CRAMPEngine.exe"
+  File "\Applications\xerces\bin\xerces-c_2_3_0.dll"
   File "..\scripts\crampstaf.pl"
   File "..\vbsrc\mainui\Attributes.txt"
   File "..\vbsrc\mainui\MostRecentFiles.txt"
@@ -151,8 +152,6 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
-  
-  SetRebootFlag true
 SectionEnd
 
 ; Section descriptions
@@ -163,10 +162,14 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC04} "PERL - 5.9.0 (+ extra modules)"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
-
+Function .onInstSuccess
+  SetRebootFlag true
+FunctionEnd
+  
 Function un.onUninstSuccess
   HideWindow
   MessageBox MB_ICONINFORMATION|MB_OK "$(^Name) was successfully removed from your computer."
+  SetRebootFlag true
 FunctionEnd
 
 Function un.onInit
@@ -204,5 +207,4 @@ Section Uninstall
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 
   SetAutoClose true
-  SetRebootFlag true
 SectionEnd
