@@ -60,7 +60,7 @@ XML_LIB=xerces-c_2D.lib
 BDB_LIB=libdb41sd.lib
 !ENDIF
 
-INCLUDE=.;./inc;$(INCLUDE)
+INCLUDE=./src;./inc;$(INCLUDE)
 
 # Version info
 CFLAGS=$(CFLAGS) /V$(VERSION)
