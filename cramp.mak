@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-11-01 17:06:18 dhruva>
+## Time-stamp: <2003-11-03 20:00:51 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -58,6 +58,10 @@ MT_DEBUG=/MTd
 LINK_DEBUG=/DEBUG
 XML_LIB=xerces-c_2D.lib
 BDB_LIB=libdb41sd.lib
+!ENDIF
+
+!IF ("$(CRAMP_STUB)" == "1")
+CFLAGS=$(CFLAGS) /DCRAMP_STUB
 !ENDIF
 
 INCLUDE=./src;./inc;$(INCLUDE)
