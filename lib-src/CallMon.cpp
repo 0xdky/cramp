@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-12 10:22:43 dhruva>
+// Time-stamp: <2004-01-07 10:34:08 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -324,11 +324,9 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
 
   callInfoStack.push_back(CallInfo());
   CallInfo &ci=callInfoStack.back();
-  ci.funcAddr=funcAddr;
+  memset(&ci,0,sizeof(CallInfo));
 
-  ci.startTime=0;
-  ci.RawChildTicks=0;
-  ci.ProfilingTicks=0;
+  ci.funcAddr=funcAddr;
   ci.parentFrame=parentFramePtr;
   ci.origRetAddr=*retAddrPtr;
   ci.entryTime=entryTime;
