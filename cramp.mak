@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-02-25 18:33:19 dky>
+## Time-stamp: <2004-02-27 09:59:31 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -26,18 +26,21 @@ MAKEFILE=$(PROJ).mak
 ENGINE=CRAMPEngine
 PROFLIB=lib$(PROJ)
 
+VB=VB6
 CPP=CL
 LINK=LINK
 DEL=DEL /F /Q
 ERASE=ERASE /F /Q
 MD=MKDIR
 COPY=XCOPY /y /q /r
+ECHO=echo
 
 # Existing folders
 SRCDIR=src
 INCDIR=inc
 LIBSRCDIR=lib-src
 UTILDIR=utils
+VBDIR=vbsrc
 TSTDIR=test
 
 # Folders created
@@ -91,7 +94,7 @@ UTILITIES=$(BINDIR)/ProfileControl.exe $(BINDIR)/profileDB.exe
 
 # Currently disabled base class build: Problem with SDK
 all: cramp
-cramp: dirs res engine library utils vb test
+cramp: dirs res engine library vb utils test
 remake: clean cramp
 
 # Dependancy to force a re-build
@@ -109,9 +112,9 @@ dirs: $(MAKEFILE)
 # Add res
 res: $(RESDIR)/Attributes.txt $(RESDIR)/MostRecentFiles.txt
 $(RESDIR)/Attributes.txt:
-    @$(COPY) vbsrc\mainui\Attributes.txt $(RESDIR)
+    @$(COPY) $(VBDIR)\mainui\Attributes.txt $(RESDIR)
 $(RESDIR)/MostRecentFiles.txt:
-    @$(COPY) vbsrc\mainui\MostRecentFiles.txt $(RESDIR)
+    @$(COPY) $(VBDIR)\mainui\MostRecentFiles.txt $(RESDIR)
 
 # For CRAMP engine
 engine: dirs res $(COBJS)
@@ -224,8 +227,12 @@ $(OBJDIR)/DPEBaseClassTest.obj: $(TSTDIR)/DPEBaseClassTest.cpp
 $(TSTDIR)/TestProf.cpp: $(DEPS)
 $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
-vb:
-    @vb6.exe /make ./vbsrc/mainui/CRAMP.vbp
+# Compile CRAMP VB project
+vb: $(BINDIR)/CRAMP.exe
+$(BINDIR)/CRAMP.exe: $(VBDIR)/mainui/CRAMP.vbp
+$(VBDIR)/mainui/CRAMP.vbp: $(DEPS)
+    @$(ECHO) Compiling VB project $(VBDIR)/mainui/CRAMP.vbp
+    @$(VB) /make /outdir $(BINDIR) $(VBDIR)/mainui/CRAMP.vbp
 
 # Compile the installer
 installer: remake
