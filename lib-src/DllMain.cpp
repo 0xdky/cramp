@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-11 12:08:21 dky>
+// Time-stamp: <2004-03-11 16:30:05 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -45,15 +45,14 @@ extern "C" __declspec(dllexport)
     CallMonitor::TICKS frequency=0;
     CallMonitor::queryTickFreq(&frequency);
 
-    // Block the modification of hash
-    CRAMP_CS csp(&g_CRAMP_Profiler.g_cs_prof);
-    csp.enter();
-
     FILE *f_stat=0;
     char filename[MAX_PATH];
+    CRAMP_CS csp(&g_CRAMP_Profiler.g_cs_prof);
     sprintf(filename,"%s/cramp_stat#%d.log",
             g_CRAMP_Profiler.logpath,
             g_CRAMP_Profiler.g_pid);
+
+    csp.enter();
     f_stat=fopen(filename,"wc");
     if(!f_stat){
         DEBUGCHK(0);
@@ -87,9 +86,6 @@ extern "C" __declspec(dllexport)
         fflush(g_CRAMP_Profiler.g_fFuncInfo);
     if(g_CRAMP_Profiler.g_fLogFile)
         fflush(g_CRAMP_Profiler.g_fLogFile);
-
-    // Unlock the hash
-    csp.leave();
 
     return;
 }
@@ -160,14 +156,13 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         TCHAR moduleName[MAX_PATH];
         TCHAR modShortNameBuf[MAX_PATH];
         MEMORY_BASIC_INFORMATION mbi;
-        BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL)+1024];
-        PIMAGEHLP_SYMBOL pSymbol=(PIMAGEHLP_SYMBOL)&symbolBuffer[0];
 
-        VirtualQuery((void *)addr,&mbi,sizeof(mbi));
+
+        VirtualQuery((void *)addr,&mbi,sizeof(MEMORY_BASIC_INFORMATION));
 
         // Faster Module level filtering
-        csf.enter();
         std::hash_map<unsigned int,BOOLEAN>::iterator iter;
+        csf.enter();
         iter=g_CRAMP_Profiler.h_FilteredModAddr.find(
             (unsigned int)mbi.AllocationBase);
         if(iter!=g_CRAMP_Profiler.h_FilteredModAddr.end())
@@ -179,17 +174,19 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         _splitpath(moduleName,NULL,NULL,modShortNameBuf,NULL);
 
         // Following not per docs, but per example...
+        DWORD symDisplacement=0;
+        std::list<DWORD>::iterator res;
+        BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL)+1024];
+        PIMAGEHLP_SYMBOL pSymbol=(PIMAGEHLP_SYMBOL)&symbolBuffer[0];
+
         memset(pSymbol,0,sizeof(PIMAGEHLP_SYMBOL));
         pSymbol->SizeOfStruct=sizeof(symbolBuffer);
         pSymbol->MaxNameLength=1023;
         pSymbol->Address=0;
         pSymbol->Flags=0;
         pSymbol->Size=0;
-        DWORD symDisplacement=0;
 
         csf.enter();
-
-        std::list<DWORD>::iterator res;
         res=std::find(l_mod.begin(),l_mod.end(),(DWORD)mbi.AllocationBase);
         if(l_mod.end()==res){
             if(!SymLoadModule(h_proc,
@@ -197,12 +194,11 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
                               moduleName,
                               NULL,
                               (DWORD)mbi.AllocationBase,
-                              0))
+                              mbi.RegionSize)) // From SDK. But Was 0 earlier
                 break;
             l_mod.push_back((DWORD)mbi.AllocationBase);
         }
 
-        SymSetOptions(SymGetOptions()&~SYMOPT_UNDNAME);
         bool match=TRUE;
         char undName[1024];
         if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
@@ -460,9 +456,10 @@ OnProcessStart(void){
             SetThreadPriority(g_CRAMP_Profiler.g_h_mailslotTH,
                               THREAD_PRIORITY_BELOW_NORMAL);
 
-        // Initialize all debug symbols at start
+        // Initialize process for loading debug info
         if(!SymInitialize(GetCurrentProcess(),NULL,FALSE))
             break;
+        SymSetOptions(SymGetOptions()&~SYMOPT_UNDNAME);
 
         // Set this if all succeeds
         InterlockedExchange(&g_CRAMP_Profiler.IsInitialised,1);
