@@ -926,7 +926,15 @@ End Sub
 '***********************************************************
 Private Sub txtInput_LostFocus()
         
-    lvwAttributes.ListItems(SelectedIndex).SubItems(1) = txtInput.Text
+    If UCase(lvwAttributes.ListItems(SelectedIndex)) <> UCase("Name") And _
+       UCase(lvwAttributes.ListItems(SelectedIndex)) <> UCase("Release") Then
+        If IsNumeric(txtInput.Text) Then
+            lvwAttributes.ListItems(SelectedIndex).SubItems(1) = txtInput.Text
+        End If
+    Else
+        lvwAttributes.ListItems(SelectedIndex).SubItems(1) = txtInput.Text
+    End If
+    
     lvwAttributes.SetFocus
     txtInput.Visible = False
     
