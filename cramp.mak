@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-30 17:59:14 dhruva>
+## Time-stamp: <2003-11-01 17:06:18 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -76,8 +76,7 @@ E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(BDBBASE)/lib
 # Add new files here
 COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
       $(OBJDIR)/XMLParse.obj $(OBJDIR)/ipc.obj $(OBJDIR)/ipcmsg.obj
-POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj \
-      $(OBJDIR)/ProfileLimit.obj
+POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj
 UOBJS=$(OBJDIR)/profileDB.obj
 OBJS=$(COBJS) $(POBJS) $(UOBJS)
 
@@ -148,20 +147,15 @@ $(OBJDIR)/CallMon.obj: $(LIBSRCDIR)/CallMon.cpp
 $(OBJDIR)/CallMonLOG.obj: $(LIBSRCDIR)/CallMonLOG.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/CallMonLOG.cpp \
              /Fo$(OBJDIR)/CallMonLOG.obj
-$(OBJDIR)/ProfileLimit.obj: $(LIBSRCDIR)/ProfileLimit.cpp
-    @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/ProfileLimit.cpp \
-             /Fo$(OBJDIR)/ProfileLimit.obj
 $(OBJDIR)/DllMain.obj: $(LIBSRCDIR)/DllMain.cpp $(LIBSRCDIR)/CallMonLOG.h
     @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/DllMain.cpp \
              /Fo$(OBJDIR)/DllMain.obj
 
 $(LIBSRCDIR)/CallMon.cpp: $(LIBSRCDIR)/CallMon.h
 $(LIBSRCDIR)/CallMonLOG.cpp: $(LIBSRCDIR)/CallMonLOG.h
-$(LIBSRCDIR)/ProfileLimit.cpp: $(LIBSRCDIR)/ProfileLimit.h
 
 $(LIBSRCDIR)/CallMon.h: $(DEPS)
 $(LIBSRCDIR)/CallMonLOG.h: $(LIBSRCDIR)/CallMon.h $(DEPS)
-$(LIBSRCDIR)/ProfileLimit.h: $(DEPS)
 
 # Query utilities
 utils: $(UTILITIES)
@@ -182,17 +176,12 @@ $(SRCDIR)/DPEBaseClass.cpp:
 $(SRCDIR)/DPEBaseClass.h:
 
 # Build the test cases: Profiler, XML
-test: dirs $(BINDIR)/TestProf.exe $(BINDIR)/XMLtest.exe
+test: dirs $(BINDIR)/TestProf.exe
 basetest: baseclass $(BINDIR)/DPEBaseClassTest.exe
 
 $(BINDIR)/TestProf.exe: library $(OBJDIR)/TestProf.obj
     @$(LINK) $(LINK_DEBUG) $(OBJDIR)/TestProf.obj $(BINDIR)/$(PROFLIB).lib \
              /OUT:$(BINDIR)/TestProf.exe
-$(BINDIR)/XMLtest.exe: $(OBJDIR)/TestCaseInfo.obj $(OBJDIR)/XMLParse.obj \
-                       $(OBJDIR)/XMLtest.obj
-    @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(OBJDIR)/XMLtest.obj \
-             $(OBJDIR)/TestCaseInfo.obj $(OBJDIR)/XMLParse.obj \
-             psapi.lib $(XML_LIB) /OUT:$(BINDIR)/XMLtest.exe
 $(BINDIR)/DPEBaseClassTest.exe: $(OBJDIR)/DPEBaseClass.obj \
                                 $(OBJDIR)/DPEBaseClassTest.obj
     @$(LINK) $(LINK_DEBUG) $(OBJDIR)/DPEBaseClassTest.obj \
@@ -200,15 +189,11 @@ $(BINDIR)/DPEBaseClassTest.exe: $(OBJDIR)/DPEBaseClass.obj \
 $(OBJDIR)/TestProf.obj: $(TSTDIR)/TestProf.cpp
     @$(CPP)  /c $(CPP_DEBUG) /GX /Gh $(TSTDIR)/TestProf.cpp \
              /Fo$(OBJDIR)/TestProf.obj
-$(OBJDIR)/XMLtest.obj: $(TSTDIR)/XMLtest.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(TSTDIR)/XMLtest.cpp \
-             /Isrc /Fo$(OBJDIR)/XMLtest.obj
 $(OBJDIR)/DPEBaseClassTest.obj: $(TSTDIR)/DPEBaseClassTest.cpp
     @$(CPP)  /c $(CPP_DEBUG) /GX /I$(DPE_COMINC) \
              $(TSTDIR)/DPEBaseClassTest.cpp /Fo$(OBJDIR)/DPEBaseClassTest.obj
 
 $(TSTDIR)/TestProf.cpp: $(DEPS)
-$(TSTDIR)/XMLtest.cpp: $(DEPS)
 $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
 # Cleaning
