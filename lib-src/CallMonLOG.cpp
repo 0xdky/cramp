@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 16:37:11 dhruva>
+// Time-stamp: <2003-10-28 16:48:33 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -15,6 +15,7 @@
 #include <queue>
 #include <string>
 
+extern FILE *g_fLogFile;
 extern CRITICAL_SECTION g_cs_log;
 extern std::queue<std::string> g_LogQueue;
 
@@ -22,6 +23,7 @@ extern std::queue<std::string> g_LogQueue;
 // CallMonLOG
 //-----------------------------------------------------------------------------
 CallMonLOG::CallMonLOG(){
+  _tid=GetCurrentThreadId();
 }
 
 //-----------------------------------------------------------------------------
@@ -48,19 +50,29 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
   TICKS ticksPerSecond;
   queryTickFreq(&ticksPerSecond);
 
+#if BUFFERED_OUTPUT
   char logmsg[256];
   sprintf(logmsg,"%d|%08X|%d|%d|%I64d|%I64d",
-          GetCurrentThreadId(),
+          _tid,
           ci.funcAddr,
           callInfoStack.size(),
           !normalRet,
           (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
           (ci.endTime-ci.startTime));
-
-  // Buffered output
   EnterCriticalSection(&g_cs_log);
   g_LogQueue.push(logmsg);
   LeaveCriticalSection(&g_cs_log);
+#else
+  EnterCriticalSection(&g_cs_log);
+  fprintf(g_fLogFile,"%d|%08X|%d|%d|%I64d|%I64d",
+          _tid,
+          ci.funcAddr,
+          callInfoStack.size(),
+          !normalRet,
+          (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
+          (ci.endTime-ci.startTime));
+  LeaveCriticalSection(&g_cs_log);
+#endif
 
   return;
 }

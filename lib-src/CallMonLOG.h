@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 10:20:09 dhruva>
+// Time-stamp: <2003-10-28 16:20:53 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -21,4 +21,5 @@ public:
   void logEntry(CallInfo &ci);
   void logExit(CallInfo &ci,bool normalRet);
 private:
+  SIZE_T _tid;
 };

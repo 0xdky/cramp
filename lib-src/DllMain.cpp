@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-25 15:32:07 dhruva>
+// Time-stamp: <2003-10-28 16:53:41 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -18,7 +18,7 @@
 #include <hash_map>
 
 #ifndef CRAMP_LOG_BUFFER_LIMIT
-#define CRAMP_LOG_BUFFER_LIMIT 10000
+#define CRAMP_LOG_BUFFER_LIMIT 100000
 #endif
 
 FILE *g_fLogFile=0;
@@ -50,7 +50,12 @@ extern "C" __declspec(dllexport)
   void CRAMP_FlushProfileLogs(void){
   // Usually this iscalled to collect all logs
   // Hence, flush all logs before getting logs
+
+#ifdef BUFFERED_OUTPUT
   FlushLogQueue();
+#else
+  fflush(g_fLogFile);
+#endif
 
   FILE *fFuncInfo=0;
   char filename[256];
@@ -302,6 +307,8 @@ OnProcessStart(void){
 
     // Start logging thread
     InterlockedExchange(&g_l_stoplogging,0);
+
+#if BUFFERED_OUTPUT
     h_logthread=chBEGINTHREADEX(NULL,0,DumpLogsTH,0,0,NULL);
     if(!h_logthread){
       DeleteCriticalSection(&g_cs_log);
@@ -310,6 +317,7 @@ OnProcessStart(void){
     }
     // This is not a critical thread, when logs are 0
     SetThreadPriority(h_logthread,THREAD_PRIORITY_LOWEST);
+#endif
 
     // Set this if all succeeds
     valid=TRUE;
@@ -324,7 +332,6 @@ OnProcessStart(void){
 BOOL
 OnProcessEnd(void){
   InterlockedExchange(&g_l_stoplogging,1);
-  FlushLogQueue();
   CRAMP_FlushProfileLogs();
   DeleteCriticalSection(&g_cs_log);
   DeleteCriticalSection(&g_cs_prof);
@@ -346,7 +353,7 @@ FlushLogCB(void *iLogThread,BOOLEAN itcb){
   // depending on log queue size
   HANDLE h_logth=iLogThread;
   if(g_LogQueue.size()>(2*CRAMP_LOG_BUFFER_LIMIT))
-    SetThreadPriority(h_logth,THREAD_PRIORITY_HIGHEST);
+    SetThreadPriority(h_logth,THREAD_PRIORITY_ABOVE_NORMAL);
   else if(g_LogQueue.size()<CRAMP_LOG_BUFFER_LIMIT)
     SetThreadPriority(h_logth,THREAD_PRIORITY_BELOW_NORMAL);
 
@@ -365,7 +372,7 @@ DumpLogsTH(void){
   HANDLE h_time=0;
   HANDLE h_cth=GetCurrentThread();
   if(!CreateTimerQueueTimer(&h_time,NULL,FlushLogCB,h_cth,
-                            500,500,
+                            500,1000,
                             WT_EXECUTEINIOTHREAD))
     h_time=0;
 
@@ -376,6 +383,11 @@ DumpLogsTH(void){
       EnterCriticalSection(&g_cs_log);
       fprintf(g_fLogFile,"%s\n",g_LogQueue.front().c_str());
       g_LogQueue.pop();
+      // Panic case...
+      while(g_LogQueue.size()>(3*CRAMP_LOG_BUFFER_LIMIT)){
+        fprintf(g_fLogFile,"%s\n",g_LogQueue.front().c_str());
+        g_LogQueue.pop();
+      }
       LeaveCriticalSection(&g_cs_log);
     }
     if(!dest)
@@ -412,6 +424,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
     case DLL_THREAD_DETACH:
       if(valid)
         CallMonitor::threadDetach();
+#ifndef BUFFERED_OUTPUT
+      if(g_fLogFile)
+        fflush(g_fLogFile);
+#endif
       break;
   }
   return(TRUE);
