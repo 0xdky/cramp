@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2004-01-28 10:22:29 dky>
+;; Time-stamp: <2004-02-25 16:41:03 dky>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -10,7 +10,6 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "CRAMP"
-!define PRODUCT_VERSION "1.0"
 !define PRODUCT_PUBLISHER "Delmia Solutions Pvt Ltd"
 !define PRODUCT_WEB_SITE "http://www.delmia.com/"
 !define PRODUCT_DIR_REGKEY "Software\DELMIA\${PRODUCT_NAME}"
@@ -51,11 +50,24 @@
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "..\bin\CRAMP-Setup.exe"
+OutFile "..\bin\CRAMP-${PRODUCT_VERSION}.exe"
 InstallDir "$PROGRAMFILES\CRAMP"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
+
+;--------------------------------
+; Setup file Version Information
+;--------------------------------
+VIProductVersion "${PRODUCT_VERSION}.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" ${PRODUCT_NAME}
+VIAddVersionKey /LANG=${LANG_ENGLISH} "Comments" "Profiler and Test tools"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "Delmia Gmbh"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalTrademarks" "Delmia Gmbh"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© Delmia Corp"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "CRAMP"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}.0"
+;--------------------------------
 
 Function .onInit
   SetShellVarContext all
@@ -215,6 +227,8 @@ Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
 
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\bin\CRAMP.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "Version" ${PRODUCT_VERSION}
+
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
               "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
@@ -288,6 +302,7 @@ Section Uninstall
                  "STAF Server"
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegValue HKLM "${PRODUCT_DIR_REGKEY}" "PERM"
+  DeleteRegValue HKLM "${PRODUCT_DIR_REGKEY}" "Version"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 
   IfRebootFlag RestartMsg end
