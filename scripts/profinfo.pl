@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-01 17:56:54 dhruva>
+## Time-stamp: <2003-10-15 14:53:40 dhruva>
 ##-----------------------------------------------------------------------------
 ## File: profinfo.pl
 ## Desc: PERL script to extract useful information from function profiler
@@ -62,14 +62,14 @@ foreach(keys %f_hash){
     my $cc=1;
     # Thread, module, time, tick, return
     foreach(@larr){
-        print("<CALL>\n ");
+        print("<CALL\n ");
         print("ID=\"$cc\" ");
         print("MODULE=\"@{$_}[1]\" ");
         print("THREAD=\"@{$_}[0]\" ");
         print("TIME=\"@{$_}[3]\" ");
         print("TICKS=\"@{$_}[4]\" ");
         print("RETURN=\"@{$_}[2]\" ");
-        print("</CALL>\n");
+        print("/>\n");
         $cc++;
     }
     print("</FUNCTION>\n");
