@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-28 16:53:41 dhruva>
+// Time-stamp: <2003-10-28 17:23:59 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -149,6 +149,7 @@ extern "C" __declspec(dllexport)
       fprintf(fFuncInfo,"%s\n",q_funcinfo.front().c_str());
       q_funcinfo.pop();
     }
+    fflush(fFuncInfo);
 
   }while(0);
 
@@ -160,6 +161,7 @@ extern "C" __declspec(dllexport)
 
   fclose(fFuncInfo);
   fFuncInfo=0;
+
   return;
 }
 
