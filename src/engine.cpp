@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 12:12:05 dhruva>
+// Time-stamp: <2003-10-14 12:19:49 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -323,7 +323,12 @@ MemoryPollTH(LPVOID lpParameter){
 
   CRAMPServerMessaging *pmsg=0;
   try{
-    pmsg=new CRAMPServerMessaging("pchiwi7deg",FALSE);
+    const char *clienthost=0;
+    if(getenv("CRAMP_CLIENT"))
+      clienthost=getenv("CRAMP_CLIENT");
+    else
+      clienthost=GetLocalHostName().c_str();
+    pmsg=new CRAMPServerMessaging(clienthost,FALSE);
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
