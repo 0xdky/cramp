@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-10 14:33:35 dhruva>
+// Time-stamp: <2004-01-28 14:46:56 dky>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -54,6 +54,7 @@ TestCaseInfo::Init(void){
 
   s_name.erase();
   s_exec.erase();
+  s_argv.erase();
 
   p_pgroup=0;
   p_refertc=0;
@@ -562,6 +563,23 @@ std::string
 void
 TestCaseInfo::TestCaseExec(const char *iExec){
   s_exec=iExec;
+  return;
+}
+
+//-----------------------------------------------------------------------------
+// TestCaseArgv
+//-----------------------------------------------------------------------------
+std::string
+&TestCaseInfo::TestCaseArgv(void){
+  return(s_argv);
+}
+
+//-----------------------------------------------------------------------------
+// TestCaseExec
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::TestCaseArgv(const char *iArgs){
+  s_argv=iArgs;
   return;
 }
 

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-11 08:57:07 dhruva>
+// Time-stamp: <2004-01-28 14:54:13 dky>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -257,7 +257,7 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
 
     STARTUPINFO si={sizeof(si)};
     PROCESS_INFORMATION pi={0};
-    str=ptc->TestCaseExec();
+    str=ptc->TestCaseExec()+" "+ptc->TestCaseArgv();
     if(!CreateProcess(NULL,
                       (char *)str.c_str(),
                       NULL,

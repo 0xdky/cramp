@@ -15,6 +15,7 @@
 "Testcase","Name","Testcase","Text"
 "Testcase","Block","False","Boolean"
 "Testcase","ExecPath","","Text"
+"Testcase","Argv","","Text"
 "Testcase","IdRef","","Text"
 "Testcase","MaxRunTime","0","Number"
 "Testcase","NumRuns","1","Integer"

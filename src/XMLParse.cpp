@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-11 09:10:43 dhruva>
+// Time-stamp: <2004-01-28 14:42:43 dky>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -51,6 +51,7 @@ typedef enum{
   REINITIALIZEDATA,
   STOPONFIRSTFAILURE,
   EXECPATH,
+  ARGV,
   NUMRUNS,
   EXEPROC,
   MONPROC,
@@ -89,6 +90,7 @@ ElemAttr g_ElemAttrMap[]={
   TESTCASE, "ID"                  ,   ID                  ,
   TESTCASE, "IDREF"               ,   IDREF               ,
   TESTCASE, "EXECPATH"            ,   EXECPATH            ,
+  TESTCASE, "ARGV"                ,   ARGV                ,
   TESTCASE, "NUMRUNS"             ,   NUMRUNS             ,
   TESTCASE, "NAME"                ,   NAME                ,
   TESTCASE, "PROFILING"           ,   PROFILING           ,
@@ -399,6 +401,9 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
           break;
         case EXECPATH:
           pChild->TestCaseExec((*from).attrvalue);
+          break;
+        case ARGV:
+          pChild->TestCaseArgv((*from).attrvalue);
           break;
         case MONPROC:
           pChild->MonProcStatus((stricmp((*from).attrvalue,"FALSE")&&

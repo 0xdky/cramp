@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-01 17:09:15 dhruva>
+// Time-stamp: <2004-01-28 14:38:34 dky>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -110,6 +110,9 @@ public:
   std::string &TestCaseExec(void);
   void TestCaseExec(const char *iExec);
 
+  std::string &TestCaseArgv(void);
+  void TestCaseArgv(const char *iArgs);
+
   std::string &GetUID(void){
     return(s_uid);
   };
@@ -157,6 +160,7 @@ private:
   std::string s_uid;                // UID as string for logging
   std::string s_name;               // Executable for test case
   std::string s_exec;               // Executable for test case
+  std::string s_argv;               // Executable command line arguments
 
   TestCaseInfo *p_pgroup;           // Pointer to the group this belongs to
   TestCaseInfo *p_refertc;          // Pointer to reference element
