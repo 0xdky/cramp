@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-03-17 14:29:48 dky>
+## Time-stamp: <2004-03-18 08:26:48 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -240,19 +240,15 @@ $(TSTDIR)/TestProf.cpp: $(DEPS)
 $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
 # Compile CRAMP VB project
-vb: gui plot
-
-gui: $(BINDIR)/CRAMP.exe
+vb: $(BINDIR)/CRAMP.exe $(BINDIR)/PlotChart.exe
 $(BINDIR)/CRAMP.exe: $(VBDIR)/mainui/CRAMP.vbw
+$(BINDIR)/PlotChart.exe: $(VBDIR)/Plotting/PlotChart.vbw
 $(VBDIR)/mainui/CRAMP.vbw: $(VBDIR)/mainui/CRAMP.vbp
+$(VBDIR)/Plotting/PlotChart.vbw: $(VBDIR)/Plotting/PlotChart.vbp
 $(VBDIR)/mainui/CRAMP.vbp: $(MAKEFILE) $(VBDIR)/mainui/*.bas \
                            $(VBDIR)/mainui/*.frm $(VBDIR)/mainui/*.frx
     @$(ECHO) Compiling VB project $(VBDIR)/mainui/CRAMP.vbp
     @$(VB) /make /outdir $(BINDIR) $(VBDIR)/mainui/CRAMP.vbp
-
-plot: $(BINDIR)/PlotChart.exe
-$(BINDIR)/PlotChart.exe: $(VBDIR)/Plotting/PlotChart.vbw
-$(VBDIR)/Plotting/PlotChart.vbw: $(VBDIR)/Plotting/PlotChart.vbp
 $(VBDIR)/Plotting/PlotChart.vbp: $(MAKEFILE) $(VBDIR)/Plotting/*.bas \
                                  $(VBDIR)/mainui/*.frm $(VBDIR)/Plotting/*.frx
     @$(ECHO) Compiling VB project $(VBDIR)/Plotting/PlotChart.vbp
