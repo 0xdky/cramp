@@ -940,20 +940,27 @@ Public Sub SetValueFromLV()
   
   If frmMainui.staCombo.Text = "ADDR" Then
     'address
-    If frmMainui.queryLV.ColumnHeaders(4) = "Func - Addr" Then
-      lvValue = frmMainui.queryLV.SelectedItem.SubItems(3)
-      frmMainui.addrCombo.Text = lvValue
-    ElseIf frmMainui.queryLV.ColumnHeaders(3) = "Func - Addr" Then
-      lvValue = frmMainui.queryLV.SelectedItem.SubItems(2)
-      frmMainui.addrCombo.Text = lvValue
+    If Not IsNumeric(frmMainui.queryLV.SelectedItem) Then
+      If frmMainui.queryLV.ColumnHeaders(3) = "Func - Name" Or _
+         frmMainui.queryLV.ColumnHeaders(3) = "Func - Addr" Then
+        lvValue = frmMainui.queryLV.SelectedItem.SubItems(2)
+        frmMainui.addrCombo.Text = lvValue
+      End If
+    Else
+      If frmMainui.queryLV.ColumnHeaders(4) = "Func - Addr" Then
+        lvValue = frmMainui.queryLV.SelectedItem.SubItems(3)
+        frmMainui.addrCombo.Text = lvValue
+      End If
     End If
     'set query text
     SetQueryText (frmMainui.staCombo.Text)
   ElseIf frmMainui.staCombo.Text = "THREADS" Then
     'threads
     If frmMainui.queryLV.ColumnHeaders(1) = "Thread" Then
-      lvValue = frmMainui.queryLV.SelectedItem
-      frmMainui.threadCombo.Text = lvValue
+      If IsNumeric(frmMainui.queryLV.SelectedItem) Then
+        lvValue = frmMainui.queryLV.SelectedItem
+        frmMainui.threadCombo.Text = lvValue
+      End If
       'set query text
       SetQueryText (frmMainui.staCombo.Text)
     End If
