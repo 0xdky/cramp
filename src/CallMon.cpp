@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:25:29 dhruva>
+// Time-stamp: <2003-10-17 09:47:16 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -13,7 +13,7 @@
 //-----------------------------------------------------------------------------
 #define __CALLMON_SRC
 
-#include <windows.h>
+#include "cramp.h"
 #include <imagehlp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,10 @@ typedef CallMonitor::ADDR ADDR;
 // _penter return address to start of
 // caller.
 static const unsigned OFFSET_CALL_BYTES=5;
+
+// To toggle profiling
+long g_profile=0;
+CRITICAL_SECTION cs_prof;
 
 // Start of MSVC-specific code
 
@@ -43,9 +47,12 @@ static void _pexit()
   __asm mov DWORD PTR [framePtr], ebp
     parentFramePtr = ((ADDR *)framePtr)[0];
 
-  CallMonitor::threadObj().exitProcedure(
-    parentFramePtr,
-    &((ADDR*)framePtr)[3],endTime);
+  CallMonitor *pth=0;
+  pth=CallMonitor::threadPtr();
+  if(!pth)
+    return;
+  pth->exitProcedure(parentFramePtr,
+                     &((ADDR*)framePtr)[3],endTime);
 }
 
 // An entry point to which all instrumented
@@ -107,19 +114,28 @@ extern "C" __declspec(dllexport) __declspec(naked)
       }
 
   // Instrumented code
-  if(getenv("CRAMP_PROFILE")){
+  do{
+    long dest=0;
+    InterlockedCompareExchange(&dest,1,g_profile);
+    if(dest)
+      break;
+
     CallMonitor::TICKS entryTime;
     CallMonitor::queryTicks(&entryTime); // Track entry time
 
     ADDR framePtr;
     __asm mov DWORD PTR [framePtr], ebp
+      ;                         // Just for indentation
 
-      CallMonitor::threadObj().enterProcedure(
-        (ADDR)((unsigned *)framePtr)[0],
-        (ADDR)((unsigned *)framePtr)[1]-OFFSET_CALL_BYTES,
-        (ADDR*)&((unsigned *)framePtr)[2],
-        entryTime);
-  }
+    CallMonitor *pth=0;
+    pth=CallMonitor::threadPtr();
+    if(!pth)
+      break;
+    pth->enterProcedure((ADDR)((unsigned *)framePtr)[0],
+                        (ADDR)((unsigned *)framePtr)[1]-OFFSET_CALL_BYTES,
+                        (ADDR*)&((unsigned *)framePtr)[2],
+                        entryTime);
+  }while(0);
 
   // prolog
   __asm
@@ -197,12 +213,17 @@ void CallMonitor::threadDetach()
   delete &threadObj();
 }
 
-
 CallMonitor &CallMonitor::threadObj()
 {
   CallMonitor *self = (CallMonitor *)
     TlsGetValue(tlsSlot);
   return *self;
+}
+
+CallMonitor *CallMonitor::threadPtr()
+{
+  CallMonitor *self=(CallMonitor *)TlsGetValue(tlsSlot);
+  return(self);
 }
 
 // Performs standard entry processing
@@ -217,8 +238,12 @@ void CallMonitor::enterProcedure(ADDR parentFramePtr,
   CallInfo &ci = callInfoStack.back();
   ci.funcAddr = funcAddr;
   ci.parentFrame = parentFramePtr;
-  ci.origRetAddr = *retAddrPtr,
-    ci.entryTime = entryTime;
+  ci.origRetAddr = *retAddrPtr;
+  ci.entryTime = entryTime;
+
+  EnterCriticalSection(&cs_prof);
+  getFuncInfo(ci.funcAddr,ci.modl,ci.func);
+  LeaveCriticalSection(&cs_prof);
 
   logEntry(ci);  // Log procedure entry event
 
@@ -315,7 +340,9 @@ void CallMonitor::getFuncInfo(ADDR addr,
   pSymbol->Size =0;
 
   DWORD symDisplacement = 0;
-  if (!SymLoadModule(GetCurrentProcess(),
+  HANDLE h_proc=0;
+  h_proc=GetCurrentProcess();
+  if (!SymLoadModule(h_proc,
                      NULL,
                      moduleName,
                      NULL,
@@ -325,8 +352,7 @@ void CallMonitor::getFuncInfo(ADDR addr,
 
   SymSetOptions( SymGetOptions() & ~SYMOPT_UNDNAME );
   char undName[1024];
-  if (! SymGetSymFromAddr(GetCurrentProcess(), addr,
-                          &symDisplacement, pSymbol) )
+  if (! SymGetSymFromAddr(h_proc, addr,&symDisplacement, pSymbol) )
   {
     DumpLastError();
     // Couldn't retrieve symbol (no debug info?)
@@ -347,9 +373,8 @@ void CallMonitor::getFuncInfo(ADDR addr,
            UNDNAME_NO_MEMBER_TYPE))
       strcpy(undName,pSymbol->Name);
   }
-  SymUnloadModule(GetCurrentProcess(),
-                  (DWORD)mbi.AllocationBase);
-  SymCleanup(GetCurrentProcess());
+  SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
+  SymCleanup(h_proc);
   module = modShortNameBuf;
   funcName = undName;
 }

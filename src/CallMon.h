@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-09-30 15:37:30 dhruva>
+// Time-stamp: <2003-10-17 09:33:48 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: The CallMonitor class definition
@@ -17,6 +17,10 @@
 
 #include <string>
 #include <vector>
+
+#ifndef __CALLMON_SRC
+extern long g_profile;
+#endif
 
 #ifdef PENTIUM
 // Pentium-specific RDTSC instruction -- from www.sysinternals.com
@@ -45,9 +49,9 @@ public:
   typedef __int64 TICKS;     // Timing information
 
   CallMonitor();
-
   // Thread-local singleton accessor
   static CallMonitor &threadObj();
+  static CallMonitor *threadPtr();
 
   static void threadAttach(CallMonitor *newObj);
   static void threadDetach();
@@ -93,6 +97,8 @@ protected:
     TICKS entryTime;  // Time function was called
     TICKS startTime;  // Time function started
     TICKS endTime;    // Time function returned
+    std::string modl; // Module name
+    std::string func; // Function name
   };
   typedef std::vector<CallInfo> CallInfoStack;
 

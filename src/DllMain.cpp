@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:26:34 dhruva>
+// Time-stamp: <2003-10-17 09:44:09 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler
@@ -9,30 +9,95 @@
 //-----------------------------------------------------------------------------
 #define __DLLMAIN_SRC
 
-#include <windows.h>
+#include "cramp.h"
 // Include derived class header here
 #include "CallMonLOG.h"
 
-BOOL WINAPI DllMain(
-  HINSTANCE hinstDLL,
-  DWORD fdwReason,
-  LPVOID lpvReserved
-  )
-{
+// To control profiling
+extern long g_profile;
+extern CRITICAL_SECTION cs_prof;
+
+// Methods to toggle profiling programmatically
+extern "C" __declspec(dllexport)
+  void __declspec(naked) CRAMP_EnableProfile(void){
+  __asm
+  {
+    PUSH EBP
+      MOV  EBP , ESP
+      PUSH EAX
+      MOV  EAX , ESP
+      SUB  ESP , __LOCAL_SIZE
+      PUSHAD
+      }
+
+  InterlockedExchange(&g_profile,1);
+
+  __asm
+  {
+    POPAD
+      ADD ESP , __LOCAL_SIZE
+      POP EAX
+      MOV ESP , EBP
+      POP EBP
+      RET
+      }
+}
+
+extern "C" __declspec(dllexport)
+  void __declspec(naked) CRAMP_DisableProfile(void){
+  __asm
+  {
+    PUSH EBP
+      MOV  EBP , ESP
+      PUSH EAX
+      MOV  EAX , ESP
+      SUB  ESP , __LOCAL_SIZE
+      PUSHAD
+      }
+
+  InterlockedExchange(&g_profile,0);
+
+  __asm
+  {
+    POPAD
+      ADD ESP , __LOCAL_SIZE
+      POP EAX
+      MOV ESP , EBP
+      POP EBP
+      RET
+      }
+}
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL,
+                    DWORD fdwReason,
+                    LPVOID lpvReserved){
+
   CallMonitor::TICKS frequency=0;
+  static BOOL valid=FALSE;
+
   switch (fdwReason)
   {
-    case DLL_PROCESS_ATTACH: // fall through
-      CallMonitor::queryTickFreq(&frequency); // Initialize frequency ratio
+    case DLL_PROCESS_ATTACH:
+      do{
+        CallMonitor::queryTickFreq(&frequency);
+        if(getenv("CRAMP_PROFILE"))
+          InterlockedExchange(&g_profile,1);
+        else
+          InterlockedExchange(&g_profile,0);
+        if(!InitializeCriticalSectionAndSpinCount(&cs_prof,4000L))
+          break;
+        valid=TRUE;
+      }while(0);
     case DLL_THREAD_ATTACH:
-      // Create instance of derived class below
-      CallMonitor::threadAttach(new CallMonLOG);
+      if(valid)
+        CallMonitor::threadAttach(new CallMonLOG());
       break;
-    case DLL_THREAD_DETACH:  // fall through
+    case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
-      CallMonitor::threadDetach();
+      if(valid)
+        CallMonitor::threadDetach();
       break;
   }
-  return TRUE;
+  return(TRUE);
 }
 //End of file
