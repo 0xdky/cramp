@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-03 15:48:26 dhruva>
+// Time-stamp: <2003-10-06 17:26:38 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -93,7 +93,8 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
     u_uid=AUTO_UNIQUE_BASE+Scenario()->l_gc.size();
   }
 
-  // Add this at end or you will find it and make a infinite RECURSE!!
+  // Add this at end or you will find it!
+  // and create an infinite RECURSIVE link!!
   if(ipParentGroup)
     p_scenario->l_gc.push_back(this);
 }
@@ -148,7 +149,7 @@ TestCaseInfo
 *TestCaseInfo::CreateScenario(const char *iUniqueID,
                               BOOLEAN iBlock){
   TestCaseInfo *pScenario=0;
-  pScenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
+  pScenario=AddGroup(0,TRUE);
   return(pScenario);
 }
 
