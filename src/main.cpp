@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 16:48:50 dhruva>
+// Time-stamp: <2003-11-03 18:00:23 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -69,10 +69,12 @@ WINAPI WinMain(HINSTANCE hinstExe,
   }
 
   // Currently supports only 1 arg
+  char *buff=0;
   char msg[256];
   char scenario[256];
   WideCharToMultiByte(CP_ACP,0,argvW[1],-1,
                       scenario,256,0,0);
+  GetFullPathName(scenario,256,scenario,&buff);
 
   HANDLE h_job=0;
   HANDLE h_memtimer=0;
