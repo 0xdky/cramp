@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 21:28:18 dhruva>
+// Time-stamp: <2003-11-01 09:31:36 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -70,6 +70,10 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
       (*iter).second._maxticks=elapsedticks;
   }
   LeaveCriticalSection(&g_cs_prof);
+
+  // For stats only
+  if(!g_fLogFile)
+    return;
 
   EnterCriticalSection(&g_cs_log);
   fprintf(g_fLogFile,"%d|%08X|%d|%d|%I64d|%I64d\n",

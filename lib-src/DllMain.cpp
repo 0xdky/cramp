@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 10:23:33 dhruva>
+// Time-stamp: <2003-11-01 09:38:58 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -55,13 +55,8 @@ extern "C" __declspec(dllexport)
   // Usually this iscalled to collect all logs
   // Hence, flush all logs before getting logs
 
-#ifdef BUFFERED_OUTPUT
-  FlushLogQueue();
-#else
-  fflush(g_fLogFile);
-#endif
-  if(!g_fFuncInfo)
-    return;
+  if(g_fLogFile)
+    fflush(g_fLogFile);
 
   // Block the modification of hash
   EnterCriticalSection(&g_cs_prof);
@@ -85,15 +80,20 @@ extern "C" __declspec(dllexport)
     if(!(*iter).second._pending)
       continue;
     (*iter).second._pending=FALSE;
-    WriteFuncInfo((*iter).first,(*iter).second._calls);
+
+    if(!g_fFuncInfo)
+      WriteFuncInfo((*iter).first,(*iter).second._calls);
   }
   if(f_stat){
     fflush(f_stat);
     fclose(f_stat);
   }
+
   // Unlock the hash
   LeaveCriticalSection(&g_cs_prof);
-  fflush(g_fFuncInfo);
+
+  if(g_fFuncInfo)
+    fflush(g_fFuncInfo);
 
   return;
 }
@@ -304,9 +304,13 @@ OnProcessStart(void){
     sprintf(filename,"%s/cramp_profile#%d.log",
             logpath,
             g_pid);
-    g_fLogFile=fopen(filename,"wc");
-    if(!g_fLogFile)
-      break;
+
+    // If only STAT is required
+    if(!getenv("CRAMP_PROFILE_STAT")){
+      g_fLogFile=fopen(filename,"wc");
+      if(!g_fLogFile)
+        break;
+    }
 
     sprintf(filename,"%s/cramp_funcinfo#%d.log",
             logpath,
@@ -362,8 +366,10 @@ OnProcessEnd(void){
   InterlockedExchange(&g_l_stoplogging,1);
   CRAMP_FlushProfileLogs();
 
-  fclose(g_fLogFile);
-  fclose(g_fFuncInfo);
+  if(g_fLogFile)
+    fclose(g_fLogFile);
+  if(g_fFuncInfo)
+    fclose(g_fFuncInfo);
 
   g_fLogFile=0;
   g_fFuncInfo=0;
@@ -459,12 +465,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
     case DLL_THREAD_DETACH:
       if(valid)
         CallMonitor::threadDetach();
-#ifndef BUFFERED_OUTPUT
       if(g_fLogFile)
         fflush(g_fLogFile);
       if(g_fFuncInfo)
         fflush(g_fFuncInfo);
-#endif
       break;
   }
   return(TRUE);
