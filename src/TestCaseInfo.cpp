@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-09 17:02:11 dhruva>
+// Time-stamp: <2003-10-10 12:55:01 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -46,6 +46,7 @@ ApplyDelete(TestCaseInfo *ipTC){
 void
 TestCaseInfo::Init(void){
   b_gc=FALSE;
+  b_uid=FALSE;
   b_refer=FALSE;
   b_block=TRUE;
   b_group=FALSE;
@@ -104,8 +105,10 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
     throw(excep);
   }
 
-  if(iUniqueID)
+  if(iUniqueID){
+    b_uid=TRUE;
     u_uid=hashstring(iUniqueID);
+  }
   b_block=iBlock;
   b_group=iGroup;
   b_subproc=iSubProc;
@@ -113,7 +116,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   p_scenario=(p_pgroup)?p_pgroup->Scenario():this;
 
   // Very important phase... Setting UID, establish links
-  if(0!=u_uid){
+  if(b_uid){
     TestCaseInfo *ptc=FindTCFromUID(u_uid);
     if(ptc){
       if(!IsReferenceValid(ipParentGroup,ptc)){
@@ -122,7 +125,9 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
         excep._error=u_uid;
         throw(excep);
       }
+      // Since this is a reference, generate a uid
       u_uid=0;
+      b_uid=FALSE;
       ReferStatus(TRUE);
       Reference(ptc);
     }
@@ -137,15 +142,12 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
       LeaveCriticalSection(&cs_tci);
       ListOfTestCaseInfo &lgc=BlockListOfGC();
       lgc.push_back(this);
-      if(!u_uid)
-        u_uid=AUTO_UNIQUE_BASE+lgc.size();
       ReleaseListOfGC();
     }
     catch(CRAMPException excep){
       throw(excep);
     }
   }
-
 }
 
 //-----------------------------------------------------------------------------
@@ -362,20 +364,12 @@ TestCaseInfo::ReferStatus(void){
 }
 
 //-----------------------------------------------------------------------------
-// BlockStatus
+// ReferStatus
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::ReferStatus(BOOLEAN iIsReference){
   b_refer=iIsReference;
   return;
-}
-
-//-----------------------------------------------------------------------------
-// UniqueID
-//-----------------------------------------------------------------------------
-SIZE_T
-TestCaseInfo::UniqueID(void){
-  return(u_uid);
 }
 
 //-----------------------------------------------------------------------------
@@ -605,7 +599,7 @@ TestCaseInfo
         break;
       ListOfTestCaseInfo::iterator iter=lgc.begin();
       for(;!ptc&&iter!=lgc.end();iter++)
-        if((*iter)&&((*iter)->UniqueID()==iuid))
+        if((*iter)&&(*iter)->b_uid&&((*iter)->u_uid==iuid))
           ptc=(*iter);
     }while(0);
     ReleaseListOfGC();
@@ -658,7 +652,7 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
   for(;TRUE==ret&&iter!=l_tc.end();iter++){
     TestCaseInfo *ptc=(*iter);
     if(ptc->GroupStatus())
-      if(ipEntry->UniqueID()==ptc->UniqueID())
+      if(ipEntry->u_uid==ptc->u_uid)
         ret=FALSE;
       else
         ret=IsReferenceValid(ipEntry,ptc);

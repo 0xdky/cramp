@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-09 16:07:27 dhruva>
+// Time-stamp: <2003-10-10 12:55:39 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -23,8 +23,7 @@
 #include <xercesc/util/XMLString.hpp>
 XERCES_CPP_NAMESPACE_USE
 
-// User defined Unique ID's cannot be greater than this
-#define AUTO_UNIQUE_BASE 55555
+// Could use CS instead of mutex
 #define GC_MUTEX "GC_LIST_MUTEX"
 
 //----------------------- GENERIC STRUCTS AND TYPEDEFS-------------------------
@@ -113,6 +112,7 @@ public:
 
 private:
   BOOLEAN b_gc;                     // Marked for deletion
+  BOOLEAN b_uid;                    // Has user specified UID
   BOOLEAN b_refer;                  // Should I refer an existing test case
   BOOLEAN b_group;                  // Is this a group
   BOOLEAN b_block;                  // Blocking or non blocking run
@@ -156,7 +156,6 @@ private:
 
   // Internal methods
   inline void Init(void);
-  SIZE_T UniqueID(void);
   inline SIZE_T hashstring(const char *s);
   void GroupStatus(BOOLEAN iIsGroup);
   void ReferStatus(BOOLEAN iIsReference);
