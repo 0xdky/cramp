@@ -438,7 +438,7 @@ Public Sub InitialiseMRUFileList()
         Input #1, sMRUFile
 
         ' Strip trailing spaces
-        If (0 = Len(sMRUFile)) Then
+        If (0 <> Len(sMRUFile)) Then
             While (" " = Right$(sMRUFile, 1))
                 sMRUFile = Left$(sMRUFile, Len(sMRUFile) - 1)
             Wend
@@ -701,7 +701,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = True
-           .addLabel.Visible = False
+           .AddLabel.Visible = False
            .limitLabel.Visible = True
            'move controls
            .limitText.Move 4680, 480
@@ -717,14 +717,14 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .addLabel.Visible = True
+           .AddLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
            .addrCombo.Move 2520, 480
            .limitText.Move 3720, 480
            .appendCheck.Move 4670, 480
            'move lables
-           .addLabel.Move 2520, 240
+           .AddLabel.Move 2520, 240
            .limitLabel.Move 3720, 240
       Case "STAT"
            'hide-show controls
@@ -735,7 +735,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .addLabel.Visible = False
+           .AddLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
            .appendCheck.Move 2510, 480
