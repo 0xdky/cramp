@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2004-03-17 14:31:52 dky>
+;; Time-stamp: <2004-06-21 18:03:52 dky>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -256,7 +256,7 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC02} "CRAMP Win32 profiler"
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC03} \
                                     "Software Test Automation Framework"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SEC04} "PERL - 5.9.0 (+ extra modules)"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SEC04} "PERL - 5.9.1 (+ extra modules)"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Function un.onUninstSuccess
