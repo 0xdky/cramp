@@ -7,6 +7,7 @@ Begin VB.Form frmMainui
    ClientLeft      =   5340
    ClientTop       =   3075
    ClientWidth     =   8670
+   Icon            =   "frmMainui.frx":0000
    LinkTopic       =   "Form1"
    ScaleHeight     =   8490
    ScaleWidth      =   8670
@@ -31,11 +32,11 @@ Begin VB.Form frmMainui
          BeginProperty Images {2C247F25-8591-11D1-B16A-00C0F0283628} 
             NumListImages   =   2
             BeginProperty ListImage1 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-               Picture         =   "frmMainui.frx":0000
+               Picture         =   "frmMainui.frx":0CCA
                Key             =   ""
             EndProperty
             BeginProperty ListImage2 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-               Picture         =   "frmMainui.frx":00D2
+               Picture         =   "frmMainui.frx":0D9C
                Key             =   ""
             EndProperty
          EndProperty
@@ -392,9 +393,9 @@ Begin VB.Form frmMainui
       End
       Begin VB.ComboBox cboTrueFalse 
          Height          =   315
-         ItemData        =   "frmMainui.frx":01A4
+         ItemData        =   "frmMainui.frx":0E6E
          Left            =   6000
-         List            =   "frmMainui.frx":01AE
+         List            =   "frmMainui.frx":0E78
          TabIndex        =   9
          Text            =   "TRUE"
          Top             =   5400

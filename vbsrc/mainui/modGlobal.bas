@@ -777,7 +777,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = True
-           .addLabel.Visible = False
+           .AddLabel.Visible = False
            .limitLabel.Visible = True
            'move controls
            .limitText.Move 4680, 480
@@ -793,14 +793,14 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = False
-           .addLabel.Visible = True
+           .AddLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
            .addressText.Move 3600, 480
            .limitText.Move 4800, 480
            .appendCheck.Move 5740, 480
            'move lables
-           .addLabel.Move 3600, 240
+           .AddLabel.Move 3600, 240
            .limitLabel.Move 4800, 240
       Case "STAT"
            'hide-show controls
@@ -811,7 +811,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .addLabel.Visible = False
+           .AddLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
            .appendCheck.Move 2510, 480
@@ -824,6 +824,8 @@ End Sub
 Public Sub SetQueryText(strVal As String)
 
 Dim queryText As String
+
+On Error Resume Next
 
 Select Case strVal
     Case "THREADS"
