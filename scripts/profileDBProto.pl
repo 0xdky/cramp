@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-12-18 10:10:55 dhruva>
+## Time-stamp: <2003-12-26 13:30:28 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -293,7 +293,7 @@ sub UpdateDB{
 ##-----------------------------------------------------------------------------
 sub DumpLogsToDB{
   my $table=$_[0];
-  AddRawLogs();
+  AddRawLogs($f_logtxt);
   if ($table=~/TICK/) {
     AddTickSortedData();
   } elsif ($table=~/ADDR/) {
@@ -543,40 +543,48 @@ sub GetThreadIDs{
 
 ##-----------------------------------------------------------------------------
 ## AddRawLogs
+##  Check when log files are really huge ie., 500+Mb
 ##-----------------------------------------------------------------------------
 sub AddRawLogs{
-  open(LOGTXT,$f_logtxt) || die("Cannot open \"$f_logtxt\" for read");
-  my $key;
-  my %h_tid;
+  open(LOGTXT,$_[0]) || die("Cannot open \"$_[0]\" for read");
+  my $db;
+  my $tid=0;
+  my $ptid=0;
+  my @tids=();
+  my @rawlogs=();
+
   while (<LOGTXT>) {
     chomp();
+    push(@rawlogs,$_);
+  }
+
+  foreach (sort @rawlogs) {
     my $buf=$_;
-    $buf=~s/^([0-9]+)/{$key=$1}/e;
-    if (!exists($h_tid{$key})) {
-      $h_tid{$key}=new BerkeleyDB::Recno
+    $buf=~s/^([0-9]+)/{$tid=$1}/e;
+    if ($tid != $ptid) {
+      $ptid=$tid;
+      push(@tids,$tid);
+      if (defined($db)) {
+        undef $db;
+      }
+
+      $db=new BerkeleyDB::Recno
         -Filename    => $f_logdb,
-          -Subname     => "RAW#$key",
+          -Subname     => "RAW#$tid",
             -Flags       => DB_EXCL|DB_CREATE,
               -Property    => DB_RENUMBER
                 || return 1;
-      next if !defined($h_tid{$key});
-      if (SetDBFilters($h_tid{$key})) {
+      die if !defined($db);
+      if (SetDBFilters($db)) {
         return 1;
       }
       my $count=0;
-      $h_tid{$key}->truncate($count);
+      $db->truncate($count);
     }
-    $h_tid{$key}->db_put($key,$_,DB_APPEND);
-  } continue {
-    delete $h_tid{$key};
+    my $key=$tid;
+    $db->db_put($key,$_,DB_APPEND);
   }
   close(LOGTXT);
-
-  my @tids=();
-  foreach (keys %h_tid) {
-    push(@tids,$_);
-    undef $h_tid{$_};
-  }
 
   if ($#tids) {
     AddThreadIDs(@tids);
