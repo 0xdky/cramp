@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-19 16:15:06 dhruva>
+// Time-stamp: <2003-11-20 12:18:19 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -114,32 +114,25 @@ WINAPI WinMain(HINSTANCE hinstExe,
                             JobObjectAssociateCompletionPortInformation,
                             &joacp,
                             sizeof(joacp));
-    // JOB time limit
-    SIZE_T jobmaxtime=0;
-    jobmaxtime=g_CRAMP_Engine.g_pScenario->MaxTimeLimit();
-    if(jobmaxtime){
-      JOBOBJECT_BASIC_LIMIT_INFORMATION jobli={0};
-      jobli.LimitFlags=JOB_OBJECT_LIMIT_JOB_TIME;
-      // To 100-NANO seconds
-      jobli.PerJobUserTimeLimit.QuadPart=UInt32x32To64(jobmaxtime,1000);
-      SetInformationJobObject(g_CRAMP_Engine.g_hJOB,
-                              JobObjectBasicLimitInformation,
-                              &jobli,
-                              sizeof(jobli));
-
-      JOBOBJECT_END_OF_JOB_TIME_INFORMATION joeoj={0};
-      joeoj.EndOfJobTimeAction=JOB_OBJECT_POST_AT_END_OF_JOB;
-      SetInformationJobObject(g_CRAMP_Engine.g_hJOB,
-                              JobObjectEndOfJobTimeInformation,
-                              &joeoj,
-                              sizeof(joeoj));
-    }
 
     // Start only after making SCENARIO
     h_arr[1]=chBEGINTHREADEX(NULL,0,MemoryPollTH,
                              (LPVOID)g_CRAMP_Engine.g_pScenario,
                              0,NULL);
     DEBUGCHK(h_arr[1]);
+
+    // JOB time limit just before running
+    SIZE_T jobmaxtime=0;
+    jobmaxtime=g_CRAMP_Engine.g_pScenario->MaxTimeLimit();
+    if(jobmaxtime){
+      CreateTimerQueueTimer(&g_CRAMP_Engine.g_hJOBTimer,
+                            NULL,
+                            JOBTimeLimitReachedCB,
+                            NULL,
+                            jobmaxtime,
+                            0,
+                            WT_EXECUTEONLYONCE|WT_EXECUTEINTIMERTHREAD);
+    }
 
     // Run the engine
     ret=CreateManagedProcesses(g_CRAMP_Engine.g_pScenario);
@@ -197,6 +190,12 @@ WINAPI WinMain(HINSTANCE hinstExe,
   if(g_CRAMP_Engine.g_hJOB){
     CloseHandle(g_CRAMP_Engine.g_hJOB);
     g_CRAMP_Engine.g_hJOB=0;
+  }
+
+  if(g_CRAMP_Engine.g_hJOBTimer){
+    DeleteTimerQueueTimer(NULL,g_CRAMP_Engine.g_hJOBTimer,NULL);
+    CloseHandle(g_CRAMP_Engine.g_hJOBTimer);
+    g_CRAMP_Engine.g_hJOBTimer=0;
   }
 
   GlobalFree(argvW);

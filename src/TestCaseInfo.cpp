@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 12:37:38 dhruva>
+// Time-stamp: <2003-11-20 12:11:58 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -64,6 +64,9 @@ TestCaseInfo::Init(void){
   u_maxtimelimit=0;
 
   h_deltimer=0;
+  memset(&pi_procinfo,0,sizeof(pi_procinfo));
+
+  return;
 }
 
 //-----------------------------------------------------------------------------

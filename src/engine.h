@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 12:02:01 dhruva>
+// Time-stamp: <2003-11-20 12:07:10 dhruva>
 //-----------------------------------------------------------------------------
 // File : engine.h
 // Desc : engine header file
@@ -37,11 +37,13 @@ public:
 
 #ifndef __ENGINE_SRC
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
-extern void InitGlobals(void);
-extern int DumpLogsToXML(char *);
 extern DWORD WINAPI JobNotifyTH(LPVOID);
 extern DWORD WINAPI CreateManagedProcesses(LPVOID);
 extern DWORD WINAPI MemoryPollTH(LPVOID);
+extern void CALLBACK JOBTimeLimitReachedCB(PVOID,BOOLEAN);
+
+extern void InitGlobals(void);
+extern int DumpLogsToXML(char *);
 extern TestCaseInfo *GetTestCaseInfos(const char *);
 extern BOOLEAN GetTestCaseMemoryDetails(HANDLE &,TestCaseInfo *&);
 extern BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *,CRAMPMessaging *);

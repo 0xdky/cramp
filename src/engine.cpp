@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-19 16:09:52 dhruva>
+// Time-stamp: <2003-11-20 12:10:02 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -81,11 +81,27 @@ CRAMPServerMessaging::Process(void){
 //-----------------------------------------------------------------------------
 void
 InitGlobals(void){
+  g_CRAMP_Engine.g_hJOB=0;
   g_CRAMP_Engine.g_hIOCP=0;
+  g_CRAMP_Engine.g_hJOBTimer=0;
+
   g_CRAMP_Engine.g_fLogFile=0;
   g_CRAMP_Engine.g_pScenario=0;
+
   g_CRAMP_Engine.g_l_stopengine=0;
   g_CRAMP_Engine.g_scenariostatus=0;
+  return;
+}
+
+//-----------------------------------------------------------------------------
+// JOBTimeLimitReachedCB
+//-----------------------------------------------------------------------------
+void CALLBACK
+JOBTimeLimitReachedCB(PVOID data,BOOLEAN iTT){
+  g_CRAMP_Engine.g_pScenario->AddLog("# SCENARIO Timeout");
+  TerminateJobObject(g_CRAMP_Engine.g_hJOB,WAIT_TIMEOUT);
+  g_CRAMP_Engine.g_scenariostatus=WAIT_TIMEOUT;
+  InterlockedExchange(&g_CRAMP_Engine.g_l_stopengine,1);
   return;
 }
 
@@ -498,9 +514,8 @@ JobNotifyTH(LPVOID){
           ptc->AddLog("# Abnormal exit");
           break;
         case JOB_OBJECT_MSG_END_OF_JOB_TIME:
-          g_CRAMP_Engine.g_pScenario->AddLog("# SCENARIO Timeout");
-          TerminateJobObject(g_CRAMP_Engine.g_hJOB,WAIT_TIMEOUT);
-          g_CRAMP_Engine.g_scenariostatus=WAIT_TIMEOUT;
+          JOBTimeLimitReachedCB(NULL,FALSE);
+          break;
         case JOB_OBJECT_TERMINATE_AT_END_OF_JOB:
           InterlockedExchange(&g_CRAMP_Engine.g_l_stopengine,1);
           break;
