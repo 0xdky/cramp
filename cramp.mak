@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-03-13 17:47:50 dky>
+## Time-stamp: <2004-03-17 14:29:48 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -97,7 +97,7 @@ UTILITIES=$(BINDIR)/ProfileControl.exe $(BINDIR)/profileDB.exe \
 
 # Currently disabled base class build: Problem with SDK
 all: cramp
-cramp: dirs res engine library utils test gui
+cramp: dirs res engine library utils test vb
 remake: clean cramp
 
 # Dependancy to force a re-build
@@ -240,6 +240,8 @@ $(TSTDIR)/TestProf.cpp: $(DEPS)
 $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
 # Compile CRAMP VB project
+vb: gui plot
+
 gui: $(BINDIR)/CRAMP.exe
 $(BINDIR)/CRAMP.exe: $(VBDIR)/mainui/CRAMP.vbw
 $(VBDIR)/mainui/CRAMP.vbw: $(VBDIR)/mainui/CRAMP.vbp
@@ -247,6 +249,14 @@ $(VBDIR)/mainui/CRAMP.vbp: $(MAKEFILE) $(VBDIR)/mainui/*.bas \
                            $(VBDIR)/mainui/*.frm $(VBDIR)/mainui/*.frx
     @$(ECHO) Compiling VB project $(VBDIR)/mainui/CRAMP.vbp
     @$(VB) /make /outdir $(BINDIR) $(VBDIR)/mainui/CRAMP.vbp
+
+plot: $(BINDIR)/PlotChart.exe
+$(BINDIR)/PlotChart.exe: $(VBDIR)/Plotting/PlotChart.vbw
+$(VBDIR)/Plotting/PlotChart.vbw: $(VBDIR)/Plotting/PlotChart.vbp
+$(VBDIR)/Plotting/PlotChart.vbp: $(MAKEFILE) $(VBDIR)/Plotting/*.bas \
+                                 $(VBDIR)/mainui/*.frm $(VBDIR)/Plotting/*.frx
+    @$(ECHO) Compiling VB project $(VBDIR)/Plotting/PlotChart.vbp
+    @$(VB) /make /outdir $(BINDIR) $(VBDIR)/Plotting/PlotChart.vbp
 
 # Compile the installer
 !IF ("$(LEVEL)"=="MAJOR" || "$(LEVEL)"=="MINOR" || "$(LEVEL)"=="TRIVIAL")
