@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 15:44:42 dhruva>
+// Time-stamp: <2003-11-03 15:49:43 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -308,7 +308,8 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
         TerminateProcess(pi.hProcess,dwret);
         dwret=1;
       }else{
-        porigtc->AddLog("MESSAGE|ERROR|PROC|Wait failed");
+        sprintf(msg,"MESSAGE|ERROR|PROC|Wait failed %ld:%ld",maxwait,dwret);
+        porigtc->AddLog(msg);
         dwret=0;
       }
     }else{
