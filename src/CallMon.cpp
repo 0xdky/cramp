@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-01 09:54:01 dhruva>
+// Time-stamp: <2003-10-14 11:25:29 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -11,6 +11,8 @@
 // 09-30-2003  Mod                                                          dky
 // 10-01-2003  Mod  Profile only if CRAMP_PROFILE env var is set            dky
 //-----------------------------------------------------------------------------
+#define __CALLMON_SRC
+
 #include <windows.h>
 #include <imagehlp.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-01 10:11:43 dhruva>
+// Time-stamp: <2003-10-14 11:26:34 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler
@@ -7,6 +7,8 @@
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
 //-----------------------------------------------------------------------------
+#define __DLLMAIN_SRC
+
 #include <windows.h>
 // Include derived class header here
 #include "CallMonLOG.h"

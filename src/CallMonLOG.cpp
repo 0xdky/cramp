@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-01 10:10:12 dhruva>
+// Time-stamp: <2003-10-14 11:25:59 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -7,6 +7,8 @@
 // mm-dd-yyyy  History                                                      tri
 // 09-30-2003  Mod                                                          dky
 //-----------------------------------------------------------------------------
+#define __CALLMONLOG_SRC
+
 #include <Windows.h>
 #include "CallMonLOG.h"
 

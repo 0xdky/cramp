@@ -2,33 +2,34 @@
 //----------------------------------------------------------------------------
 // File : DPEBaseClass.cpp
 // Desc : Implementation of DPEBaseClass
-// Usage: 
+// Usage:
 //----------------------------------------------------------------------------
 // mm-dd-yyyy  History                                                    user
 // 10-06-2003  Cre                                                         sjm
-// 10-07-2003  Modify and add proper comments				   sjm
+// 10-07-2003  Modify and add proper comments				               sjm
 //----------------------------------------------------------------------------
+#define __DPEBASECLASS_SRC
 
 #include "DPEBaseClass.h"
 
 //----------------------------------------------------------------------------
-// DPEBaseClass  
+// DPEBaseClass
 //----------------------------------------------------------------------------
 DPEBaseClass::DPEBaseClass()
 {
-    //_asm {int 3};
-    USES_CONVERSION;
-    
-    cout<<"\nEstablishing Connection to IPDServer via local IPDClient...\n\n";
+  //_asm {int 3};
+  USES_CONVERSION;
 
-    if(SUCCEEDED(CoInitializeEx(NULL, COINIT_MULTITHREADED)))
-    {
+  cout<<"\nEstablishing Connection to IPDServer via local IPDClient...\n\n";
+
+  if(SUCCEEDED(CoInitializeEx(NULL, COINIT_MULTITHREADED)))
+  {
 	Connect();
-    } 
-    else
-    {
-        throw ServerNotInitialised();
-    }
+  }
+  else
+  {
+    throw ServerNotInitialised();
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -36,218 +37,218 @@ DPEBaseClass::DPEBaseClass()
 //----------------------------------------------------------------------------
 DPEBaseClass::~DPEBaseClass()
 {
-    USES_CONVERSION;
-    pProjectRoot = NULL;
-    pArchivRoot = NULL;
-    pSimpleQuery = NULL;
-    pConfigFactoryCache = NULL;
-    pConfigFactory = NULL;
-    //Unregister from IPDClient
-    hRes = pIPDClient->UnregisterClientId( lClientId );
-    RetVal = PrintSuccess( hRes, "\nUnregisterClientId" );
-    pIPDClient = NULL;
-    CoUninitialize(); 
-    cout<<"Connection Closed!!\n";
+  USES_CONVERSION;
+  pProjectRoot = NULL;
+  pArchivRoot = NULL;
+  pSimpleQuery = NULL;
+  pConfigFactoryCache = NULL;
+  pConfigFactory = NULL;
+  //Unregister from IPDClient
+  hRes = pIPDClient->UnregisterClientId( lClientId );
+  RetVal = PrintSuccess( hRes, "\nUnregisterClientId" );
+  pIPDClient = NULL;
+  CoUninitialize();
+  cout<<"Connection Closed!!\n";
 }
 
 //----------------------------------------------------------------------------
-// Connect  
+// Connect
 //   Connect to server
 //   Throws an exception if any problem is occured while establishing
 //   connection.
 //----------------------------------------------------------------------------
-void 
+void
 DPEBaseClass::Connect()
 {
-    USES_CONVERSION;
-    
-    //
-    // Initialise security
-    //
-    hRes = CoInitializeSecurity( NULL, -1, NULL, NULL,
-			         RPC_C_AUTHN_LEVEL_CONNECT, 
-			         RPC_C_IMP_LEVEL_IMPERSONATE, 
-			         NULL, EOAC_NONE, NULL );
-        
-    if(!PrintSuccess( hRes, "CoInitializeSecurity" )) 
-    {
-        throw ServerNotInitialised();
-    }
-    
-    //
-    // Create IPDClient object
-    //
-    pIPDClient = NULL;
-    hRes = CoCreateInstance( __uuidof(EPIPDClient), // Class ID
-			    NULL, CLSCTX_ALL,	    // INPROC_SERVER, 
-			    __uuidof(IEPIPDClient), // Interface ID (RefIID)
-			   (void **) &pIPDClient ); // Interface pointer address
-	
-    if(!PrintSuccess( hRes,"Creation of IPDClient" )) 
-    {
-        throw ServerNotInitialised();
-    }
+  USES_CONVERSION;
 
-    //
-    // Set login data
-    //
-    hRes = pIPDClient->SetLoginInfo( CComBSTR( L"admin" ),  //Username
-				     CComBSTR( L"admin" )); //Password
-    RetVal = PrintSuccess( hRes, "SetLoginInfo of IPDClient" ); 
+  //
+  // Initialise security
+  //
+  hRes = CoInitializeSecurity( NULL, -1, NULL, NULL,
+                               RPC_C_AUTHN_LEVEL_CONNECT,
+                               RPC_C_IMP_LEVEL_IMPERSONATE,
+                               NULL, EOAC_NONE, NULL );
 
-    //
-    // Retrieve client ID from IPDClient
-    //
-    hRes = pIPDClient->GetNewClientId( &lClientId );
-    if(!PrintSuccess( hRes, "GetNewClientId of IPDClient" )) 
-    {
-        throw ServerNotInitialised();
-    }
+  if(!PrintSuccess( hRes, "CoInitializeSecurity" ))
+  {
+    throw ServerNotInitialised();
+  }
 
-    //
-    // Set project root
-    //
-    pProjectRoot = NULL;
-    hRes = pIPDClient->GetServerCOMObject( lClientId,
-					    __uuidof(DOProjectRoot), 
-					    __uuidof(IEP_BaseDataObject),
-					    (void **) &pProjectRoot );
-    if(!PrintSuccess( hRes, "Retrieved Project Root" )) 
-    {
-        throw ServerNotInitialised();
-    }
+  //
+  // Create IPDClient object
+  //
+  pIPDClient = NULL;
+  hRes = CoCreateInstance( __uuidof(EPIPDClient), // Class ID
+                           NULL, CLSCTX_ALL,	    // INPROC_SERVER,
+                           __uuidof(IEPIPDClient), // Interface ID (RefIID)
+                           (void **) &pIPDClient ); // Interface pointer address
 
-    //
-    // Set archiv root
-    //
-    pArchivRoot = NULL;
-    hRes = pIPDClient->GetServerCOMObject( lClientId,
-					    __uuidof(DOArchivRoot), 
-					    __uuidof(IEP_BaseDataObject),
-					    (void **) &pArchivRoot ); 
-    if(!PrintSuccess( hRes,"Retrieved Archiv Root" )) 
-    {
-        throw ServerNotInitialised();
-    }
-    
-    //
-    // Get query machine
-    //
-    hRes = pIPDClient->GetServerCOMObject( lClientId,
-					    __uuidof(EP_QueryMachine), 
-					    __uuidof(IEP_SimpleQuery),
-					    (void **) &pSimpleQuery );
-    if(!PrintSuccess( hRes,"Get Simple Query" )) 
-    {
-        throw ServerNotInitialised();
-    }
+  if(!PrintSuccess( hRes,"Creation of IPDClient" ))
+  {
+    throw ServerNotInitialised();
+  }
 
-    // 
-    // Get configfactory cache	
-    // 
-    IUnknown *pUnk = NULL;
-    // Get EPConfigFactoryCache
-    pIPDClient->GetConfigFactoryCache( &pUnk ); 
-    pUnk->QueryInterface( __uuidof( IEPConfigFactoryCache ), 
-			 (void**) & pConfigFactoryCache );
+  //
+  // Set login data
+  //
+  hRes = pIPDClient->SetLoginInfo( CComBSTR( L"admin" ),  //Username
+                                   CComBSTR( L"admin" )); //Password
+  RetVal = PrintSuccess( hRes, "SetLoginInfo of IPDClient" );
 
-    // 
-    // Get configFactory
-    //
-    pConfigFactoryCache->GetRealConfigFactory( &pConfigFactory );
+  //
+  // Retrieve client ID from IPDClient
+  //
+  hRes = pIPDClient->GetNewClientId( &lClientId );
+  if(!PrintSuccess( hRes, "GetNewClientId of IPDClient" ))
+  {
+    throw ServerNotInitialised();
+  }
+
+  //
+  // Set project root
+  //
+  pProjectRoot = NULL;
+  hRes = pIPDClient->GetServerCOMObject( lClientId,
+                                         __uuidof(DOProjectRoot),
+                                         __uuidof(IEP_BaseDataObject),
+                                         (void **) &pProjectRoot );
+  if(!PrintSuccess( hRes, "Retrieved Project Root" ))
+  {
+    throw ServerNotInitialised();
+  }
+
+  //
+  // Set archiv root
+  //
+  pArchivRoot = NULL;
+  hRes = pIPDClient->GetServerCOMObject( lClientId,
+                                         __uuidof(DOArchivRoot),
+                                         __uuidof(IEP_BaseDataObject),
+                                         (void **) &pArchivRoot );
+  if(!PrintSuccess( hRes,"Retrieved Archiv Root" ))
+  {
+    throw ServerNotInitialised();
+  }
+
+  //
+  // Get query machine
+  //
+  hRes = pIPDClient->GetServerCOMObject( lClientId,
+                                         __uuidof(EP_QueryMachine),
+                                         __uuidof(IEP_SimpleQuery),
+                                         (void **) &pSimpleQuery );
+  if(!PrintSuccess( hRes,"Get Simple Query" ))
+  {
+    throw ServerNotInitialised();
+  }
+
+  //
+  // Get configfactory cache
+  //
+  IUnknown *pUnk = NULL;
+  // Get EPConfigFactoryCache
+  pIPDClient->GetConfigFactoryCache( &pUnk );
+  pUnk->QueryInterface( __uuidof( IEPConfigFactoryCache ),
+                        (void**) & pConfigFactoryCache );
+
+  //
+  // Get configFactory
+  //
+  pConfigFactoryCache->GetRealConfigFactory( &pConfigFactory );
 }
 
 //----------------------------------------------------------------------------
-// GetIPDClient 
-//   Returns IPDClient object 
+// GetIPDClient
+//   Returns IPDClient object
 //----------------------------------------------------------------------------
 IEPIPDClient
 *DPEBaseClass::GetIPDClient()
 {
-    return( pIPDClient );
+  return( pIPDClient );
 }
 
 //----------------------------------------------------------------------------
-// GetClientId  
-//    Returns the client ID 
+// GetClientId
+//    Returns the client ID
 //----------------------------------------------------------------------------
-long 
+long
 DPEBaseClass::GetClientId()
 {
-    return( lClientId );
+  return( lClientId );
 }
 
 //----------------------------------------------------------------------------
-// GetProjectRoot  
-//   Returns project root 
+// GetProjectRoot
+//   Returns project root
 //----------------------------------------------------------------------------
 IEP_BaseDataObject
 *DPEBaseClass::GetProjectRoot()
 {
-   return pProjectRoot; 
+  return pProjectRoot;
 }
-  
+
 //----------------------------------------------------------------------------
-// GetArchivRoot  
-//   Returns archiv root 
+// GetArchivRoot
+//   Returns archiv root
 //----------------------------------------------------------------------------
 IEP_BaseDataObject
 *DPEBaseClass::GetArchivRoot()
 {
-   return pArchivRoot; 
+  return pArchivRoot;
 }
 //----------------------------------------------------------------------------
-// GetConfigFactoryCache   
-//   Returns config factory cache 
+// GetConfigFactoryCache
+//   Returns config factory cache
 //----------------------------------------------------------------------------
 IEPConfigFactoryCache
 *DPEBaseClass::GetConfigFactoryCache()
 {
-    return pConfigFactoryCache;
+  return pConfigFactoryCache;
 }
 
 //----------------------------------------------------------------------------
-// PrintSuccess  
-//   Prints the status with 
+// PrintSuccess
+//   Prints the status with
 //----------------------------------------------------------------------------
-int 
+int
 DPEBaseClass::PrintSuccess( HRESULT hRes, const TCHAR* pAction )
 {
-    USES_CONVERSION; 
-    if( pAction )
-    {
-    	if( SUCCEEDED(hRes) )		// Action has either...
-	    cout << pAction << " succeeded." << endl;
-	else 
-	    cout << pAction << " failed." << endl;	
-    }
-    return( SUCCEEDED(hRes) ); 
+  USES_CONVERSION;
+  if( pAction )
+  {
+    if( SUCCEEDED(hRes) )		// Action has either...
+      cout << pAction << " succeeded." << endl;
+	else
+      cout << pAction << " failed." << endl;
+  }
+  return( SUCCEEDED(hRes) );
 }
 
 //----------------------------------------------------------------------------
-// PrintBDObjectInfo  
-//   Print object info 
+// PrintBDObjectInfo
+//   Print object info
 //----------------------------------------------------------------------------
-void 
-DPEBaseClass::PrintBDObjectInfo( IEP_BaseDataObject *pBDO, 
-				    const TCHAR *pszName ) 
+void
+DPEBaseClass::PrintBDObjectInfo( IEP_BaseDataObject *pBDO,
+                                 const TCHAR *pszName )
 {
-    USES_CONVERSION;
+  USES_CONVERSION;
 
-    if( pszName == NULL )	
-    	return;
+  if( pszName == NULL )
+    return;
 
-    BSTR bstrType;
-    // Ask object for type name
-    HRESULT hRes = pBDO->GetTableName( &bstrType );	
-    cout << "\nType of object \"" << pszName <<"\": " << W2CA( bstrType ) 
-         << endl;
+  BSTR bstrType;
+  // Ask object for type name
+  HRESULT hRes = pBDO->GetTableName( &bstrType );
+  cout << "\nType of object \"" << pszName <<"\": " << W2CA( bstrType )
+       << endl;
 
-    CComVariant varName;
-    // Ask object for attribute "name"
-    hRes = pBDO->GetAttribute( CComBSTR(L"name"), &varName );	
-    cout << "Attribut \"name\" of object \"" << pszName << "\": " 
-         << W2CA( varName.bstrVal ) << "\n" << endl;
+  CComVariant varName;
+  // Ask object for attribute "name"
+  hRes = pBDO->GetAttribute( CComBSTR(L"name"), &varName );
+  cout << "Attribut \"name\" of object \"" << pszName << "\": "
+       << W2CA( varName.bstrVal ) << "\n" << endl;
 }
 
 //----------------------------------------------------------------------------
@@ -256,41 +257,41 @@ DPEBaseClass::PrintBDObjectInfo( IEP_BaseDataObject *pBDO,
 //----------------------------------------------------------------------------
 HRESULT
 DPEBaseClass::GetProject( CComBSTR bstrProjectName,
-			  IEP_BaseDataObject **pErgoProject )
+                          IEP_BaseDataObject **pErgoProject )
 {
-    HRESULT hRes = S_OK;
-    //
-    // Get children encapsulated in pProjectEnum
-    //
-    IEnumBaseDataObject *pProjectEnum = NULL;
-    hRes = pProjectRoot->GetChildren( CComBSTR(L"ergoproject"),
-				      &pProjectEnum );
-    if( hRes != S_OK )
-    {
-        return ( hRes );
-    }
-    
-    CComPtr<IEP_BaseDataObject> pProject;
-    unsigned long ulFetched = 0;
-    while( S_OK == pProjectEnum->Next( 1, &pProject, &ulFetched ))
-    {
+  HRESULT hRes = S_OK;
+  //
+  // Get children encapsulated in pProjectEnum
+  //
+  IEnumBaseDataObject *pProjectEnum = NULL;
+  hRes = pProjectRoot->GetChildren( CComBSTR(L"ergoproject"),
+                                    &pProjectEnum );
+  if( hRes != S_OK )
+  {
+    return ( hRes );
+  }
+
+  CComPtr<IEP_BaseDataObject> pProject;
+  unsigned long ulFetched = 0;
+  while( S_OK == pProjectEnum->Next( 1, &pProject, &ulFetched ))
+  {
 	CComVariant varName;
 	hRes = pProject->GetAttribute( CComBSTR(L"name"), &varName );
 	if( hRes != S_OK )
 	{
-	    return ( hRes );
+      return ( hRes );
 	}
 
 	if( CComBSTR( bstrProjectName ) == CComBSTR( varName.bstrVal ))
 	{
-	    *pErgoProject = pProject.Detach();
-	    pProjectEnum->Release();
-	    pProjectEnum = NULL;
-	    return ( hRes );
+      *pErgoProject = pProject.Detach();
+      pProjectEnum->Release();
+      pProjectEnum = NULL;
+      return ( hRes );
 	}
 	pProject = NULL;
-    }
-    pProjectEnum->Release();
-    pProjectEnum = NULL;
-    return ( E_FAIL );
+  }
+  pProjectEnum->Release();
+  pProjectEnum = NULL;
+  return ( E_FAIL );
 }

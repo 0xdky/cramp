@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:19:01 dhruva>
+// Time-stamp: <2003-10-14 11:23:45 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -10,6 +10,8 @@
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
 //-----------------------------------------------------------------------------
+#define __TESTCASEINFO_SRC
+
 #include "cramp.h"
 #include "TestCaseInfo.h"
 #include <algorithm>
