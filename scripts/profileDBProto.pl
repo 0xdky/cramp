@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-02 11:43:37 dhruva>
+## Time-stamp: <2004-01-02 12:31:38 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -428,51 +428,45 @@ sub AddRawLogs{
   my @rawlogs=();
 
   open(LOGTXT,$_[0]) || die("Cannot open \"$_[0]\" for read");
-
- logread:
-  $chunks=0;
-  @rawlogs=();
   while (<LOGTXT>) {
     chomp();
     push(@rawlogs,$_);
     $chunks++;
-    if ($chunks>$g_BUFFER_LIMIT) {
-      goto logdump;
+    if (!eof(LOGTXT) && $chunks<$g_BUFFER_LIMIT) {
+      next;
     }
-  }
 
- logdump:
-  foreach (sort ThreadCompare @rawlogs) {
-    /^([0-9]+)/;
-    if ($1 != $ptid) {
-      $ptid=$1;
-      if (defined($db)) {
-        undef $db;
+    foreach (sort ThreadCompare @rawlogs) {
+      /^([0-9]+)/;
+      if ($1 != $ptid) {
+        $ptid=$1;
+        if (defined($db)) {
+          undef $db;
+        }
+
+        $db=new BerkeleyDB::Recno
+          -Filename    => $f_logdb,
+            -Subname     => "RAW#$ptid",
+              -Flags       => DB_CREATE
+                || die("Error in creating/opening RAW#$tid table");
+        die if !defined($db);
+        if (SetDBFilters($db)) {
+          return 1;
+        }
+
+        if (!exists($h_tid{$ptid})) {
+          my $count=0;
+          $db->truncate($count);
+          $h_tid{$ptid}=1;
+        }
       }
 
-      $db=new BerkeleyDB::Recno
-        -Filename    => $f_logdb,
-          -Subname     => "RAW#$ptid",
-            -Flags       => DB_CREATE
-              || die("Error in creating/opening RAW#$tid table");
-      die if !defined($db);
-      if (SetDBFilters($db)) {
-        return 1;
-      }
-
-      if (!exists($h_tid{$ptid})) {
-        my $count=0;
-        $db->truncate($count);
-        $h_tid{$ptid}=1;
-      }
+      my $key=$ptid;
+      $db->db_put($key,$_,DB_APPEND);
     }
-    $db->db_put($ptid,$_,DB_APPEND);
-  }
 
-  if (eof(LOGTXT)) {
-    close(LOGTXT);
-  } else {
-    goto logread;
+    $chunks=0;
+    @rawlogs=();
   }
 
   # Close the last open DB handle
@@ -569,7 +563,7 @@ sub GetThreadIDs{
           -Filename    => $f_logdb,
           -Subname     => "TID",
           -Flags       => DB_RDONLY)
-    || die("Error: $BerkeleyDB::Error");
+    || die("Error: $BerkeleyDB::Error",caller);
   if (!defined($db)) {
     return ();
   }
@@ -620,9 +614,11 @@ sub AddAddrSortedData{
       next;
     }
 
+    my $key;
     foreach (0..$#g_tie_RAW) {
       $g_tie_RAW[$_]=~/^([0-9]+)(\|)([0-9A-F]+)/;
-      $db->db_put($3,$_);
+      $key=$3;
+      $db->db_put($key,$_);
     }
 
     undef $db;
@@ -807,6 +803,10 @@ sub GetSortedData{
 ## AddFunctionInformation
 ##-----------------------------------------------------------------------------
 sub AddFunctionInformation{
+  open(LOGFIN,$f_logfin) || die("Cannot open \"$f_logfin\" for read");
+  my @flogs=<LOGFIN>;
+  close(LOGFIN);
+
   my $db;
   $db=new BerkeleyDB::Hash
     -Filename    => $f_logdb,
@@ -823,11 +823,12 @@ sub AddFunctionInformation{
   my $count=0;
   $db->truncate($count);
 
-  open(LOGFIN,$f_logfin) || die("Cannot open \"$f_logfin\" for read");
-  while (<LOGFIN>) {
+  my $key;
+  foreach (@flogs) {
     chomp();
     /^([0-9A-F]+)(\|)(.+)(\|[0-9]+)$/;
-    $db->db_put($1,$3);
+    $key=$1;
+    $db->db_put($key,$3);
   }
   close(LOGFIN);
   undef $db;
