@@ -1,16 +1,16 @@
 VERSION 5.00
-Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "mscomctl.ocx"
-Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "comdlg32.ocx"
+Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
+Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
    ClientHeight    =   8220
-   ClientLeft      =   5328
+   ClientLeft      =   5325
    ClientTop       =   3060
-   ClientWidth     =   8652
+   ClientWidth     =   8655
    LinkTopic       =   "Form1"
    ScaleHeight     =   8220
-   ScaleWidth      =   8652
+   ScaleWidth      =   8655
    Begin VB.Frame fraMainUI 
       Caption         =   "Results"
       Height          =   6900
@@ -25,7 +25,7 @@ Begin VB.Form frmMainui
          Caption         =   "Under Construction ..."
          BeginProperty Font 
             Name            =   "MS Sans Serif"
-            Size            =   13.8
+            Size            =   13.5
             Charset         =   0
             Weight          =   700
             Underline       =   0   'False
@@ -49,6 +49,132 @@ Begin VB.Form frmMainui
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
+         Left            =   6000
+         TabIndex        =   13
+         Top             =   4320
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdBrowse 
+         Caption         =   "..."
+         Height          =   255
+         Left            =   6120
+         TabIndex        =   11
+         Top             =   6360
+         Visible         =   0   'False
+         Width           =   255
+      End
+      Begin VB.TextBox txtInput 
+         Appearance      =   0  'Flat
+         Height          =   285
+         Left            =   6000
+         TabIndex        =   10
+         Top             =   5520
+         Visible         =   0   'False
+         Width           =   1215
+      End
+      Begin VB.ComboBox cboTrueFalse 
+         Height          =   315
+         ItemData        =   "frmMainui.frx":0000
+         Left            =   6000
+         List            =   "frmMainui.frx":000A
+         TabIndex        =   9
+         Text            =   "TRUE"
+         Top             =   4920
+         Visible         =   0   'False
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdRun 
+         Caption         =   "&Run"
+         Height          =   495
+         Left            =   6000
+         TabIndex        =   8
+         Top             =   3240
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdDelete 
+         Caption         =   "&Delete"
+         Height          =   495
+         Left            =   6000
+         TabIndex        =   7
+         Top             =   2280
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdAddTc 
+         Caption         =   "Add &Testcase"
+         Height          =   495
+         Left            =   6000
+         TabIndex        =   6
+         Top             =   1320
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdAddGroup 
+         Caption         =   "Add &Group"
+         Height          =   495
+         Left            =   6000
+         TabIndex        =   5
+         Top             =   360
+         Width           =   1215
+      End
+      Begin MSComDlg.CommonDialog dlgSelect 
+         Left            =   6720
+         Top             =   6240
+         _ExtentX        =   847
+         _ExtentY        =   847
+         _Version        =   393216
+      End
+      Begin MSComctlLib.ListView lvwAttributes 
+         Height          =   2300
+         Left            =   240
+         TabIndex        =   4
+         Top             =   4320
+         Width           =   5500
+         _ExtentX        =   9710
+         _ExtentY        =   4048
+         LabelWrap       =   -1  'True
+         HideSelection   =   0   'False
+         FullRowSelect   =   -1  'True
+         GridLines       =   -1  'True
+         _Version        =   393217
+         ForeColor       =   -2147483640
+         BackColor       =   -2147483643
+         BorderStyle     =   1
+         Appearance      =   1
+         NumItems        =   0
+      End
+      Begin MSComctlLib.TreeView tvwNodes 
+         Height          =   3500
+         Left            =   240
+         TabIndex        =   3
+         Top             =   360
+         Width           =   5500
+         _ExtentX        =   9710
+         _ExtentY        =   6165
+         _Version        =   393217
+         HideSelection   =   0   'False
+         Style           =   7
+         Appearance      =   1
+      End
+   End
+   Begin MSComctlLib.TabStrip tspMainUI 
+      Height          =   7815
+      Left            =   240
+      TabIndex        =   0
+      Top             =   240
+      Width           =   8175
+      _ExtentX        =   14420
+      _ExtentY        =   13785
+      _Version        =   393216
+      BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
+         NumTabs         =   2
+         BeginProperty Tab1 {1EFB659A-857C-11D1-B16A-00C0F0283628} 
+            Caption         =   "Scenario"
+            ImageVarType    =   2
+         EndProperty
+         BeginProperty Tab2 {1EFB659A-857C-11D1-B16A-00C0F0283628} 
+            Caption         =   "Results"
+            ImageVarType    =   2
+         EndProperty
+      EndProperty
    End
    Begin VB.Menu mnuFile 
       Caption         =   "&File"
@@ -222,7 +348,7 @@ Private Sub cmdRun_Click()
     
     MousePointer = 11
     
-    Command = gCRAMPPath & "\bin\CRAMPEngine.exe " & gCurFileName
+    Command = App.Path & "\bin\CRAMPEngine.exe " & gCurFileName
     
     sInfo.cb = Len(sInfo)
     lSuccess = CreateProcess(sNull, _
