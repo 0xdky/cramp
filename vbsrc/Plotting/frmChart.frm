@@ -14,10 +14,10 @@ Begin VB.Form frmChart
       Height          =   4695
       Left            =   600
       ScaleHeight     =   4635
-      ScaleWidth      =   7155
+      ScaleWidth      =   8115
       TabIndex        =   1
       Top             =   5160
-      Width           =   7215
+      Width           =   8175
    End
    Begin MSChart20Lib.MSChart MSChart1 
       Height          =   4335
@@ -25,7 +25,7 @@ Begin VB.Form frmChart
       OleObjectBlob   =   "frmChart.frx":0000
       TabIndex        =   0
       Top             =   360
-      Width           =   6975
+      Width           =   7935
    End
 End
 Attribute VB_Name = "frmChart"
@@ -100,7 +100,7 @@ With MSChart1
     'Tip from KB article Q194221:
     .Plot.UniformAxis = False
     
-    .Footnote.Text = "Footnote goes here"
+    '.Footnote.Text = "Footnote goes here"
         
 End With
 
@@ -114,28 +114,8 @@ End Sub
 
 
 
-Public Sub ChartPlot(Values(), CurSeries As Integer, ByVal ParName As String)
-
+Public Sub ChartPlot(CurSeries As Integer, ByVal ParName As String)
 MousePointer = 11
-
-'Create a new array of plot points for this Series
-'We will redim the first subscript differently, to show that each
-'series can have a different # of plot points:
-Dim x As Integer
-'Dim CurSeries As Integer
-'CurSeries = 1
-x = UBound(Values)
-
-ReDim ChartPoints(1 To x, 1 To 2)
-
-
-'Create the array data:
-For lRow = 1 To UBound(ChartPoints, 1)
-    
-    ChartPoints(lRow, 1) = lRow
-    ChartPoints(lRow, 2) = Values(lRow - 1)
-    
-Next lRow
 
 'We need to increase the ColumnCount.  For X-Y Scatter graphs, we
 'need 2 columns for each series.
@@ -202,67 +182,51 @@ End Sub
 
 
 Public Sub CallRoutine()
-    Dim strFileName As String
+    Dim strFileName As String, strFileExtn As String
     Dim strLine As String
-    Dim ii As Integer
-    Dim Param1(), Param2(), Param3(), Param4(), Param5()
+    Dim ii As Integer, intCounter As Integer
+    Dim PlotParameters()
     
     strFileName = GetCommandLine(2)
     If Not FileExists(strFileName) Then
         Exit Sub
     End If
-    Dim VarArray
+    Dim VarArray, VarArray2
     Open strFileName For Input As #1
     
+    Input #1, strLine
+    VarArray = Split(strLine, "|", -1, 1)
+    MSChart1.Title = VarArray(0)
+    MSChart1.Plot.Axis(VtChAxisIdX).AxisTitle.Text = VarArray(1)
+    MSChart1.Plot.Axis(VtChAxisIdY).AxisTitle.Text = VarArray(2)
+    
+    intCounter = 1
     Do Until EOF(1)
-        
         Input #1, strLine
+        
         VarArray = Split(strLine, "|", -1, 1)
-        Select Case VarArray(0)
-            Case "Param-1"
-                ReDim Param1(UBound(VarArray))
-                For ii = 1 To UBound(VarArray)
-                    Param1(ii - 1) = VarArray(ii)
-                Next ii
-                ChartPlot Param1, 1, VarArray(0)
-            Case "Param-2"
-                ReDim Param2(UBound(VarArray))
-                For ii = 1 To UBound(VarArray)
-                    Param2(ii - 1) = VarArray(ii)
-                Next ii
-                ChartPlot Param2, 2, VarArray(0)
-            Case "Param-3"
-                ReDim Param3(UBound(VarArray))
-                For ii = 1 To UBound(VarArray)
-                    Param3(ii - 1) = VarArray(ii)
-                Next ii
-                ChartPlot Param3, 3, VarArray(0)
-            Case "Param-4"
-                ReDim Param4(UBound(VarArray))
-                For ii = 1 To UBound(VarArray)
-                    Param4(ii - 1) = VarArray(ii)
-                Next ii
-                ChartPlot Param4, 4, VarArray(0)
-            Case "Param-5"
-                ReDim Param5(UBound(VarArray))
-                For ii = 1 To UBound(VarArray)
-                    Param5(ii - 1) = VarArray(ii)
-                Next ii
-                ChartPlot Param5, 5, VarArray(0)
-            Case Else
+        ReDim ChartPoints(1 To UBound(VarArray), 1 To 2)
+        'Create the array data:
+        For lRow = 1 To UBound(ChartPoints, 1)
             
-        End Select
+            VarArray2 = Split(VarArray(lRow), ";", -1, 1)
+            ChartPoints(lRow, 1) = VarArray2(0)
+            ChartPoints(lRow, 2) = VarArray2(1)
+    
+        Next lRow
+        
+        ChartPlot intCounter, VarArray(0)
+        intCounter = intCounter + 1
         
     Loop
-
     Close #1
     
     MSChart1.EditCopy
     
     picChart.AutoRedraw = True
     picChart.Picture = Clipboard.GetData(vbCFMetafile)
-    'Dim strFileName As String
-    strFileName = App.Path & "\Chart1.jpeg"
+    strFileExtn = GetFileExt(strFileName)
+    strFileName = Left$(strFileName, Len(strFileName) - Len(strFileExtn)) & "jpeg"
     SavePicture picChart.Image, strFileName
     
     
