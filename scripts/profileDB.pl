@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-27 12:34:51 dhruva>
+## Time-stamp: <2003-10-27 13:47:50 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -287,14 +287,12 @@ sub GetDuplicateKeyValues{
 
     my $cc=1;
     my @results=();
-    $v="$k|$v";
     push(@results,$v);
     while(0==$dbc->c_get($k,$v,DB_NEXT_DUP)){
         if($cc==$max){
             last;
         }
         $cc++;
-        $v="$k|$v";
         push(@results,$v);
     }
 
@@ -427,11 +425,8 @@ sub AddRawLogs{
     while(<LOGTXT>){
         chomp();
         my @tokens=split(/\|/,$_);
-        my $key=$tokens[0];
-        $h_tid{$key}='';
-        shift @tokens;
-        my $val=join('|',@tokens);
-        $db->db_put($key,$val);
+        $h_tid{$tokens[0]}='';
+        $db->db_put($tokens[0],$_);
     }
     close(LOGTXT);
     undef $db;
@@ -500,9 +495,7 @@ sub AddAddrSortedData{
     while(<LOGTXT>){
         chomp();
         my @tokens=split(/\|/,$_);
-        my $key=$tokens[1];
-        my $val=join('|',@tokens);
-        $db->db_put($key,$val);
+        $db->db_put($tokens[1],$_);
     }
     close(LOGTXT);
     undef $db;
@@ -536,11 +529,7 @@ sub AddTickSortedData{
     while(<LOGTXT>){
         chomp();
         my @tokens=split(/\|/,$_);
-        my $key=$tokens[0];
-        $h_tid{$key}='';
-        shift @tokens;
-        my $val=join('|',@tokens);
-        $db->db_put($key,$val);
+        $db->db_put($tokens[0],$_);
     }
     close(LOGTXT);
     undef $db;
