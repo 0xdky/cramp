@@ -924,7 +924,7 @@ Public Sub HideShowControls(strVal As String)
            .selLabel.Visible = True
            .threadLabel.Visible = True
            .rtLabel.Visible = True
-           .addLabel.Visible = False
+           .AddLabel.Visible = False
            .limitLabel.Visible = True
            .tableLabel.Visible = False
            'move controls
@@ -949,7 +949,7 @@ Public Sub HideShowControls(strVal As String)
            .selLabel.Visible = False
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .addLabel.Visible = False
+           .AddLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
            .tableCombo.Move 2280, 480
@@ -974,7 +974,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = True
-           .addLabel.Visible = False
+           .AddLabel.Visible = False
            .limitLabel.Visible = True
            'move controls
            .threadCombo.Move 3600, 480
@@ -995,7 +995,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = False
-           .addLabel.Visible = True
+           .AddLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
            .threadCombo.Move 3600, 480
@@ -1004,7 +1004,7 @@ Public Sub MoveControls(strVal As String)
            .appendCheck.Move 6840, 480
            'move lables 5740
            .threadLabel.Move 3600, 240
-           .addLabel.Move 4680, 240
+           .AddLabel.Move 4680, 240
            .limitLabel.Move 5880, 240
       Case "STAT"
            'hide-show controls
@@ -1015,7 +1015,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .addLabel.Visible = False
+           .AddLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
            .threadCombo.Move 3600, 480
@@ -1752,6 +1752,8 @@ Public Sub SaveIntoExcel(excelfilename As String)
   excel_app.Sheets("Sheet1").Name = "query"
   excel_app.DisplayAlerts = False
   
+  'number of lines in the LV
+  lvrow = frmMainui.queryLV.ListItems.Count
   'check number of columns in the LV
   lvcol = frmMainui.queryLV.ColumnHeaders.Count
   
