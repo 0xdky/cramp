@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-23 16:13:38 dky>
+## Time-stamp: <2004-02-23 16:17:51 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -300,7 +300,7 @@ sub ProcessArgs{
           push(@values,GetTickSortedValues($_,$max));
         }
       } elsif ($ARGV[3]=~/RAW/) {
-        $min=$ARGV[4]-1;
+        $min=$ARGV[4];
         if ($min < 0) {
           $min=0;
         }
