@@ -69,6 +69,10 @@ Public Sub GetEnvironmentVariable()
   If gIsFileExist = False And gFileSize = 0 Then
     MsgBox "ERROR :: profileDB.pl Is Not Found Under " + gperlScript + " Folder"
   End If
+  
+  'start
+  starstopBool = True
+  compExist = False
 End Sub
 
 '***********************************************************
