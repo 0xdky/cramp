@@ -35,9 +35,8 @@ Public Sub GetEnvironmentVariable()
   strSpace = Space(1)
   strQuery = "QUERY"
   'get the environment variable "CRAMP_PATH"
-  strCrampPath = Environ("CRAMP_PATH")
-  strCrampPath = Replace(strCrampPath, "\", "/")
-  perlScript = strCrampPath + "/scripts/profileDB.pl"
+  strCrampPath = gCRAMPPath
+  perlScript = strCrampPath + "/bin/profileDB.pl"
   'get the environment variable "CRAMP_LOGPATH"
   strCLogPath = Environ("CRAMP_LOGPATH")
   strCLogPath = Replace(strCLogPath, "\", "/")
