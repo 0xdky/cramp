@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-10 12:55:01 dhruva>
+// Time-stamp: <2003-10-10 14:02:34 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -119,7 +119,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   if(b_uid){
     TestCaseInfo *ptc=FindTCFromUID(u_uid);
     if(ptc){
-      if(!IsReferenceValid(ipParentGroup,ptc)){
+      if(!IsReferenceValid(ptc,ipParentGroup)){
         CRAMPException excep;
         excep._message="ERROR: Cyclic dependency!";
         excep._error=u_uid;
@@ -644,7 +644,7 @@ TestCaseInfo
 BOOLEAN
 TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
                                TestCaseInfo *ipGroup){
-  if(!ipGroup||!ipGroup->GroupStatus())
+  if(!ipGroup&&!ipGroup->GroupStatus()&&!ipGroup->PseudoGroupStatus())
     return(FALSE);
   BOOLEAN ret=TRUE;
   ListOfTestCaseInfo &l_tc=ipGroup->BlockListOfTCI();
@@ -705,6 +705,13 @@ TestCaseInfo::DumpLogToDOM(DOMNode *ipDomNode){
   DOMText *pDomText=0;
   DOMElement *pDomElem=0;
   DOMDocument *pDomDoc=0;
+  TestCaseInfo *preftc=0;
+
+  // For getting the actual details
+  if(ReferStatus())
+    preftc=Reference();
+  else
+    preftc=this;
 
   // Get the document or factory
   pDomDoc=ipDomNode->getOwnerDocument();
@@ -722,9 +729,9 @@ TestCaseInfo::DumpLogToDOM(DOMNode *ipDomNode){
 
   // Create the text for element
   if(GroupStatus())
-    XMLString::transcode(TestCaseName().c_str(),xmlstr,255);
+    XMLString::transcode(preftc->TestCaseName().c_str(),xmlstr,255);
   else
-    XMLString::transcode(TestCaseExec().c_str(),xmlstr,255);
+    XMLString::transcode(preftc->TestCaseExec().c_str(),xmlstr,255);
   pDomText=pDomDoc->createTextNode(xmlstr);
   pDomElem->appendChild(pDomText);
 

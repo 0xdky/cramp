@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-09 17:11:33 dhruva>
+// Time-stamp: <2003-10-10 13:56:46 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -178,6 +178,7 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
     // If it is a group OR original is a pseudo group
     // call recursively
     if(ptc->GroupStatus()||porigtc->PseudoGroupStatus()){
+      ptc=(ptc->GroupStatus())?ptc:porigtc;
       if(blocked){
         CreateManagedProcesses(ptc);
       }else if(tc<numgroups){
@@ -215,13 +216,13 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
     if(!ret){
       TerminateProcess(pi.hProcess,1);
       dwret=0;
-      ptc->AddLog("MESSAGE|ERROR|JOB|Could not attach process to job");
+      porigtc->AddLog("MESSAGE|ERROR|JOB|Could not attach process to job");
       continue;
     }
 
     // Set some process information
     porigtc->ProcessInfo(pi);
-    ptc->AddLog("MESSAGE|OKAY|PROC|Created process");
+    porigtc->AddLog("MESSAGE|OKAY|PROC|Created process");
 
     if(blocked){
       ResumeThread(pi.hThread);
