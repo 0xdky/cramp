@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-13 16:18:14 dky>
+// Time-stamp: <2004-03-14 17:03:52 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -10,6 +10,7 @@
 // 03-09-2004  Mod Moved generation of function info to flush               dky
 // 03-11-2004  Mod Undo previous changes and PCRE filtering                 dky
 // 03-11-2004  Mod Optimized Symbol loading and unloading with retry        dky
+// 03-14-2004  Mod Added DEBUG report generation and fixed module filter    dky
 //-----------------------------------------------------------------------------
 #define __DLLMAIN_SRC
 
@@ -37,7 +38,21 @@ void OnProcessEnd(void);
 BOOL WriteFuncInfo(unsigned int,unsigned long,FILE *f_func);
 void LogFileSizeMonTH(void *);
 DWORD WINAPI ProfilerMailSlotServerTH(LPVOID);
-BOOL CALLBACK SymEnumModCB(PSTR,ULONG,PVOID);
+BOOL CALLBACK SymErrorEnumModCB(PSTR,ULONG,PVOID);
+
+//-----------------------------------------------------------------------------
+// SymErrorEnumModCB
+//-----------------------------------------------------------------------------
+BOOL CALLBACK
+SymErrorEnumModCB(PSTR ModuleName,
+                  ULONG BaseOfDll,
+                  PVOID fptr){
+    if(!fptr)
+        return(FALSE);
+
+    fprintf((FILE *)fptr,"\t%ld:%s\n",BaseOfDll,ModuleName);
+    return(TRUE);
+}
 
 //-----------------------------------------------------------------------------
 // CRAMP_FlushProfileLogs
@@ -166,8 +181,12 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         csf.enter();
         iter=g_CRAMP_Profiler.h_FilteredModAddr.find(
             (unsigned int)mbi.AllocationBase);
-        if(iter!=g_CRAMP_Profiler.h_FilteredModAddr.end())
-            return(!(*iter).second);
+        if(iter!=g_CRAMP_Profiler.h_FilteredModAddr.end()){
+            if(g_CRAMP_Profiler.g_exclusion)
+                return(FALSE);
+            else
+                ret=TRUE;
+        }
         csf.leave();
 
         GetModuleFileName((HMODULE)mbi.AllocationBase,
@@ -209,23 +228,41 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         match=!!SymFromAddr(h_proc,addr,&symDisplacement,pSymbol);
 
         // Getting the final symbol name
-        if(FALSE==match)
+        if(FALSE==match){
             strcpy(undName,"<unknown symbol>");
-        else if(0==UnDecorateSymbolName(pSymbol->Name,
-                                        undName,
-                                        sizeof(undName),
-                                        UNDNAME_NO_MS_KEYWORDS        |
-                                        UNDNAME_NO_ACCESS_SPECIFIERS  |
-                                        UNDNAME_NO_FUNCTION_RETURNS   |
-                                        UNDNAME_NO_ALLOCATION_MODEL   |
-                                        UNDNAME_NO_ALLOCATION_LANGUAGE|
-                                        UNDNAME_NO_MEMBER_TYPE))
-            strcpy(undName,pSymbol->Name);
+            char filename[MAX_PATH];
+            sprintf(filename,"%s/cramp_symerror#%d.log",
+                    g_CRAMP_Profiler.logpath,
+                    g_CRAMP_Profiler.g_pid);
+            FILE *f_symlog=fopen(filename,"a+");
+            if(f_symlog){
+                fprintf(f_symlog,"%ld:%s\n",
+                        (DWORD)mbi.AllocationBase,
+                        moduleName);
+                SymEnumerateModules(h_proc,SymErrorEnumModCB,f_symlog);
+                fclose(f_symlog);
+            }
+        }else{
+            if(0==UnDecorateSymbolName(pSymbol->Name,
+                                       undName,
+                                       sizeof(undName),
+                                       UNDNAME_NO_MS_KEYWORDS        |
+                                       UNDNAME_NO_ACCESS_SPECIFIERS  |
+                                       UNDNAME_NO_FUNCTION_RETURNS   |
+                                       UNDNAME_NO_ALLOCATION_MODEL   |
+                                       UNDNAME_NO_ALLOCATION_LANGUAGE|
+                                       UNDNAME_NO_MEMBER_TYPE))
+                strcpy(undName,pSymbol->Name);
+        }
 
         csf.leave();
 
         // Find if method is filtered
         do{
+            // All methods of a module are matched
+            if(TRUE==ret)
+                break;
+
             ret=TRUE;
             if(!g_CRAMP_Profiler.g_regcomp||!match)
                 break;
@@ -327,7 +364,6 @@ OnProcessStart(void){
     if(getenv("CRAMP_PROFILE_INCLUSION"))
         g_CRAMP_Profiler.g_exclusion=FALSE;
 
-#ifdef HAVE_FILTER
     // Build the REGEXP filter string
     do{
         char fltstr[MAX_PATH];
@@ -395,7 +431,6 @@ OnProcessStart(void){
         if(!g_CRAMP_Profiler.g_regcomp)
             break;
     }while(0);
-#endif
 
     do{
         sprintf(filename,"%s/cramp_profile#%d.log",
@@ -409,14 +444,12 @@ OnProcessStart(void){
                 break;
         }
 
-#ifdef HAVE_FILTER
         sprintf(filename,"%s/cramp_funcinfo#%d.log",
                 g_CRAMP_Profiler.logpath,
                 g_CRAMP_Profiler.g_pid);
         g_CRAMP_Profiler.g_fFuncInfo=fopen(filename,"wc");
         if(!g_CRAMP_Profiler.g_fFuncInfo)
             break;
-#endif
 
         if(getenv("CRAMP_PROFILE"))
             InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,1);
@@ -474,22 +507,6 @@ OnProcessStart(void){
     }while(0);
 
     return;
-}
-
-//-----------------------------------------------------------------------------
-// SymEnumModCB
-//-----------------------------------------------------------------------------
-BOOL CALLBACK
-SymEnumModCB(PSTR ModuleName,
-             ULONG BaseOfDll,
-             PVOID IsInit){
-    if(IsInit){
-        s_h_mod[BaseOfDll]=FALSE;
-    }else{
-        if(SymUnloadModule(GetCurrentProcess(),BaseOfDll))
-            s_h_mod.erase(BaseOfDll);
-    }
-    return(TRUE);
 }
 
 //-----------------------------------------------------------------------------
