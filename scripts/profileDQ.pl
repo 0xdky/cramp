@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-03-01 11:01:16 dky>
+## Time-stamp: <2004-03-01 11:20:47 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -1042,7 +1042,7 @@ sub ApplyFilterOnFuncInfo{
   if (0==scalar(keys(%g_filteredhash))) {
     return 1;
   }
-  exit 0;
+
   return 0;
 }
 
