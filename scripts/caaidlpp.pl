@@ -1,7 +1,8 @@
 #!perl
+## Time-stamp: <2003-11-06 16:13:40 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : caaidlpp.pl
-## Usage : caaidlpp.pl OUTPATH listOfIdl
+## Usage : caaidlpp.pl listOfIdl OUTPATH
 ## Desc  : Comment out the square brackets for doc generation
 ## TODO  : Needs refinement
 ##-----------------------------------------------------------------------------
@@ -20,21 +21,21 @@ if($#ARGV<1){
     exit 1;
 }
 
-my $OUTPATH=$ARGV[0];
+my $f_list=$ARGV[0];
+$f_list=~s/\\/\//g;
+if(! -f $f_list){
+    print STDERR "Error: \"$f_list\" file does not exist";
+    exit 1;
+}
+
+my $OUTPATH=$ARGV[1];
 $OUTPATH=~s/\\/\//g;
 if(! -d $OUTPATH){
     print STDERR "Error: \"$OUTPATH\" folder does not exist";
     exit 1;
 }
 
-my $f_list=$ARGV[1];
-$f_list=~s/\\/\//g;
-if(! -f $f_list){
-    print STDERR "Error: \"$f_list\" file does not exist";
-    exit 1;
-}
 open(LIST,"<$f_list") || die("Cannot open \"$f_list\" for read");
-
 while(<LIST>){
     chomp();
     s/\\/\//g;
