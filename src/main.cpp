@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 13:13:37 dhruva>
+// Time-stamp: <2003-10-22 16:45:17 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -176,12 +176,18 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
   if(g_pScenario){
     do{
-      ofstream logfile("C:\\tmp\\cramp.log",ios::out,filebuf::sh_none);
-      if(!logfile.is_open())
+      char logdir[256]=".";
+      char logfile[256];
+      if(getenv("CRAMP_LOGPATH"))
+        strcpy(logdir,getenv("CRAMP_LOGPATH"));
+      sprintf(logfile,"%s/cramp.log",logdir);
+      ofstream flog(logfile,ios::out,filebuf::sh_none);
+      if(!flog.is_open())
         break;
-      g_pScenario->DumpLog(logfile);
-      logfile.close();
-      DumpLogsToXML("C:\\tmp\\cramp.xml");
+      g_pScenario->DumpLog(flog);
+      flog.close();
+      sprintf(logfile,"%s/cramp.xml",logdir);
+      DumpLogsToXML(logfile);
     }while(0);
     TestCaseInfo::DeleteScenario(g_pScenario);
   }
