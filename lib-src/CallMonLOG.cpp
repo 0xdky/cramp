@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 16:12:41 dhruva>
+// Time-stamp: <2003-11-01 17:29:21 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -47,7 +47,7 @@ CallMonLOG::logEntry(CallInfo &ci){
 void
 CallMonLOG::logExit(CallInfo &ci,bool normalRet){
   TICKS ticksPerSecond;
-  TICKS elapsedticks=(ci.endTime-ci.startTime-ci.ProfileTime);
+  TICKS elapsedticks=(ci.endTime-ci.startTime-ci.ProfilingTicks);
 
   queryTickFreq(&ticksPerSecond);
 
