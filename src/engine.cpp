@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-10 17:40:42 dhruva>
+// Time-stamp: <2003-10-11 13:53:17 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -10,6 +10,8 @@
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
 //-----------------------------------------------------------------------------
+#define __ENGINE_SRC
+
 #include "cramp.h"
 #include "engine.h"
 
@@ -19,6 +21,8 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <malloc.h>
+#include <stdlib.h>
+#include <string.h>
 #include <Tlhelp32.h>
 #include <WindowsX.h>
 
@@ -30,25 +34,30 @@
 #include <xercesc/dom/DOMImplementationRegistry.hpp>
 #include <xercesc/framework/LocalFileFormatTarget.hpp>
 
-//--------------------------- FUNCTION PROTOTYPES -----------------------------
-void InitGlobals(void);
-int DumpLogsToXML(char *logfile);
-DWORD WINAPI MailSlotTH(PVOID);
-DWORD WINAPI JobNotifyTH(PVOID);
-DWORD WINAPI CreateManagedProcesses(PVOID);
-DWORD WINAPI MemoryPollTH(PVOID lpParameter);
-BOOLEAN WriteMailSlot(char *msg,char *server);
-TestCaseInfo *GetTestCaseInfos(const char *ifile);
-BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *ipScenario);
-PROC_INFO *GetHandlesToActiveProcesses(HANDLE h_Job);
-//--------------------------- FUNCTION PROTOTYPES -----------------------------
-
-//--------------------------- GLOBAL VARIABLES --------------------------------
-HANDLE g_hIOCP;                    // Completion port that receives Job notif
-TestCaseInfo *g_pScenario;         // Pointer to Scenario
-//--------------------------- GLOBAL VARIABLES --------------------------------
-
 //------------------------ IMPLEMENTATION BEGINS ------------------------------
+
+//-----------------------------------------------------------------------------
+// GetLocalHostName
+//-----------------------------------------------------------------------------
+std::string
+GetLocalHostName(void){
+  DWORD chBuff=256;
+  TCHAR buff[256];
+  LPTSTR lpszSystemInfo;
+  lpszSystemInfo=buff;
+  DEBUGCHK(GetComputerName(lpszSystemInfo,&chBuff));
+  return(std::string(lpszSystemInfo));
+}
+
+//-----------------------------------------------------------------------------
+// RemoteLog
+//-----------------------------------------------------------------------------
+void
+RemoteLog(char *message){
+  if(g_pRemote)
+    g_pRemote->AddLog(message);
+  return;
+}
 
 //-----------------------------------------------------------------------------
 // InitGlobals
@@ -57,7 +66,13 @@ TestCaseInfo *g_pScenario;         // Pointer to Scenario
 void
 InitGlobals(void){
   g_hIOCP=0;
+  g_pRemote=0;
   g_pScenario=0;
+  g_CrampServer[0]='\0';
+  if(getenv("CRAMP_SERVER"))
+    sprintf(g_CrampServer,"%s",getenv("CRAMP_SERVER"));
+  else
+    sprintf(g_CrampServer,"%s",GetLocalHostName().c_str());
   return;
 }
 
@@ -109,8 +124,7 @@ PROC_INFO
   for(int ii=0;ii<pjobpil->NumberOfProcessIdsInList;ii++){
     SIZE_T pid=pjobpil->ProcessIdList[ii];
     HANDLE h_proc=0;
-    h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|
-                       PROCESS_VM_READ,
+    h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,
                        FALSE,pid);
     if(!h_proc)
       continue;
@@ -135,7 +149,7 @@ PROC_INFO
 //  For multiple blocking/non-blocking call. Can be called in a thread
 //-----------------------------------------------------------------------------
 DWORD WINAPI
-CreateManagedProcesses(PVOID ipTestCaseInfo){
+CreateManagedProcesses(LPVOID ipTestCaseInfo){
   if(!ipTestCaseInfo)
     return(0);
 
@@ -226,9 +240,11 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
     porigtc->ProcessInfo(pi);
     porigtc->AddLog("MESSAGE|OKAY|PROC|Created process");
 
+#ifdef CRAMP_DEBUG
     // Write to mail slot
     sprintf(msg,"Created process %s",str.c_str());
-    WriteMailSlot(msg,"pchiwi7deg");
+    WriteToMailSlot(msg,g_CrampServer);
+#endif
 
     if(blocked){
       ResumeThread(pi.hThread);
@@ -273,7 +289,7 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
 //  is alive
 //-----------------------------------------------------------------------------
 DWORD WINAPI
-MemoryPollTH(PVOID lpParameter){
+MemoryPollTH(LPVOID lpParameter){
   if(!lpParameter)
     return(1);
   BOOLEAN fDone=FALSE;
@@ -322,6 +338,12 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
         char msg[256];
         sprintf(msg,"LOG|MEMORY|RAM|%ld",pmc.WorkingSetSize);
         ptc->AddLog(msg);
+
+#ifdef CRAMP_DEBUG
+        // Some large data
+        WriteToPipe(msg,0,g_CrampServer);
+#endif
+
       }while(0);
     }
     ipScenario->ReleaseListOfGC();
@@ -340,7 +362,7 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
 //  is listened here
 //-----------------------------------------------------------------------------
 DWORD WINAPI
-JobNotifyTH(PVOID){
+JobNotifyTH(LPVOID){
   BOOL fDone=FALSE;
   while(!fDone){
     DWORD dwBytesXferred;
@@ -390,8 +412,7 @@ JobNotifyTH(PVOID){
             HANDLE h_proc=0;
             // May not find handle if process is too short
             // Hence, do not check the handle!
-            h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|
-                               PROCESS_VM_READ,
+            h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,
                                FALSE,(SIZE_T)po);
             PROCESS_INFORMATION pin={0};
             pin.hProcess=h_proc;
@@ -452,6 +473,301 @@ JobNotifyTH(PVOID){
 }
 
 //-----------------------------------------------------------------------------
+// DumpLogsToXML
+//-----------------------------------------------------------------------------
+int
+DumpLogsToXML(char *logfile){
+  try{
+    XMLPlatformUtils::Initialize();
+  }
+  catch(const XMLException& toCatch){
+    return(1);
+  }
+
+  {
+    DOMDocument *doc=0;
+    DOMImplementation *impl=0;
+
+    XMLCh tempStr[100];
+    XMLString::transcode("Core",tempStr,99);
+    impl=DOMImplementationRegistry::getDOMImplementation(tempStr);
+    DEBUGCHK(impl);
+
+    XMLString::transcode("CRAMPLOG",tempStr,99);
+    doc=impl->createDocument(0,tempStr,0);
+    DEBUGCHK(doc);
+    DOMElement *rootElem=doc->getDocumentElement();
+    g_pScenario->DumpLogToDOM(rootElem);
+
+    DOMWriter *theSerializer=0;
+    XMLString::transcode("LS",tempStr,99);
+    impl=DOMImplementationRegistry::getDOMImplementation(tempStr);
+    DEBUGCHK(impl);
+    theSerializer=((DOMImplementationLS *)impl)->createDOMWriter();
+    DEBUGCHK(theSerializer);
+
+    XMLFormatTarget *myFormTarget=0;
+    myFormTarget=new LocalFileFormatTarget(logfile);
+    theSerializer->writeNode(myFormTarget,*doc);
+
+    delete theSerializer;
+    delete myFormTarget;
+    doc->release();
+  }
+  XMLPlatformUtils::Terminate();
+  return(0);
+}
+
+//-----------------------------------------------------------------------------
+// MailSlotServerTH
+//-----------------------------------------------------------------------------
+DWORD WINAPI
+MailSlotServerTH(LPVOID iMailSlotName){
+  if(!iMailSlotName)
+    return(1);
+
+  HANDLE h_mail=0;
+  h_mail=CreateMailslot((char *)iMailSlotName,0,MAILSLOT_WAIT_FOREVER,NULL);
+  DEBUGCHK(!(h_mail==INVALID_HANDLE_VALUE));
+
+  // Mail slot server loop
+  while(1){
+    DWORD cbMessage=0,cMessage=0,cbRead=0;
+    BOOL fResult;
+    LPSTR lpszBuffer;
+    DWORD cAllMessages;
+    HANDLE h_event;
+    OVERLAPPED ov;
+
+    h_event=CreateEvent(NULL,FALSE,FALSE,"CRAMP_MAILSLOT");
+    DEBUGCHK(h_event);
+    ov.Offset=0;
+    ov.OffsetHigh=0;
+    ov.hEvent=h_event;
+    fResult=GetMailslotInfo(h_mail,
+                            (LPDWORD)NULL,
+                            &cbMessage,
+                            &cMessage,
+                            (LPDWORD)NULL);
+    DEBUGCHK(fResult);
+    if(cbMessage==MAILSLOT_NO_MESSAGE)
+      continue;
+    cAllMessages=cMessage;
+
+    // Mail slot loop
+    while(cMessage){
+      lpszBuffer=(LPSTR)GlobalAlloc(GPTR,cbMessage);
+      DEBUGCHK(lpszBuffer);
+      lpszBuffer[0]='\0';
+      fResult=ReadFile(h_mail,
+                       lpszBuffer,
+                       cbMessage,
+                       &cbRead,
+                       &ov);
+      if(fResult)
+        RemoteLog(lpszBuffer);
+
+      GlobalFree((HGLOBAL)lpszBuffer);
+      fResult=GetMailslotInfo(h_mail,
+                              (LPDWORD)NULL,
+                              &cbMessage,
+                              &cMessage,
+                              (LPDWORD)NULL);
+      DEBUGCHK(fResult);
+    }
+  }
+  return(0);
+}
+
+//-----------------------------------------------------------------------------
+// WriteToMailSlot
+//  Does not provide a response, okay just to post messages
+//-----------------------------------------------------------------------------
+BOOLEAN
+WriteToMailSlot(char *msg,char *server){
+  if(!msg||!server)
+    return(FALSE);
+  BOOLEAN ret=FALSE;
+  HANDLE h_file=0;
+  DWORD cbWritten=0;
+  char msname[MAX_PATH];
+  sprintf(msname,"\\\\%s\\mailslot\\cramp_mailslot",server);
+  h_file=CreateFile(msname,
+                    GENERIC_WRITE,
+                    FILE_SHARE_READ,
+                    NULL,
+                    OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL,
+                    NULL);
+  DEBUGCHK(!(h_file==INVALID_HANDLE_VALUE));
+
+  // Format the message and write
+  TCHAR msgbuff[1024];
+  DWORD msgSz=0;
+  msgSz=sprintf(msgbuff,"%s:%s",GetLocalHostName().c_str(),msg);
+  ret=WriteFile(h_file,msgbuff,msgSz+1,&cbWritten,NULL);
+  DEBUGCHK(ret);
+
+  ret=CloseHandle(h_file);
+  DEBUGCHK(ret);
+  return(ret);
+}
+
+//-----------------------------------------------------------------------------
+// MultiThreadedPipeServerTH
+//  Assigns a new pipe connection for each request, use it to send large
+//  chunks of data.
+//-----------------------------------------------------------------------------
+DWORD
+MultiThreadedPipeServerTH(LPVOID iPipeName){
+  if(!iPipeName)
+    return(0);
+
+  DWORD conn=0;
+  BOOL fConnected;
+  DWORD dwThreadId;
+  HANDLE h_pipe=0,h_pth=0;
+
+  while(1){
+    h_pipe=CreateNamedPipe((char *)iPipeName,
+                           PIPE_ACCESS_DUPLEX,
+                           PIPE_TYPE_MESSAGE|PIPE_READMODE_MESSAGE|PIPE_WAIT,
+                           PIPE_UNLIMITED_INSTANCES,
+                           BUFSIZE,
+                           BUFSIZE,
+                           NMPWAIT_USE_DEFAULT_WAIT,
+                           NULL);
+    DEBUGCHK(!(h_pipe==INVALID_HANDLE_VALUE));
+
+    fConnected=ConnectNamedPipe(h_pipe,NULL)?
+      TRUE:(GetLastError()==ERROR_PIPE_CONNECTED);
+    if(!fConnected){
+      CloseHandle(h_pipe);
+      continue;
+    }
+    HANDLE h_pth=0;
+    h_pth=chBEGINTHREADEX(NULL,0,PipeInstanceTH,(LPVOID)h_pipe,0,NULL);
+    DEBUGCHK(h_pth);
+    CloseHandle(h_pth);
+    conn++;
+  }
+  return(conn);
+}
+
+//-----------------------------------------------------------------------------
+// PipeInstanceTH
+//  A threaded instance of the pipe
+//-----------------------------------------------------------------------------
+VOID
+PipeInstanceTH(LPVOID lpvParam){
+  CHAR chRequest[BUFSIZE];
+  CHAR chReply[BUFSIZE];
+  DWORD cbBytesRead=0,cbReplyBytes=0,cbWritten=0;
+  BOOL fSuccess;
+  HANDLE h_pipe=0;
+
+  h_pipe=(HANDLE)lpvParam;
+  while(1){
+    fSuccess=ReadFile(h_pipe,
+                      chRequest,
+                      BUFSIZE,
+                      &cbBytesRead,
+                      NULL);
+    if(!fSuccess||0==cbBytesRead)
+      break;
+
+    if(!GetAnswerToRequest(chRequest,chReply,&cbReplyBytes))
+      continue;
+    fSuccess=WriteFile(h_pipe,
+                       chReply,
+                       cbReplyBytes,
+                       &cbWritten,
+                       NULL);
+    if(!fSuccess||cbReplyBytes!=cbWritten)
+      break;
+  }
+  FlushFileBuffers(h_pipe);
+  DisconnectNamedPipe(h_pipe);
+  CloseHandle(h_pipe);
+  return;
+}
+
+//-----------------------------------------------------------------------------
+// WriteToPipe
+//  Writing through pipe creates a pipe instance and writes through it.
+//  USE IT ONLY FOR LARGE CHUNKS OF DATA WITH CONFIRMATION
+//-----------------------------------------------------------------------------
+BOOLEAN
+WriteToPipe(char *iMsg,char *oResponse,char *iServer){
+  if(!iMsg||!iServer)
+    return(FALSE);
+
+  HANDLE h_pipe=0;
+  LPVOID lpvMessage;
+  CHAR chReadBuf[BUFSIZE];
+  BOOL fSuccess;
+  DWORD cbRead=0,cbWritten=0,dwMode=0;
+  char pipename[MAX_PATH];
+  sprintf(pipename,"\\\\%s\\pipe\\cramp_pipe",iServer);
+
+  do{
+    h_pipe=CreateFile(pipename,
+                      GENERIC_READ|GENERIC_WRITE,
+                      0,
+                      NULL,
+                      OPEN_EXISTING,
+                      0,
+                      NULL);
+    DEBUGCHK(!(h_pipe==INVALID_HANDLE_VALUE));
+    DEBUGCHK(!(GetLastError()==ERROR_PIPE_BUSY));
+    // Wait for 20 secs for server...
+    if(!WaitNamedPipe(pipename,20000)){
+      CloseHandle(h_pipe);
+      return(FALSE);
+    }
+  }while(0);
+
+  dwMode=PIPE_READMODE_MESSAGE;
+  fSuccess=SetNamedPipeHandleState(h_pipe,
+                                   &dwMode,
+                                   NULL,
+                                   NULL);
+  DEBUGCHK(fSuccess);
+
+  char message[BUFSIZE];
+  DWORD msgSz=0;
+  msgSz=sprintf(message,"%s:%s",GetLocalHostName().c_str(),iMsg);
+
+  fSuccess=TransactNamedPipe(h_pipe,
+                             message,
+                             msgSz+1,
+                             chReadBuf,
+                             BUFSIZE,
+                             &cbRead,
+                             NULL);
+  if(oResponse)
+    strcpy(oResponse,chReadBuf);
+
+  CloseHandle(h_pipe);
+  h_pipe=0;
+
+  return(fSuccess);
+}
+
+//-----------------------------------------------------------------------------
+// GetAnswerToRequest
+//  Only for PIPE communication
+//-----------------------------------------------------------------------------
+BOOLEAN
+GetAnswerToRequest(LPTSTR iRequest,LPTSTR oReply,LPDWORD oSize){
+  strcpy(oReply,"OKAY");
+  *oSize=strlen(oReply)*sizeof(char);
+  RemoteLog(iRequest);
+  return(TRUE);
+}
+
+#if 0
+//-----------------------------------------------------------------------------
 // WinMain
 //-----------------------------------------------------------------------------
 int
@@ -484,11 +800,12 @@ WINAPI WinMain(HINSTANCE hinstExe,
   HANDLE h_job=0;
   HANDLE h_memtimer=0;
   HANDLE h_arr[5];
-  h_arr[0]=0;
-  h_arr[1]=0;
-  h_arr[2]=0;
-  h_arr[3]=0;
-  h_arr[4]=0;
+  h_arr[0]=0;                   // Job monitoring thread
+  h_arr[1]=0;                   // MUTEX object to kill memory thread
+  h_arr[2]=0;                   // Memory polling thread
+  h_arr[3]=0;                   // Mail slot communication thread
+  h_arr[4]=0;                   // Pipe communication server thread
+  h_arr[5]=0;                   // Last must be 0
 
   h_job=CreateJobObject(NULL,JOB_NAME);
   if(!h_job)
@@ -515,6 +832,17 @@ WINAPI WinMain(HINSTANCE hinstExe,
     if(!g_pScenario)
       break;
 
+    // Create a dummy remote object to store server responses
+    try{
+      g_pRemote=g_pScenario->AddGroup();
+      if(!g_pRemote)
+        break;
+      g_pRemote->TestCaseName("REMOTE LOGS");
+    }
+    catch(CRAMPException excep){
+      break;
+    }
+
     h_arr[1]=CreateMutex(NULL,TRUE,"MEMORY_MUTEX");
     DEBUGCHK(h_arr[1]);
     ReleaseMutex(h_arr[1]);
@@ -524,8 +852,15 @@ WINAPI WinMain(HINSTANCE hinstExe,
     DEBUGCHK(h_arr[2]);
 
     // Mail slot server thread
-    h_arr[3]=chBEGINTHREADEX(NULL,0,MailSlotTH,(PVOID)g_pScenario,0,NULL);
-    DEBUGCHK(h_arr[3]);
+    h_arr[3]=chBEGINTHREADEX(NULL,0,MailSlotServerTH,
+                             (LPVOID)"\\\\.\\mailslot\\cramp_mailslot",
+                             0,NULL);
+
+    // Pipe communication
+    h_arr[4]=chBEGINTHREADEX(NULL,0,MultiThreadedPipeServerTH,
+                             (LPVOID)"\\\\.\\pipe\\cramp_pipe",
+                             0,NULL);
+    DEBUGCHK(h_arr[4]);
 
     sprintf(msg,"MESSAGE|OKAY|SCENARIO|File: %s",scenario);
     g_pScenario->AddLog(msg);
@@ -574,151 +909,4 @@ WINAPI WinMain(HINSTANCE hinstExe,
   InitGlobals();
   return(ret);
 }
-
-//-----------------------------------------------------------------------------
-// DumpLogsToXML
-//-----------------------------------------------------------------------------
-int
-DumpLogsToXML(char *logfile){
-  try{
-    XMLPlatformUtils::Initialize();
-  }
-  catch(const XMLException& toCatch){
-    return(1);
-  }
-
-  {
-    DOMDocument *doc=0;
-    DOMImplementation *impl=0;
-
-    XMLCh tempStr[100];
-    XMLString::transcode("Core",tempStr,99);
-    impl=DOMImplementationRegistry::getDOMImplementation(tempStr);
-    DEBUGCHK(impl);
-
-    XMLString::transcode("CRAMPLOG",tempStr,99);
-    doc=impl->createDocument(0,tempStr,0);
-    DEBUGCHK(doc);
-    DOMElement *rootElem=doc->getDocumentElement();
-    g_pScenario->DumpLogToDOM(rootElem);
-
-    DOMWriter *theSerializer=0;
-    XMLString::transcode("LS",tempStr,99);
-    impl=DOMImplementationRegistry::getDOMImplementation(tempStr);
-    DEBUGCHK(impl);
-    theSerializer=((DOMImplementationLS *)impl)->createDOMWriter();
-    DEBUGCHK(theSerializer);
-
-    XMLFormatTarget *myFormTarget=0;
-    myFormTarget=new LocalFileFormatTarget(logfile);
-    theSerializer->writeNode(myFormTarget,*doc);
-
-    delete theSerializer;
-    delete myFormTarget;
-    doc->release();
-  }
-  XMLPlatformUtils::Terminate();
-  return(0);
-}
-
-//-----------------------------------------------------------------------------
-// MailSlotTH
-//-----------------------------------------------------------------------------
-DWORD WINAPI
-MailSlotTH(PVOID){
-  DWORD ret=1;
-  HANDLE h_mail=0;
-  LPSTR lpszSlotName = "\\\\.\\mailslot\\cramp_mailslot";
-  h_mail=CreateMailslot(lpszSlotName,0,MAILSLOT_WAIT_FOREVER,NULL);
-  DEBUGCHK(!(h_mail==INVALID_HANDLE_VALUE));
-
-  // Mail slot server loop
-  while(1){
-    Sleep(1000);
-
-    DWORD cbMessage=0,cMessage=0,cbRead=0;
-    BOOL fResult;
-    LPSTR lpszBuffer;
-    DWORD cAllMessages;
-    HANDLE h_event;
-    OVERLAPPED ov;
-
-    h_event=CreateEvent(NULL,FALSE,FALSE,"CRAMP_MAILSLOT");
-    DEBUGCHK(h_event);
-    ov.Offset=0;
-    ov.OffsetHigh=0;
-    ov.hEvent=h_event;
-    fResult=GetMailslotInfo(h_mail,
-                            (LPDWORD)NULL,
-                            &cbMessage,
-                            &cMessage,
-                            (LPDWORD)NULL);
-    DEBUGCHK(fResult);
-    if(cbMessage==MAILSLOT_NO_MESSAGE)
-      continue;
-    cAllMessages=cMessage;
-
-    // Mail slot loop
-    while(cMessage){
-      lpszBuffer=(LPSTR)GlobalAlloc(GPTR,cbMessage);
-      DEBUGCHK(lpszBuffer);
-      lpszBuffer[0]='\0';
-      fResult=ReadFile(h_mail,
-                       lpszBuffer,
-                       cbMessage,
-                       &cbRead,
-                       &ov);
-      if(fResult)
-        g_pScenario->AddLog(lpszBuffer);
-
-      GlobalFree((HGLOBAL)lpszBuffer);
-      fResult=GetMailslotInfo(h_mail,
-                              (LPDWORD)NULL,
-                              &cbMessage,
-                              &cMessage,
-                              (LPDWORD)NULL);
-      DEBUGCHK(fResult);
-    }
-  }
-  return(ret);
-}
-
-//-----------------------------------------------------------------------------
-// WriteMailSlot
-//  Sample code to be implemented in the remote processes
-//-----------------------------------------------------------------------------
-BOOLEAN
-WriteMailSlot(char *msg,char *server){
-  if(!msg||!server)
-    return(FALSE);
-  BOOLEAN ret=FALSE;
-  HANDLE h_file=0;
-  DWORD cbWritten=0;
-  char msname[MAX_PATH];
-  sprintf(msname,"\\\\%s\\mailslot\\cramp_mailslot",server);
-  h_file=CreateFile(msname,
-                    GENERIC_WRITE,
-                    FILE_SHARE_READ,
-                    NULL,
-                    OPEN_EXISTING,
-                    FILE_ATTRIBUTE_NORMAL,
-                    NULL);
-  DEBUGCHK(!(h_file==INVALID_HANDLE_VALUE));
-
-  // Get the host computer name
-  DWORD cchBuff=256;
-  TCHAR buff[256];
-  LPTSTR lpszSystemInfo;
-  lpszSystemInfo=buff;
-  DEBUGCHK(GetComputerName(lpszSystemInfo,&cchBuff));
-
-  // Format the message and write
-  TCHAR msgbuff[1024];
-  cchBuff=sprintf(msgbuff,"%s:%s",lpszSystemInfo,msg);
-  ret=WriteFile(h_file,msgbuff,cchBuff+1,&cbWritten,NULL);
-  DEBUGCHK(ret);
-
-  ret=CloseHandle(h_file);
-  DEBUGCHK(ret);
-  return(ret);
-}
+#endif
