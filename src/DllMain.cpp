@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 10:26:44 dhruva>
+// Time-stamp: <2003-10-17 10:58:06 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler
@@ -14,8 +14,14 @@
 #include "CallMonLOG.h"
 
 // To control profiling
-extern long g_profile;
-extern CRITICAL_SECTION cs_prof;
+long g_l_profile=0;
+FILE *g_f_logfile=0;
+FILE *g_f_callfile=0;
+__int64 g_u_counter=0;
+
+CRITICAL_SECTION g_cs_log;
+CRITICAL_SECTION g_cs_call;
+CRITICAL_SECTION g_cs_prof;
 
 // Methods to toggle profiling programmatically
 extern "C" __declspec(dllexport)
@@ -30,7 +36,7 @@ extern "C" __declspec(dllexport)
       PUSHAD
       }
 
-  InterlockedExchange(&g_profile,1);
+  InterlockedExchange(&g_l_profile,1);
 
   __asm
   {
@@ -55,7 +61,7 @@ extern "C" __declspec(dllexport)
       PUSHAD
       }
 
-  InterlockedExchange(&g_profile,0);
+  InterlockedExchange(&g_l_profile,0);
 
   __asm
   {
@@ -81,11 +87,51 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
       do{
         CallMonitor::queryTickFreq(&frequency);
         if(getenv("CRAMP_PROFILE"))
-          InterlockedExchange(&g_profile,1);
+          InterlockedExchange(&g_l_profile,1);
         else
-          InterlockedExchange(&g_profile,0);
-        if(!InitializeCriticalSectionAndSpinCount(&cs_prof,4000L))
+          InterlockedExchange(&g_l_profile,0);
+
+        // Initialize critical sections
+        if(!InitializeCriticalSectionAndSpinCount(&g_cs_prof,4000L))
           break;
+        if(!InitializeCriticalSectionAndSpinCount(&g_cs_log,4000L)){
+          DeleteCriticalSection(&g_cs_prof);
+          break;
+        }
+        if(!InitializeCriticalSectionAndSpinCount(&g_cs_call,4000L)){
+          DeleteCriticalSection(&g_cs_log);
+          DeleteCriticalSection(&g_cs_prof);
+          break;
+        }
+
+        // Set output file handles
+        char filename[256];
+        filename[0]='\0';
+        sprintf(filename,"%s/cramp_profile#%d.log",
+                getenv("CRAMP_LOGPATH"),
+                GetCurrentProcessId());
+        g_f_logfile=fopen(filename,"ac");
+        if(!g_f_logfile){
+          DeleteCriticalSection(&g_cs_log);
+          DeleteCriticalSection(&g_cs_call);
+          DeleteCriticalSection(&g_cs_prof);
+          break;
+        }
+
+        sprintf(filename,"%s/cramp_call#%d.log",
+                getenv("CRAMP_LOGPATH"),
+                GetCurrentProcessId());
+        g_f_callfile=fopen(filename,"ac");
+        if(!g_f_callfile){
+          fclose(g_f_logfile);
+          g_f_logfile=0;
+          DeleteCriticalSection(&g_cs_log);
+          DeleteCriticalSection(&g_cs_call);
+          DeleteCriticalSection(&g_cs_prof);
+          break;
+        }
+
+        // Set this if all succeeds
         valid=TRUE;
       }while(0);
     case DLL_THREAD_ATTACH:
@@ -93,8 +139,17 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
         CallMonitor::threadAttach(new CallMonLOG());
       break;
     case DLL_PROCESS_DETACH:
-      if(valid)
-        DeleteCriticalSection(&cs_prof);
+      if(valid){
+        fflush(g_f_logfile);
+        fclose(g_f_logfile);
+        g_f_logfile=0;
+        fflush(g_f_callfile);
+        fclose(g_f_callfile);
+        g_f_callfile=0;
+        DeleteCriticalSection(&g_cs_log);
+        DeleteCriticalSection(&g_cs_call);
+        DeleteCriticalSection(&g_cs_prof);
+      }
     case DLL_THREAD_DETACH:
       if(valid)
         CallMonitor::threadDetach();

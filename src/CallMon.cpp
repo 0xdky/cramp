@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 09:47:16 dhruva>
+// Time-stamp: <2003-10-17 10:50:15 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -29,8 +29,8 @@ typedef CallMonitor::ADDR ADDR;
 static const unsigned OFFSET_CALL_BYTES=5;
 
 // To toggle profiling
-long g_profile=0;
-CRITICAL_SECTION cs_prof;
+extern long g_l_profile;
+extern CRITICAL_SECTION g_cs_prof;
 
 // Start of MSVC-specific code
 
@@ -116,7 +116,7 @@ extern "C" __declspec(dllexport) __declspec(naked)
   // Instrumented code
   do{
     long dest=0;
-    InterlockedCompareExchange(&dest,1,g_profile);
+    InterlockedCompareExchange(&dest,1,g_l_profile);
     if(dest)
       break;
 
@@ -241,9 +241,9 @@ void CallMonitor::enterProcedure(ADDR parentFramePtr,
   ci.origRetAddr = *retAddrPtr;
   ci.entryTime = entryTime;
 
-  EnterCriticalSection(&cs_prof);
+  EnterCriticalSection(&g_cs_prof);
   getFuncInfo(ci.funcAddr,ci.modl,ci.func);
-  LeaveCriticalSection(&cs_prof);
+  LeaveCriticalSection(&g_cs_prof);
 
   logEntry(ci);  // Log procedure entry event
 
