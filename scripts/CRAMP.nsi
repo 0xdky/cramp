@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2003-11-27 15:53:13 dhruva>
+;; Time-stamp: <2003-12-03 10:50:10 dhruva>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -74,6 +74,7 @@ Section "!CRAMP Engine" SEC01
   SetOutPath "$INSTDIR\bin"
   File "..\bin\CRAMP.exe"
   File "..\bin\CRAMPEngine.exe"
+  File "..\bin\ProfileControl.exe"
   File "\Applications\xerces\bin\xerces-c_2_3_0.dll"
   File "..\scripts\crampstaf.pl"
   File "\tmp\CRAMP-Package\Support\*"
