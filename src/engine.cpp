@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-09 18:53:57 dhruva>
+// Time-stamp: <2003-12-10 11:27:59 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -56,7 +56,7 @@ CRAMPServerMessaging::CRAMPServerMessaging(){
 //-----------------------------------------------------------------------------
 CRAMPServerMessaging::CRAMPServerMessaging(const char *iServer,BOOLEAN isPipe)
   :CRAMPMessaging(iServer,isPipe){
-  }
+}
 
 //-----------------------------------------------------------------------------
 // Process
@@ -360,10 +360,6 @@ MemoryPollTH(LPVOID lpParameter){
   SIZE_T monint=0;
   monint=g_CRAMP_Engine.g_pScenario->MonitorInterval();
 
-#ifdef USE_PDH
-  PdhOpenQuery(0,0,&g_CRAMP_Engine.g_hQuery);
-#endif
-
   while(1){
     long dest=1;
     InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
@@ -416,7 +412,6 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
     memset(&pin,0,sizeof(PROCESS_INFORMATION));
     pin=ptc->ProcessInfo();
 
-#ifdef USE_PDH
     if(pin.hProcess){
       DWORD pstat=0;
       GetExitCodeProcess(pin.hProcess,&pstat);
@@ -428,15 +423,10 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
     }
     if(pin.dwProcessId)
       lpid.push_back(pin.dwProcessId);
-#endif
 
     // Remove call to func
-    if(ptc->ExeProcStatus()){
-#ifndef USE_PDH
-      GetTestCaseMemoryDetails(h_snapshot,ptc);
-#endif
+    if(ptc->ExeProcStatus())
       continue;
-    }
 
     lpin.clear();
     if(!GetProcessHandleFromName(ptc->TestCaseExec().c_str(),lpin))
@@ -448,23 +438,16 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
       pin=(*lpiniter);
       if(!pin.dwProcessId)
         continue;
-#ifdef USE_PDH
       lpid.push_back(pin.dwProcessId);
-#else
-      ptc->ProcessInfo(pin);
-      GetTestCaseMemoryDetails(h_snapshot,ptc);
-#endif
       CloseHandle(pin.hProcess);
       pin.hProcess=0;
     }
   }
   CloseHandle(h_snapshot);
 
-#ifdef USE_PDH
   if(UpdatePIDCounterHash(lpid))
     return(FALSE);
   WriteCounterData();
-#endif
 
   return(TRUE);
 }

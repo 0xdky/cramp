@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-09 18:59:38 dhruva>
+// Time-stamp: <2003-12-10 12:21:05 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Desc  : Create a job, process inside the job which may create further
@@ -16,6 +16,8 @@
 #include "TestCaseInfo.h"
 
 #include <Pdh.h>
+#include <PDHMsg.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
@@ -51,6 +53,7 @@ hashstring(const char *s){
   SIZE_T h=0;
   for(int i=0;s[i]!='\0';i+=1)
     h=(h<<5)-h+s[i];
+
   return(h);
 }
 
@@ -161,23 +164,38 @@ GetNameStrings(void){
 //-----------------------------------------------------------------------------
 int
 UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
-  if(!g_CRAMP_Engine.g_hQuery)
-    return(-1);
-
   if(!iListOfPID.size())
     return(0);
+
+  // Do not check the first time
+  if(s_NameStr&&!g_CRAMP_Engine.g_hQuery)
+    return(-1);
+
+  DWORD dwSize=0,dwBuffSize=0;
+  LPTSTR szObjListBuffer=NULL;
 
   // Get the name strings through the registry.
   if(!s_NameStr){
     if(!GetNameStrings())
       return(-1);
     s_NameStr=TRUE;
+    if(ERROR_SUCCESS!=PdhOpenQuery(NULL,0,&g_CRAMP_Engine.g_hQuery))
+      return(-1);
+  }else{
+    PdhEnumObjects(NULL,
+                   ".",
+                   NULL,
+                   &dwSize,
+                   PERF_DETAIL_WIZARD,
+                   TRUE);
+    szObjListBuffer=(LPTSTR)malloc((dwSize * sizeof(TCHAR)));
+    PdhEnumObjects(NULL,
+                   ".",
+                   szObjListBuffer,
+                   &dwSize,
+                   PERF_DETAIL_WIZARD,
+                   TRUE);
   }
-
-  char buff[1024];
-  LPTSTR pbuff;
-  pbuff=buff;
-  DWORD dwSize=1024,dwBuffSize=0;
 
   dwSize=0;
   PdhEnumObjectItems(NULL,
@@ -194,89 +212,105 @@ UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
   LPTSTR szInstanceListBuffer=NULL;
   szCounterListBuffer=(LPTSTR)malloc((dwSize * sizeof(TCHAR)));
   szInstanceListBuffer=(LPTSTR)malloc((dwBuffSize * sizeof(TCHAR)));
-  if(ERROR_SUCCESS!=PdhEnumObjectItems(NULL,
-                                       ".",
-                                       C_PROC_NAME,
-                                       szCounterListBuffer,
-                                       &dwSize,
-                                       szInstanceListBuffer,
-                                       &dwBuffSize,
-                                       PERF_DETAIL_WIZARD,
-                                       0))
-    return(-1);
 
-  char msg[1024];
-  char qstr[1024];
-  PDH_HQUERY h_query=0;
-  PDH_HCOUNTER c_pid=0;
-  PDH_FMT_COUNTERVALUE val;
-  LPTSTR szThisInstance=NULL;
-  std::hash_map<SIZE_T,int> h_inst;
-  std::list<DWORD>::iterator liter;
-  std::hash_map<SIZE_T,int>::iterator iiter;
-  std::hash_map<DWORD,PDH_HCOUNTER *>::iterator hiter;
+  do{
+    if(ERROR_SUCCESS!=PdhEnumObjectItems(NULL,
+                                         ".",
+                                         C_PROC_NAME,
+                                         szCounterListBuffer,
+                                         &dwSize,
+                                         szInstanceListBuffer,
+                                         &dwBuffSize,
+                                         PERF_DETAIL_WIZARD,
+                                         0))
+      break;
 
-  PdhOpenQuery(0,0,&h_query);
-  for(szThisInstance=szInstanceListBuffer;
-      *szThisInstance;
-      szThisInstance+=lstrlen(szThisInstance)+1){
-    DWORD count=0;
-    SIZE_T hash=0;
-    char inst[256];
+    char msg[1024];
+    char qstr[1024];
+    PDH_HQUERY hQuery=0;
+    PDH_HCOUNTER c_pid=0;
+    PDH_RAW_COUNTER rval={0};
+    LPTSTR szThisInstance=NULL;
+    std::hash_map<SIZE_T,int> h_inst;
+    std::list<DWORD>::iterator liter;
+    std::hash_map<SIZE_T,int>::iterator iiter;
+    std::hash_map<DWORD,PDH_HCOUNTER *>::iterator hiter;
 
-    hash=hashstring(szThisInstance);
-    iiter=h_inst.find(hash);
-    if(iiter!=h_inst.end()){
-      (*iiter).second++;
-      count=(*iiter).second;
-    }else{
-      h_inst[hash]=0;
+    if(ERROR_SUCCESS!=PdhOpenQuery(NULL,0,&hQuery))
+      break;
+
+    for(szThisInstance=szInstanceListBuffer;
+        *szThisInstance;
+        szThisInstance+=lstrlen(szThisInstance)+1){
+      DWORD count=0;
+      SIZE_T hash=0;
+      char inst[256];
+
+      hash=hashstring(szThisInstance);
+      iiter=h_inst.find(hash);
+      if(iiter!=h_inst.end()){
+        (*iiter).second++;
+        count=(*iiter).second;
+      }else{
+        h_inst[hash]=0;
+      }
+
+      if(count)
+        sprintf(inst,"%s#%d",szThisInstance,count);
+      else
+        sprintf(inst,"%s",szThisInstance);
+
+      // Form the PID Query string
+      sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_PID_NAME);
+
+      // Get the PID of the instance
+      DEBUGCHK((ERROR_SUCCESS==PdhAddCounter(hQuery,
+                                             qstr,
+                                             0,
+                                             &c_pid)));
+      PdhCollectQueryData(hQuery);
+
+      DWORD ipid=0;
+      DEBUGCHK((ERROR_SUCCESS==PdhGetRawCounterValue(c_pid,0,&rval)));
+      ipid=rval.FirstValue;
+      PdhRemoveCounter(c_pid);
+
+      // Scan the list of PIDs
+      liter=iListOfPID.begin();
+      for(;liter!=iListOfPID.end();liter++){
+        DWORD pid=(*liter);
+        if(pid!=ipid)
+          continue;
+
+        hiter=s_h_PIDCounters.find(pid);
+        if(hiter!=s_h_PIDCounters.end())
+          continue;
+
+        PDH_HCOUNTER *apdhc=new PDH_HCOUNTER[MAX_COUNTERS];
+
+        sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_VM_NAME);
+        PdhAddCounter(g_CRAMP_Engine.g_hQuery,qstr,0,&apdhc[0]);
+
+        sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_PRIV_NAME);
+        PdhAddCounter(g_CRAMP_Engine.g_hQuery,qstr,0,&apdhc[1]);
+
+        sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_WS_NAME);
+        PdhAddCounter(g_CRAMP_Engine.g_hQuery,qstr,0,&apdhc[2]);
+
+        s_h_PIDInstance[pid]=inst;
+        s_h_PIDCounters[pid]=apdhc;
+      }
     }
+    PdhCloseQuery(hQuery);
+  }while(0);
 
-    if(count)
-      sprintf(inst,"%s#%d",szThisInstance,count);
-    else
-      sprintf(inst,"%s",szThisInstance);
+  if(szObjListBuffer)
+    free(szObjListBuffer);
+  if(szCounterListBuffer)
+    free(szCounterListBuffer);
+  if(szInstanceListBuffer)
+    free(szInstanceListBuffer);
 
-    // Form the PID Query string
-    sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_PID_NAME);
-
-    // Get the PID of the instance
-    PdhAddCounter(h_query,qstr,0,&c_pid);
-    PdhCollectQueryData(h_query);
-    PdhGetFormattedCounterValue(c_pid,PDH_FMT_LONG,0,&val);
-    PdhRemoveCounter(c_pid);
-
-    // Scan the list of PIDs
-    liter=iListOfPID.begin();
-    for(;liter!=iListOfPID.end();liter++){
-      DWORD pid=(*liter);
-      if(pid!=val.longValue)
-        continue;
-
-      hiter=s_h_PIDCounters.find(pid);
-      if(hiter!=s_h_PIDCounters.end())
-        continue;
-
-      PDH_HCOUNTER *apdhc=new PDH_HCOUNTER[MAX_COUNTERS];
-
-      sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_VM_NAME);
-      PdhAddCounter(g_CRAMP_Engine.g_hQuery,qstr,0,&apdhc[0]);
-
-      sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_PRIV_NAME);
-      PdhAddCounter(g_CRAMP_Engine.g_hQuery,qstr,0,&apdhc[1]);
-
-      sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_WS_NAME);
-      PdhAddCounter(g_CRAMP_Engine.g_hQuery,qstr,0,&apdhc[2]);
-
-      s_h_PIDInstance[pid]=inst;
-      s_h_PIDCounters[pid]=apdhc;
-    }
-  }
-  PdhCloseQuery(h_query);
-
-  free(szCounterListBuffer);
-  free(szInstanceListBuffer);
   return(0);
 }
 
@@ -297,6 +331,7 @@ RemovePIDCounterHash(DWORD iPID){
   for(int ii=0;ii<MAX_COUNTERS;ii++)
     PdhRemoveCounter(pcntr[ii]);
   delete [] pcntr;
+
   return;
 }
 
@@ -318,6 +353,7 @@ CleanPIDCounterHash(void){
   s_h_PIDCounters.erase(s_h_PIDCounters.begin(),s_h_PIDCounters.end());
   PdhCloseQuery(g_CRAMP_Engine.g_hQuery);
   g_CRAMP_Engine.g_hQuery=0;
+
   return;
 }
 
@@ -361,5 +397,6 @@ WriteCounterData(void){
     g_CRAMP_Engine.g_pScenario->Remote()->AddLog(msg);
     msg[0]='\0';
   }
+
   return;
 }
