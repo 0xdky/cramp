@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-11-19 20:38:40 dhruva>
+## Time-stamp: <2003-11-19 20:51:25 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : cramp_staf.pl
 ## Desc  : PERL script to run testcases on a pool of computers using STAF
@@ -34,6 +34,7 @@ if($Config{useithreads} || $Config{usethreads}){
 
 if(exists($ENV{'STAF_PATH'})){
     $STAF_PATH=$ENV{'STAF_PATH'};
+    $STAF_PATH=~s/\\/\//g;
     $STAF_PATH=~s/\/+$//g;
     if(! -d $STAF_PATH){
         exit -1;
