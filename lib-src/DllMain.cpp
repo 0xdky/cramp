@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-04 09:57:41 dhruva>
+// Time-stamp: <2004-01-21 16:52:30 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -345,6 +345,7 @@ OnProcessStart(void){
       break;
     }
 
+
     // Create a log file size monitoring thread
     buff=getenv("CRAMP_PROFILE_LOGSIZE");
     if(buff){
@@ -531,19 +532,19 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
                     DWORD fdwReason,
                     LPVOID lpvReserved){
   long dest=1;
-  InterlockedCompareExchange(&dest,0,IsInitialised);
-
   switch (fdwReason)
   {
     case DLL_PROCESS_ATTACH:
       OnProcessStart();
     case DLL_THREAD_ATTACH:
+      InterlockedCompareExchange(&dest,0,IsInitialised);
       if(!dest)
         CallMonitor::threadAttach(new CallMonLOG());
       break;
     case DLL_PROCESS_DETACH:
       OnProcessEnd();
     case DLL_THREAD_DETACH:
+      InterlockedCompareExchange(&dest,0,IsInitialised);
       if(!dest){
         CallMonitor::threadDetach();
         if(g_CRAMP_Profiler.g_fLogFile)
