@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-22 12:29:54 dhruva>
+// Time-stamp: <2003-11-01 14:18:53 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -604,30 +604,47 @@ GetProcessHandleFromName(const char *iProcName,
   if(!iProcName)
     return(0);
 
-  HANDLE h_snap=0;
-  h_snap=CreateToolhelp32Snapshot(TH32CS_SNAPALL,0);
-  DEBUGCHK(!(h_snap==INVALID_HANDLE_VALUE));
-  PROCESSENTRY32 pe={0};
-  pe.dwSize=sizeof(PROCESSENTRY32);
+  DWORD aProcesses[1024],cbNeeded,cProcesses;
+  if(!EnumProcesses(aProcesses,sizeof(aProcesses),&cbNeeded))
+    return(0);
+
   SIZE_T found=0;
-  BOOLEAN ret=FALSE;
-  ret=Process32First(h_snap,&pe);
-  for(;ret;ret=Process32Next(h_snap,&pe)){
-    if(!stricmp(pe.szExeFile,iProcName)){
-      HANDLE h_proc=0;
-      h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,
-                         FALSE,pe.th32ProcessID);
-      if(!h_proc)
-        continue;
-      PROCESS_INFORMATION pin={0};
-      pin.dwProcessId=pe.th32ProcessID;
-      pin.hProcess=h_proc;
-      olPIN.push_back(pin);
-      found++;
+  HMODULE hMod=0;
+  HANDLE h_proc=0;
+  char szProcName[1024];
+  char szShortName[1024]="unknown";
+  char szLongName[1024]="unknown";
+
+  cProcesses=cbNeeded/sizeof(DWORD);
+  for(unsigned int i=0;i<cProcesses;i++){
+    h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,
+                       FALSE,aProcesses[i]);
+    if(!h_proc)
+      continue;
+
+    if(!EnumProcessModules(h_proc,&hMod,sizeof(hMod),&cbNeeded))
+      continue;
+
+    cbNeeded=1024;
+    if(!GetModuleFileNameEx(h_proc,hMod,szShortName,cbNeeded))
+      continue;
+    if(!GetLongPathName(szShortName,szLongName,cbNeeded))
+      continue;
+
+    strcpy(szProcName,iProcName);
+    if(!strstr(_strlwr(szLongName),_strlwr(szProcName))){
+      CloseHandle(h_proc);
+      h_proc=0;
+      continue;
     }
+
+    PROCESS_INFORMATION pin={0};
+    pin.dwProcessId=aProcesses[i];
+    pin.hProcess=h_proc;
+    olPIN.push_back(pin);
+    found++;
   }
-  CloseHandle(h_snap);
-  h_snap=0;
+
   return(found);
 }
 
