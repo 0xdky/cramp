@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-11-21 18:29:28 dhruva>
+## Time-stamp: <2003-11-24 14:30:07 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : crampstaf.pl
 ## Desc  : PERL script to run testcases on a pool of computers using STAF
@@ -507,10 +507,6 @@ sub GenerateHTMLSummary{
 ##---------------------------------------------------------------------------##
 ##                          BEGIN ACTUAL EXECUTION                           ##
 ##---------------------------------------------------------------------------##
-$HOST=uc(hostname());
-GenerateHTMLSummary();
-exit 0;
-
 Init()==0||exit $?;
 GetSTAFPool()==0||exit $?;
 my $retval=0;
