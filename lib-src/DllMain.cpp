@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-11 16:30:05 dky>
+// Time-stamp: <2004-03-11 18:05:09 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -9,6 +9,7 @@
 // 02-28-2004  Mod Disable filtering, filter during dumping thru PERL       dky
 // 03-09-2004  Mod Moved generation of function info to flush               dky
 // 03-11-2004  Mod Undo previous changes and PCRE filtering                 dky
+// 03-11-2004  Mod Optimized Symbol loading and unloading with retry        dky
 //-----------------------------------------------------------------------------
 #define __DLLMAIN_SRC
 
@@ -137,6 +138,7 @@ extern "C" __declspec(dllexport)
 BOOL
 WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
     static std::list<DWORD> l_mod;
+    static std::hash_map<DWORD,bool> h_mod;
 
     if(!f_func)
         f_func=g_CRAMP_Profiler.g_fFuncInfo;
@@ -175,7 +177,7 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
 
         // Following not per docs, but per example...
         DWORD symDisplacement=0;
-        std::list<DWORD>::iterator res;
+        std::hash_map<DWORD,bool>::iterator res;
         BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL)+1024];
         PIMAGEHLP_SYMBOL pSymbol=(PIMAGEHLP_SYMBOL)&symbolBuffer[0];
 
@@ -187,8 +189,8 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         pSymbol->Size=0;
 
         csf.enter();
-        res=std::find(l_mod.begin(),l_mod.end(),(DWORD)mbi.AllocationBase);
-        if(l_mod.end()==res){
+        res=h_mod.find((DWORD)mbi.AllocationBase);
+        if(h_mod.end()==res){
             if(!SymLoadModule(h_proc,
                               NULL,
                               moduleName,
@@ -196,25 +198,51 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
                               (DWORD)mbi.AllocationBase,
                               mbi.RegionSize)) // From SDK. But Was 0 earlier
                 break;
-            l_mod.push_back((DWORD)mbi.AllocationBase);
+            h_mod[(DWORD)mbi.AllocationBase]=FALSE;
         }
 
         bool match=TRUE;
         char undName[1024];
         if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
-            strcpy(undName,"<unknown symbol>");
             match=FALSE;
-        }else{
-            if(0==UnDecorateSymbolName(pSymbol->Name, undName,
-                                       sizeof(undName),
-                                       UNDNAME_NO_MS_KEYWORDS        |
-                                       UNDNAME_NO_ACCESS_SPECIFIERS  |
-                                       UNDNAME_NO_FUNCTION_RETURNS   |
-                                       UNDNAME_NO_ALLOCATION_MODEL   |
-                                       UNDNAME_NO_ALLOCATION_LANGUAGE|
-                                       UNDNAME_NO_MEMBER_TYPE))
-                strcpy(undName,pSymbol->Name);
+            // Try reloading the module ONCE MORE before giving up!
+            do{
+                if(h_mod.end()==res){ // If just loaded, give up
+                    (*res).second=TRUE;
+                    break;
+                }
+
+                if(TRUE==(*res).second) // Ensure reload ONCE
+                    break;
+
+                SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
+                if(!SymLoadModule(h_proc,
+                                  NULL,
+                                  moduleName,
+                                  NULL,
+                                  (DWORD)mbi.AllocationBase,
+                                  mbi.RegionSize))
+                    break;
+                if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol))
+                    break;
+                match=TRUE;
+            }while(0);
         }
+
+        // Getting the final symbol name
+        if(FALSE==match)
+            strcpy(undName,"<unknown symbol>");
+        else if(0==UnDecorateSymbolName(pSymbol->Name,
+                                        undName,
+                                        sizeof(undName),
+                                        UNDNAME_NO_MS_KEYWORDS        |
+                                        UNDNAME_NO_ACCESS_SPECIFIERS  |
+                                        UNDNAME_NO_FUNCTION_RETURNS   |
+                                        UNDNAME_NO_ALLOCATION_MODEL   |
+                                        UNDNAME_NO_ALLOCATION_LANGUAGE|
+                                        UNDNAME_NO_MEMBER_TYPE))
+            strcpy(undName,pSymbol->Name);
+
         csf.leave();
 
         // Find if method is filtered
