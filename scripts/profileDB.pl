@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-31 11:43:39 dhruva>
+## Time-stamp: <2003-10-31 14:12:56 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -168,22 +168,32 @@ sub ProcessArgs{
 
         my $key=0;
         my $max=$ARGV[4];
-        if($ARGV[2]=~/[0-9]+/){
-            foreach(@tids){
-                if($_==$ARGV[2]){
-                    $key=$_;
-                    last;
+        if($ARGV[2]=~/([0-9]+)|ALL/){
+            my @tidlist=();
+            if($ARGV[2]=~/ALL/){
+                @tidlist=@tids;
+            }else{
+                foreach(@tids){
+                    if($_==$ARGV[2]){
+                        push(@tidlist,$_);
+                        last;
+                    }
                 }
             }
-            if(!$key){
+
+            if($#tidlist<0){
                 print STDERR "Error: Thread ID not found\n";
                 return 1;
             }
 
             if($ARGV[3]=~/TICK/){
-                @values=GetTickSortedValues($key,$max);
+                foreach(@tidlist){
+                    push(@values,GetTickSortedValues($_,$max));
+                }
             }elsif($ARGV[3]=~/RAW/){
-                @values=GetRawValues($key,$max);
+                foreach(@tidlist){
+                    push(@values,GetRawValues($_,$max));
+                }
             }
         }elsif($ARGV[2]=~/ADDR/){
             if($ARGV[3]=~/[0-9ABCDEFX]+/){
