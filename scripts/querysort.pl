@@ -12,9 +12,8 @@
 #	  #COLUMNNO = Column to be sorted
 #	  [0/1] = Argument for sorting in Ascending or Descending order
 #		  0 = Descending order
-#		  1 = Ascending order  
+#		  1 = Ascending order
 ##-----------------------------------------------------------------------------
-
 my $Column=$ARGV[0];
 my $SortOrder=$ARGV[1];
 my @logData=();
@@ -31,34 +30,23 @@ if($ENV{'CRAMP_LOGPATH'}){
     }
 }
 
-## Read the input query.psf file
-open(FILE,"$cramplogdir/query.psf") or dienice("Cannot open log.txt: $!");
-binmode(FILE);
-my @logData=();
-while(<FILE>) {
-    chomp($_);
-    push(@logData, $_);
-}
-close(FILE);
-
-## Call the sort method. 
-## CustomCompare is sub which checks for sorting order
-@SortList = sort CustomCompare @logData;
-
-## WriteResults
-open(fileOUT,">$cramplogdir/query.psf") or dienice("Cannot open logout.txt: $!");
-foreach $line (@SortList)
-{
-    chomp($line);
-    print fileOUT "$line\n";
-}
-
-close(fileOUT);
-
 ##-----------------------------------------------------------------------------
 ## CustomCompare
 ##	Checks sorting order and sorts the column accordingly
 ## 	SortOrder = 0 sorts in Descending order, ascending order o/w
+##-----------------------------------------------------------------------------
+
+##-----------------------------------------------------------------------------
+## Error Trapping Sub...should things go pear shaped!
+##-----------------------------------------------------------------------------
+sub dienice{
+    my($msg) = @_;
+    print STDERR $msg;
+    exit -1;
+}
+
+##-----------------------------------------------------------------------------
+## CustomCompare
 ##-----------------------------------------------------------------------------
 sub CustomCompare{
     my @aa=();
@@ -89,13 +77,22 @@ sub CustomCompare{
     return 0;
 }
 
-##-----------------------------------------------------------------------------
-## Error Trapping Sub...should things go pear shaped!
-##-----------------------------------------------------------------------------
-sub dienice
-{
-    my($msg) = @_;
-    print $msg;
-    exit;
+## Read the input query.psf file
+open(FILE,"$cramplogdir/query.psf") or dienice("Cannot open query.psf: $!");
+binmode(FILE);
+my @logData=();
+while(<FILE>){
+    chomp();
+    push(@logData,$_);
 }
+close(FILE);
 
+## Call the sort method.
+## CustomCompare is sub which checks for sorting order & WriteResults
+open(fileOUT,">$cramplogdir/query.psf")
+    or dienice("Cannot open query.psf: $!");
+foreach(sort CustomCompare @logData){
+    chomp();
+    print fileOUT "$_\n";
+}
+close(fileOUT);
