@@ -62,6 +62,7 @@ Public Sub GetEnvironmentVariable()
   giFileName = gstrCLogPath + "query.psf"
 
   Set gobjFSO = CreateObject("Scripting.FileSystemObject")
+  Set gobjDic = CreateObject("Scripting.Dictionary")
   
   'checking for the perl.exe -- in future
   gperlPath = gCRAMPPath + "/TOOLS/PERL/bin/wperl.exe"
