@@ -11,7 +11,9 @@ Public gListViewNode As Node
 Public gSaveFlag As Boolean
 Public gMRUList(1, 3) As String
 Public gMRUListCtr As Integer
-'Public Declare Function GetCurrentDirectory Lib "kernel32" Alias "GetCurrentDirectoryA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
+Public gGrpIdRef(1000, 1) As String
+Public gTcIdRef(1000, 1) As String
+Public gIdRef As New Collection
 
 Public Enum ObjectType
     otNone = 0
@@ -57,6 +59,7 @@ End Function
 
 Public Sub SetVisible()
     frmMainui.cboTrueFalse.Visible = False
+    frmMainui.cboIdRef.Visible = False
     frmMainui.txtInput.Visible = False
     frmMainui.cmdBrowse.Visible = False
     
@@ -104,7 +107,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
     Dim nodeName As String
     Dim ii As Integer
     Dim bSuccess As Boolean
-    Dim Index As Integer
+    Dim index As Integer
     Dim tmpName As String
     
     Select Case tblType
@@ -118,9 +121,9 @@ Public Function NewRecordName(tblType As ObjectType) As String
         Case otTestcase
             nodeName = "Testcase."
     End Select
-    Index = 1
+    index = 1
     Do
-        tmpName = nodeName & Index
+        tmpName = nodeName & index
         bSuccess = True
         For ii = 0 To gIdCounter - 1
             If gNameList(ii) = tmpName Then
@@ -128,7 +131,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
                 Exit For
             End If
         Next ii
-        Index = Index + 1
+        index = index + 1
     Loop Until bSuccess = True
     
     NewRecordName = tmpName
@@ -139,10 +142,14 @@ End Function
 '
 '************************************************************
 Public Sub ReinitialiseIds()
-    Dim ii As Integer
+    Dim ii, jj As Integer
     For ii = 0 To 1000 - 1
         gIdList(ii) = ""
         gNameList(ii) = ""
+        For jj = 0 To 1
+            gGrpIdRef(ii, jj) = ""
+            gTcIdRef(ii, jj) = ""
+        Next jj
     Next ii
     gIdCounter = 0
     
@@ -352,7 +359,7 @@ End Sub
 
 Public Sub RenameFormWindow()
     frmMainui.Caption = gCurScenarioName & " - CRAMP [" & _
-    LCase(frmMainui.fraMainUI(frmMainui.tspMainUI.SelectedItem.Index - 1).Caption) & _
+    LCase(frmMainui.fraMainUI(frmMainui.tspMainUI.SelectedItem.index - 1).Caption) & _
     "]"
 End Sub
 
@@ -451,8 +458,11 @@ Public Sub SaveFunction(strFileName As String)
     Dim elementNode, newElementNode As IXMLDOMElement
     Dim RootElementNode As IXMLDOMElement
     Dim TNode As Node
-    
     'On Error GoTo ErrorHandler
+    
+    While gIdRef.Count
+        gIdRef.Remove 1
+    Wend
     
     Set TNode = frmMainui.tvwNodes.Nodes(1).root
     Set elementNode = xmlDoc.createElement("Scenario")
@@ -511,4 +521,59 @@ Public Sub UpdateMRUFileList(strFileName As String)
     frmMainui.mnuSpace3.Visible = True
     UpdateMenuEditor
 End Sub
+
+
+Public Sub CreateIdRefList()
+    Dim selectedNode As Node
+    Dim rootNode As Node
+    Dim ii As Integer
+    Dim RetStatus As Boolean
+    
+    Set selectedNode = frmMainui.tvwNodes.SelectedItem
+    Set rootNode = selectedNode.root
+    
+    While gIdRef.Count
+        gIdRef.Remove 1
+    Wend
+    
+    RetStatus = NodeCanBeAdded(rootNode, selectedNode.Key)
+    
+End Sub
+
+Public Function NodeCanBeAdded(parentNode As Node, _
+                                NodeId As String) As Boolean
+    Dim ii As Integer
+    Dim childNode As Node
+    Dim selectedType As ObjectType
+    Dim RetStatus As Boolean
+    
+    If parentNode.Key = NodeId Then
+        NodeCanBeAdded = False
+        Exit Function
+    End If
+    
+    For ii = 0 To parentNode.children - 1
+        If ii = 0 Then
+            Set childNode = parentNode.Child
+        Else
+            Set childNode = childNode.Next
+        End If
+        
+        RetStatus = NodeCanBeAdded(childNode, NodeId)
+        If Not RetStatus Then
+            NodeCanBeAdded = False
+            Exit Function
+        End If
+        
+        'MsgBox childNode.Text
+        'selectedType = nodetype(frmMainui.tvwNodes.SelectedItem)
+        If nodetype(frmMainui.tvwNodes.SelectedItem) = _
+                nodetype(childNode) Then
+           gIdRef.Add childNode.Text, childNode.Key
+        End If
+        
+    Next ii
+    
+    NodeCanBeAdded = True
+End Function
 

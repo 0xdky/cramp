@@ -5,8 +5,11 @@ Public Sub WriteAttributes(ByVal elementNode As IXMLDOMElement, _
                            tblType As ObjectType, _
                            uId As String)
     Dim tblName As String
+    Dim tmpVal As String
     Dim cnn As New ADODB.Connection
     Dim rst As New ADODB.Recordset
+    Dim index As Integer
+    Dim IdRefVal, IdRefName As String
     
     tblName = ReturnTableName(tblType)
     'Open the connection
@@ -19,11 +22,28 @@ Public Sub WriteAttributes(ByVal elementNode As IXMLDOMElement, _
     rst.Open "SELECT * FROM " & tblName & _
         " WHERE Id = '" & uId & "'", cnn, adOpenKeyset, adLockOptimistic
         
+    IdRefVal = rst!ID
+    IdRefName = rst!Name
+    gIdRef.Add IdRefVal, IdRefName
+    
     For ii = 0 To rst.Fields.Count - 1
         
-        elementNode.setAttribute rst.Fields.Item(ii).Name, _
-                                rst.Fields.Item(ii).Value
+        Select Case tblType
+        Case otNone
         
+        Case otScenario
+            elementNode.setAttribute rst.Fields.Item(ii).Name, _
+                                rst.Fields.Item(ii).Value
+        Case otGroup, otTestcase
+            If rst.Fields.Item(ii).Name = "IdRef" And _
+                    rst.Fields.Item(ii).Value <> "" Then
+                elementNode.setAttribute rst.Fields.Item(ii).Name, _
+                        gIdRef(rst.Fields.Item(ii).Value)
+            Else
+                elementNode.setAttribute rst.Fields.Item(ii).Name, _
+                                rst.Fields.Item(ii).Value
+            End If
+        End Select
     Next ii
     
     rst.Close
@@ -62,7 +82,7 @@ Public Sub WriteChildrenToXMLFile(ByVal nodeElement As Node, _
         Set XMLNewElementNode = XMLElement.appendChild(XMLChildElement)
         
         WriteChildrenToXMLFile childNode, XMLNewElementNode
-    Next
+    Next ii
     
 End Sub
 
@@ -73,6 +93,10 @@ Public Sub LoadScenario(strFileName As String)
     Dim xmlDoc As DOMDocument30
     Dim scenario As Node
     Dim root As IXMLDOMElement
+    
+    While gIdRef.Count
+        gIdRef.Remove 1
+    Wend
     
     Set xmlDoc = New DOMDocument30
     If Not xmlDoc.Load(strFileName) Then
@@ -108,6 +132,9 @@ Public Sub WriteXMLNodeIntoDB(ByVal nodeElement As IXMLDOMElement)
     
     tblName = LCase(nodeElement.nodeName & "Table")
     tblType = GetTableType(tblName)
+    IdRefVal = nodeElement.getAttribute("Id")
+    IdRefName = nodeElement.getAttribute("Name")
+    gIdRef.Add IdRefName, IdRefVal
         
     'Open the connection
     cnn.Open _
@@ -126,23 +153,18 @@ Public Sub WriteXMLNodeIntoDB(ByVal nodeElement As IXMLDOMElement)
             For ii = 0 To gScenarioAttCounter - 1
                 rst.Fields(ScenarioAttribute(ii, 0)).Value = _
                                     ScenarioAttribute(ii, 1)
-                
             Next ii
         
         Case otGroup
             For ii = 0 To gGroupAttCounter - 1
                 rst.Fields(GroupAttributes(ii, 0)).Value = _
                                     GroupAttributes(ii, 1)
-                
-                
             Next ii
         
         Case otTestcase
             For ii = 0 To gTestcaseAttCounter - 1
                 rst.Fields(TestcaseAttributes(ii, 0)).Value = _
                                     TestcaseAttributes(ii, 1)
-                
-                
             Next ii
             
     End Select
@@ -153,8 +175,15 @@ Public Sub WriteXMLNodeIntoDB(ByVal nodeElement As IXMLDOMElement)
         ChkVal = CheckAttribute(tblType, _
                         nodeElement.Attributes.Item(ii).nodeName)
         If ChkVal Then
-            rst.Fields(nodeElement.Attributes.Item(ii).nodeName).Value = _
+            If nodeElement.Attributes.Item(ii).nodeName = "IdRef" And _
+                nodeElement.Attributes.Item(ii).nodeValue <> "" Then
+                rst.Fields(nodeElement.Attributes.Item(ii).nodeName).Value = _
+                    gIdRef(nodeElement.Attributes.Item(ii).nodeValue)
+            Else
+                rst.Fields(nodeElement.Attributes.Item(ii).nodeName).Value = _
                 nodeElement.Attributes.Item(ii).nodeValue
+            End If
+            
         End If
     Next ii
     
@@ -224,17 +253,19 @@ Public Sub CreateTreeViewAndDB(ByVal nodeElement As IXMLDOMElement, _
     Dim sKey As String
     Dim childNode As IXMLDOMElement
     Dim tvwNode As Node
-    Dim Index As Integer
-        
+    Dim index As Integer
+    Dim IdRefVal, IdRefName As String
+    
     If nodeElement Is Nothing Then
         Exit Sub
     End If
     
-    For Index = 0 To nodeElement.childNodes.length - 1
-        Set childNode = nodeElement.childNodes.Item(Index)
+    For index = 0 To nodeElement.childNodes.length - 1
+        Set childNode = nodeElement.childNodes.Item(index)
         sName = childNode.getAttribute("Name")
         sKey = childNode.getAttribute("Id")
-                
+        
+            
         Set tvwNode = frmMainui.tvwNodes.Nodes.Add(parentNode, _
                                         tvwChild, sKey, sName)
         tvwNode.EnsureVisible
@@ -245,7 +276,7 @@ Public Sub CreateTreeViewAndDB(ByVal nodeElement As IXMLDOMElement, _
         
         CreateTreeViewAndDB childNode, tvwNode
         
-    Next Index
+    Next index
     
 End Sub
 

@@ -47,6 +47,13 @@ Begin VB.Form frmMainui
       TabIndex        =   1
       Top             =   840
       Width           =   7450
+      Begin VB.ComboBox cboIdRef 
+         Height          =   315
+         Left            =   6000
+         TabIndex        =   13
+         Top             =   4320
+         Width           =   1215
+      End
       Begin VB.CommandButton cmdBrowse 
          Caption         =   "..."
          Height          =   255
@@ -239,6 +246,13 @@ Const INFINITE = -1
 
 Private SelectedIndex As Integer
 
+Private Sub cboIdRef_Click()
+    lvwAttributes.SelectedItem.SubItems(1) = cboIdRef.Text
+    lvwAttributes.SetFocus
+    cboIdRef.Visible = False
+    
+End Sub
+
 Private Sub cboTrueFalse_Click()
     
     lvwAttributes.SelectedItem.SubItems(1) = cboTrueFalse.Text
@@ -369,6 +383,7 @@ Private Sub lvwAttributes_Click()
     
     'Hide the combo boxes and browse button
     cboTrueFalse.Visible = False
+    cboIdRef.Visible = False
     cmdBrowse.Visible = False
     txtInput.Visible = False
     txtInput.Text = ""
@@ -387,23 +402,38 @@ Private Sub lvwAttributes_Click()
         + 50
        
     Selection = lvwAttributes.SelectedItem
-    If Selection = "ExecPath" Then
+    If UCase(Selection) = UCase("ExecPath") Then
         cmdBrowse.Move PX + CellWidth - 300, PY
         cmdBrowse.Visible = True
-        SelectedIndex = lvwAttributes.SelectedItem.Index
+        SelectedIndex = lvwAttributes.SelectedItem.index
         
         Exit Sub
+    ElseIf UCase(Selection) = UCase("IdRef") Then
+        CreateIdRefList
+        Dim index As Integer
+        cboIdRef.Clear
+        cboIdRef.Move PX, PY, CellWidth - 150
+        cboIdRef.Visible = True
+        cboIdRef.Text = lvwAttributes.SelectedItem.SubItems(1)
+        For index = 1 To gIdRef.Count
+            cboIdRef.AddItem gIdRef.Item(index)
+        Next index
+        cboIdRef.SetFocus
+        SelectedIndex = lvwAttributes.SelectedItem.index
+        Exit Sub
+    
+    
     End If
     
     Selection = lvwAttributes.SelectedItem.SubItems(1)
-    Select Case Selection
+    Select Case UCase(Selection)
            
         Case "TRUE", "FALSE"
             cboTrueFalse.Move PX, PY, CellWidth - 150
             cboTrueFalse.Visible = True
             cboTrueFalse.Text = Selection
             cboTrueFalse.SetFocus
-            SelectedIndex = lvwAttributes.SelectedItem.Index
+            SelectedIndex = lvwAttributes.SelectedItem.index
             Exit Sub
             
     End Select
@@ -416,13 +446,14 @@ Private Sub lvwAttributes_Click()
     txtInput.Visible = True
     'txtInput.SelText = Selection
     txtInput.SetFocus
-    SelectedIndex = lvwAttributes.SelectedItem.Index
+    SelectedIndex = lvwAttributes.SelectedItem.index
         
 End Sub
 
 Private Sub lvwAttributes_LostFocus()
     
     If cboTrueFalse.Visible Or _
+       cboIdRef.Visible Or _
        txtInput.Visible Then
        
        Exit Sub
@@ -450,12 +481,12 @@ Private Sub mnuHelp_Click()
     WriteIntoDB
 End Sub
 
-Private Sub mnuMRU_Click(Index As Integer)
+Private Sub mnuMRU_Click(index As Integer)
     
     CheckSaveStatus
     
     Dim sScenarioName As String
-    sScenarioName = gMRUList(0, Index)
+    sScenarioName = gMRUList(0, index)
     
     CleanAndRestart
     
@@ -546,8 +577,8 @@ Private Sub tspMainUI_Click()
         fraMainUI(ii).Visible = False
     Next ii
     
-    fraMainUI(tspMainUI.SelectedItem.Index - 1).Visible = True
-    fraMainUI(tspMainUI.SelectedItem.Index - 1).Move 600, 840
+    fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
+    fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
     'frmMainui.Caption = "CRAMP - " & _
             'fraMainUI(tspMainUI.SelectedItem.index - 1).Caption
     RenameFormWindow
@@ -560,6 +591,7 @@ Private Sub tvwNodes_NodeClick(ByVal Node As MSComctlLib.Node)
     'Hide the combo boxes and browse button
     cmdBrowse.Visible = False
     cboTrueFalse.Visible = False
+    cboIdRef.Visible = False
     
     WriteIntoDB
     
