@@ -75,7 +75,7 @@ Public Function GetNodeName(tblType As ObjectType) As String
         Case otTestcase
             GetNodeName = "Testcase"
     End Select
-        
+
 End Function
 
 Public Sub SetVisible()
@@ -83,7 +83,7 @@ Public Sub SetVisible()
     frmMainui.cboIdRef.Visible = False
     frmMainui.txtInput.Visible = False
     frmMainui.cmdBrowse.Visible = False
-    
+
 End Sub
 
 '************************************************************
@@ -94,11 +94,11 @@ Public Function GenerateId(tblType As ObjectType) As String
     Dim tmpId As String
     Dim ii As Integer
     Dim bSuccess As Boolean
-    
+
     Do
         bSuccess = True
         intId = Int(Rnd * 1000)
-        
+
         Select Case tblType
             Case otNone
                 GenerateId = ""
@@ -116,9 +116,9 @@ Public Function GenerateId(tblType As ObjectType) As String
             End If
         Next ii
     Loop Until bSuccess = True
-    
+
     GenerateId = tmpId
-    
+
 End Function
 
 '************************************************************
@@ -130,7 +130,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
     Dim bSuccess As Boolean
     Dim index As Integer
     Dim tmpName As String
-    
+
     Select Case tblType
         Case otNone
             nodeName = ""
@@ -154,9 +154,9 @@ Public Function NewRecordName(tblType As ObjectType) As String
         Next ii
         index = index + 1
     Loop Until bSuccess = True
-    
+
     NewRecordName = tmpName
-    
+
 End Function
 
 '************************************************************
@@ -173,7 +173,7 @@ Public Sub ReinitialiseIds()
         Next jj
     Next ii
     gIdCounter = 0
-    
+
 End Sub
 
 '************************************************************
@@ -183,7 +183,7 @@ Public Sub IncreaseGlobalCounters(ByVal selectedNode As Node)
     gIdList(gIdCounter) = selectedNode.Key
     gNameList(gIdCounter) = selectedNode.Text
     gIdCounter = gIdCounter + 1
-    
+
 End Sub
 
 '************************************************************
@@ -191,7 +191,7 @@ End Sub
 '************************************************************
 Public Sub UpdateGlobalCounters(ByVal selectedNode As Node)
     Dim ii As Integer
-    
+
     For ii = 0 To gIdCounter - 1
         If gNameList(ii) = selectedNode.Text Then
             gNameList(ii) = gNameList(gIdCounter - 1)
@@ -203,7 +203,7 @@ Public Sub UpdateGlobalCounters(ByVal selectedNode As Node)
         End If
     Next ii
     gIdCounter = gIdCounter - 1
-    
+
 End Sub
 
 '************************************************************
@@ -211,7 +211,7 @@ End Sub
 '************************************************************
 Public Sub DeleteGlobalCounters(ByVal selectedNode As Node)
     Dim ii As Integer
-    
+
     For ii = 0 To gIdCounter - 1
         If gNameList(ii) = selectedNode.Text Then
             gNameList(ii) = gNameList(gIdCounter - 1)
@@ -223,7 +223,7 @@ Public Sub DeleteGlobalCounters(ByVal selectedNode As Node)
         End If
     Next ii
     gIdCounter = gIdCounter - 1
-    
+
 End Sub
 
 '************************************************************
@@ -232,15 +232,15 @@ End Sub
 Public Sub SetActionButtons()
     Dim selectedNode As Node
     Dim nodeName As String
-    
+
     Set selectedNode = frmMainui.tvwNodes.SelectedItem
-    
+
     If selectedNode Is Nothing Then
         Exit Sub
     End If
-    
+
     nodeName = selectedNode.Key
-    
+
     Select Case Left$(nodeName, 1)
         Case "s"
             frmMainui.cmdAddGroup.Enabled = True
@@ -252,32 +252,32 @@ Public Sub SetActionButtons()
             frmMainui.cmdAddTc.Enabled = True
             frmMainui.cmdDelete.Enabled = True
             frmMainui.cmdDelete.Caption = "&Delete Group"
-        
+
         Case "t"
             frmMainui.cmdAddGroup.Enabled = False
             frmMainui.cmdAddTc.Enabled = False
             frmMainui.cmdDelete.Enabled = True
             frmMainui.cmdDelete.Caption = "&Delete Testcase"
-        
+
     End Select
-    
+
 End Sub
 
 Public Sub InitialiseListView()
     Dim colX As ColumnHeader ' Declare variable.
-    
+
     frmMainui.lvwAttributes.ColumnHeaders.Clear
-    
+
     frmMainui.lvwAttributes.ColumnHeaders.Add , , _
                         "Property", frmMainui.lvwAttributes.Width / 3
     frmMainui.lvwAttributes.ColumnHeaders.Add , , _
                         "Value", 2 * frmMainui.lvwAttributes.Width / 3 - 100
-    
+
     frmMainui.lvwAttributes.View = lvwReport
-    
-    
+
+
 End Sub
- 
+
 Public Sub SetGlobalVariables()
     Dim retVal As Long
 
@@ -301,30 +301,30 @@ Public Sub SetGlobalVariables()
             gTEMPDir = Left$(gTEMPDir, Len(gTEMPDir) - 1)
         Wend
     End If
-    
+
     gDatabaseName = gTEMPDir & "\CRAMPDB.mdb"
-    
+
     frmMainui.mnuSave.Enabled = False
     frmMainui.cmdRun.Enabled = False
     gCurFileName = gTEMPDir & "\Scenario1.xml"
     gCurScenarioName = "Scenario1"
     gSaveFlag = False
-    
+
 End Sub
 
 Public Sub CleanAndRestart()
-    
+
     SetGlobalVariables
     SetVisible
     Randomize
     InitialiseListView
     ReinitialiseIds
-    
+
     frmMainui.Show
     frmMainui.fraMainUI(0).Move 600, 840
     frmMainui.tvwNodes.Nodes.Clear
     frmMainui.lvwAttributes.ListItems.Clear
-    
+
 End Sub
 
 '************************************************************
@@ -332,21 +332,21 @@ End Sub
 '************************************************************
 Public Sub DeleteNode(ByVal selectedNode As Node)
     Dim parentNode As Node
-    
+
     'First clear the children names from global lists
     ClearNodeNamesFromGlobalLists selectedNode
-    
+
     Set parentNode = selectedNode.Parent
     frmMainui.tvwNodes.Nodes.Remove (selectedNode.Key)
     frmMainui.tvwNodes.SelectedItem = parentNode
     frmMainui.tvwNodes.SetFocus
     RefreshData
-    
+
     SetActionButtons
-    
+
     'Update the global counters
     UpdateGlobalCounters selectedNode
-    
+
 End Sub
 
 '************************************************************
@@ -355,7 +355,7 @@ End Sub
 Public Sub ClearNodeNamesFromGlobalLists(ByVal selectedNode As Node)
     Dim ii As Integer
     Dim childNode As Node
-    
+
     'Delete the children first
     For ii = 0 To selectedNode.children - 1
         If ii = 0 Then
@@ -363,12 +363,12 @@ Public Sub ClearNodeNamesFromGlobalLists(ByVal selectedNode As Node)
         Else
             Set childNode = childNode.Next
         End If
-        
+
         UpdateGlobalCounters childNode
         DeleteRecord childNode
         ClearNodeNamesFromGlobalLists childNode
     Next ii
-    
+
 End Sub
 
 Public Sub DeleteRecord(ByVal nodeElement As Node)
@@ -377,23 +377,23 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
     Dim uId As String
     Dim cnn As New ADODB.Connection
     Dim rst As New ADODB.Recordset
-    
+
     tblType = nodetype(nodeElement)
     tblName = ReturnTableName(tblType)
     uId = nodeElement.Key
-    
+
     'Open the connection
     cnn.Open _
         "Provider=Microsoft.Jet.OLEDB.4.0;" _
         & "Data Source=" & gDatabaseName
-    
+
     'Open the recordset
-    
+
     rst.Open "SELECT * FROM " & tblName & _
         " WHERE Id = '" & uId & "'", cnn, adOpenKeyset, adLockOptimistic
-        
+
     rst.Delete
-    
+
     rst.Close
     cnn.Close
 End Sub
@@ -411,29 +411,29 @@ Public Sub RenameFormWindow()
 End Sub
 
 Public Sub TestVBS()
-    
+
     Shell ("CScript.exe D:\CRAMP\crampsetting.vbs")
-    
+
 End Sub
 
 Public Sub InitialiseMRUFileList()
     Dim sFileName As String
     Dim sMRUFile As String
     Dim ii, jj As Integer
-    
+
     gMRUListCtr = 0
     For ii = 0 To 1
         For jj = 0 To 3
         gMRUList(ii, jj) = ""
         Next jj
     Next ii
-    
+
     sFileName = gCRAMPPath & "\res\MostRecentFiles.txt"
-    
+
     If Not FileExists(sFileName) Then
         Exit Sub
     End If
-    
+
     Open sFileName For Input As #1
     ii = 1
     Do Until EOF(1)
@@ -456,26 +456,26 @@ Public Sub InitialiseMRUFileList()
             End If
         End If
     Loop
-    
+
     Close #1
-    
+
     UpdateMenuEditor
-    
+
 End Sub
 
 Public Sub UpdateMenuEditor()
     Dim ii As Integer
-    
+
     For ii = 0 To 3
         frmMainui.mnuMRU(ii).Caption = ""
         frmMainui.mnuMRU(ii).Visible = False
     Next ii
-    
+
     For ii = 0 To gMRUListCtr - 1
         frmMainui.mnuMRU(ii).Caption = gMRUList(1, ii)
         frmMainui.mnuMRU(ii).Visible = True
     Next ii
-    
+
 End Sub
 
 Public Function CheckSaveStatus() As Boolean
@@ -485,14 +485,14 @@ Public Function CheckSaveStatus() As Boolean
                     gCurScenarioName & "?"
         Style = vbYesNoCancel + vbExclamation
         Title = "CRAMP"
-    
+
         Response = MsgBox(Msg, Style, Title)
         Select Case Response
             Case vbYes
                 SaveFunction gCurFileName
-                
+
             Case vbNo
-                
+
             Case vbCancel
                 CheckSaveStatus = False
                 Exit Function
@@ -505,19 +505,19 @@ Public Sub SaveIntoMRUFile()
     Dim sFileName As String
     Dim ii As Integer
     sFileName = gCRAMPPath & "\res\MostRecentFiles.txt"
-    
+
     If Not FileExists(sFileName) Then
         Exit Sub
     End If
-    
+
     Open sFileName For Output As #1
-    
+
     For ii = 0 To gMRUListCtr - 1
         Print #1, gMRUList(0, ii)
     Next ii
-    
+
     Close #1
-    
+
 End Sub
 '************************************************************
 '
@@ -529,41 +529,41 @@ Public Sub SaveFunction(strFileName As String)
     Dim RootElementNode As IXMLDOMElement
     Dim TNode As Node
     'On Error GoTo ErrorHandler
-    
+
     While gIdRef.Count
         gIdRef.Remove 1
     Wend
-    
+
     Set TNode = frmMainui.tvwNodes.Nodes(1).root
     Set elementNode = xmlDoc.createElement("Scenario")
-    
+
     elementNode.setAttribute "Id", TNode.Key
-    
+
     WriteAttributes elementNode, otScenario, TNode.Key
-    
+
     Set RootElementNode = xmlDoc.appendChild(elementNode)
-    
+
     WriteChildrenToXMLFile TNode, RootElementNode
-    
+
     xmlDoc.Save (strFileName)
-    
+
     UpdateMRUFileList strFileName
     gSaveFlag = False
-    
+
 End Sub
 
 Public Sub UpdateMRUFileList(strFileName As String)
     Dim ii, jj As Integer
     Dim bFilePresent As Boolean
     bFilePresent = False
-    
+
     For ii = 0 To gMRUListCtr - 1
         If gMRUList(0, ii) = strFileName Then
             bFilePresent = True
             Exit For
         End If
     Next ii
-    
+
     If bFilePresent Then
         For jj = ii To 1 Step -1
             gMRUList(0, jj) = gMRUList(0, jj - 1)
@@ -579,7 +579,7 @@ Public Sub UpdateMRUFileList(strFileName As String)
         gMRUList(0, 0) = strFileName
         gMRUList(1, 0) = "&1 " & strFileName
     End If
-    
+
     gMRUListCtr = 0
     For ii = 0 To 3
         If gMRUList(0, ii) = "" Then
@@ -587,7 +587,7 @@ Public Sub UpdateMRUFileList(strFileName As String)
         End If
         gMRUListCtr = gMRUListCtr + 1
     Next ii
-    
+
     frmMainui.mnuSpace3.Visible = True
     UpdateMenuEditor
 End Sub
@@ -598,16 +598,16 @@ Public Sub CreateIdRefList()
     Dim rootNode As Node
     Dim ii As Integer
     Dim RetStatus As Boolean
-    
+
     Set selectedNode = frmMainui.tvwNodes.SelectedItem
     Set rootNode = selectedNode.root
-    
+
     While gIdRef.Count
         gIdRef.Remove 1
     Wend
-    
+
     RetStatus = NodeCanBeAdded(rootNode, selectedNode.Key)
-    
+
 End Sub
 
 Public Function NodeCanBeAdded(parentNode As Node, _
@@ -616,42 +616,42 @@ Public Function NodeCanBeAdded(parentNode As Node, _
     Dim childNode As Node
     Dim selectedType As ObjectType
     Dim RetStatus As Boolean
-    
+
     If parentNode.Key = NodeId Then
         NodeCanBeAdded = False
         Exit Function
     End If
-    
+
     For ii = 0 To parentNode.children - 1
         If ii = 0 Then
             Set childNode = parentNode.Child
         Else
             Set childNode = childNode.Next
         End If
-        
+
         RetStatus = NodeCanBeAdded(childNode, NodeId)
         If Not RetStatus Then
             NodeCanBeAdded = False
             Exit Function
         End If
-        
+
         'MsgBox childNode.Text
         'selectedType = nodetype(frmMainui.tvwNodes.SelectedItem)
         If nodetype(frmMainui.tvwNodes.SelectedItem) = _
                 nodetype(childNode) Then
            gIdRef.Add childNode.Text, childNode.Key
         End If
-        
+
     Next ii
-    
+
     NodeCanBeAdded = True
 End Function
 
 
 'Public Sub RegSettingTest()
-    
+
     'SetKeyValue "Environment", "StringValue", "HelloShirish", REG_SZ
-    
+
 'End Sub
 
 
@@ -679,7 +679,7 @@ End Sub
 '***********************************************************
 Public Sub RunPerlScript()
   Dim hInst As Long
-    
+
   If frmMainui.queryText.Text <> "" Then
     gstrQueryArg = gperlPath + gstrSpace + gperlScript + gstrSpace + frmMainui.queryText.Text
     hInst = Shell(gstrQueryArg, vbNormalFocus)
@@ -789,7 +789,7 @@ End Sub
 Public Function ChkValueInArray(tmpArry() As String, tmpStr As String) As Boolean
     Dim iCounter As Integer
     Dim arrValue As String
-    
+
     For iCounter = 0 To UBound(tmpArry)
       arrValue = tmpArry(iCounter)
       If arrValue = tmpStr Then
@@ -806,7 +806,7 @@ End Function
 Public Sub SetValueInComboBox(tmpArry() As String, tmpStr As String, thisCombo As ComboBox)
   Dim aa As Long
   Dim strArray As String
-  
+
   aa = 0
   thisCombo.Clear
   For aa = 0 To UBound(tmpArry)
@@ -820,7 +820,7 @@ Public Sub SetValueInComboBox(tmpArry() As String, tmpStr As String, thisCombo A
       End If
      End If
   Next
-      
+
   'add ALL at the last into the thread combo box
   If tmpStr = "THREADS" Then
     tmpStr = "ALL"
@@ -849,10 +849,10 @@ With frmMainui
   'clean up list view
   .queryLV.ListItems.Clear
   .queryLV.View = lvwReport
-    
+
   'insert headers
   AddHeaders
-    
+
   IsFileExistAndSize giFileName, gIsFileExist, gFileSize
   If gIsFileExist <> False And gFileSize <> 0 Then
     If gobjDic.Count > 0 Then
@@ -861,14 +861,14 @@ With frmMainui
           'strdic = gobjDic.Item(ss)
           strQuery = gobjDic.Item(kk)
           MyArray = Split(strQuery, "|", -1, 1)
-        
+
           If UBound(MyArray) > .queryLV.ColumnHeaders.Count - 1 Then
             'insert headers
             .staCombo.Text = "THREADS"
             AddHeaders
             .staCombo.Text = "STAT"
           End If
-        
+
           For ss = 0 To UBound(MyArray)
             strQuery = MyArray(ss)
             If ss = 0 Then
@@ -915,7 +915,7 @@ With frmMainui
     Set clm = .queryLV.ColumnHeaders.Add(, , "Function")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Address")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Depth")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Exception")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Raw Ticks")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Time(ns)")
     If .staCombo.Text = "ADDR" And frmMainui.limitText.Text = -1 Then
       Set clm = .queryLV.ColumnHeaders.Add(, , "Count")
@@ -931,7 +931,7 @@ End Sub
 Public Sub DoProfiling(arg As String)
   Dim hInst As Long
   Dim strProCon As String
-  
+
   strProCon = gCRAMPPath & "/bin/ProfileControl.exe"
   strProCon = Replace(strProCon, "\", "/")
   IsFileExistAndSize strProCon, gIsFileExist, gFileSize
@@ -939,7 +939,7 @@ Public Sub DoProfiling(arg As String)
     MsgBox "ERROR :: File " & strProCon & " not found"
     Exit Sub
   End If
-  
+
   If arg <> "" Then
     If frmMainui.compnameText.Text <> "" _
        And frmMainui.pidText.Text <> "" Then
@@ -948,7 +948,7 @@ Public Sub DoProfiling(arg As String)
       hInst = Shell(strProCon, vbNormalFocus)
     End If
   End If
-  
+
   gIsFileExist = False
   gFileSize = 0
   hInst = 0
@@ -959,7 +959,7 @@ End Sub
 '***********************************************************
 Public Sub SetValueFromLV()
   Dim lvValue As String
-  
+
   If frmMainui.staCombo.Text = "ADDR" Then
     'address
     If Not IsNumeric(frmMainui.queryLV.SelectedItem) Then
@@ -993,7 +993,7 @@ End Sub
 ' run perl script through createprocess
 '***********************************************************
 Public Sub RunPerlScriptWithCP()
-   
+
     Dim Command As String
     Dim TaskID As Long
     Dim pInfo As PROCESS_INFORMATION
@@ -1003,7 +1003,7 @@ Public Sub RunPerlScriptWithCP()
     Dim lRetValue As Long
     Dim retVal As Boolean
     Dim Response
-        
+
     Const SYNCHRONIZE = 1048576
     Const NORMAL_PRIORITY_CLASS = &H20&
     Const INFINITE = -1
@@ -1011,7 +1011,7 @@ Public Sub RunPerlScriptWithCP()
     If frmMainui.queryText.Text <> "" Then
      Command = gperlPath + gstrSpace + gperlScript + gstrSpace + frmMainui.queryText.Text
       gstrQueryArg = frmMainui.queryText.Text
-    
+
       sInfo.cb = Len(sInfo)
       lSuccess = CreateProcess(sNull, _
                               Command, _
@@ -1023,10 +1023,10 @@ Public Sub RunPerlScriptWithCP()
                               sNull, _
                               sInfo, _
                               pInfo)
-    
+
       lRetValue = WaitForSingleObject(pInfo.hProcess, INFINITE)
       retVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
-    
+
       lRetValue = CloseHandle(pInfo.hThread)
       lRetValue = CloseHandle(pInfo.hProcess)
    Else
@@ -1072,13 +1072,13 @@ Public Sub HideShowNextPre()
   Else
     frmMainui.nextCommand.Enabled = True
   End If
-  
+
   If gDicCountLower <> 0 Then
     frmMainui.preCommand.Enabled = True
   Else
     frmMainui.preCommand.Enabled = False
   End If
-  
+
   'set range lable
   frmMainui.rngLabel.Caption = "Visible items : " & Chr(13) & gDicCountLower & " - " _
                                & gDicCountLower + frmMainui.queryLV.ListItems.Count
@@ -1091,11 +1091,11 @@ Public Sub CleanUp()
   If gobjDic.Count > 0 Then
     gobjDic.removeAll
   End If
-  
+
   'clean up list view
   frmMainui.queryLV.ListItems.Clear
   frmMainui.queryLV.ColumnHeaders.Clear
-  
+
   'clean up combo box
   frmMainui.pidCombo.Clear
   frmMainui.staCombo.Clear
@@ -1109,7 +1109,7 @@ Public Sub CleanUp()
   'clean up lable
   frmMainui.rngLabel.Caption = ""
   frmMainui.totLabel.Caption = ""
-  
+
   gFileSize = 0
   gDicCountUpper = 0
   gDicCountLower = 0
