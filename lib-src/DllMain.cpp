@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-11 18:10:29 dky>
+// Time-stamp: <2004-03-13 14:35:19 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -17,10 +17,11 @@
 #include "CallMonLOG.h"
 
 #include <ctype.h>
+#include <fstream.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <fstream.h>
+#include <psapi.h>
 #include <imagehlp.h>
 
 #ifndef MB2BYTE
@@ -29,12 +30,14 @@
 
 // The only permitted GLOBAL for the profiler library
 Global_CRAMP_Profiler g_CRAMP_Profiler;
+static std::hash_map<DWORD,bool> s_h_mod;
 
 void OnProcessStart(void);
 void OnProcessEnd(void);
 BOOL WriteFuncInfo(unsigned int,unsigned long,FILE *f_func);
 void LogFileSizeMonTH(void *);
 DWORD WINAPI ProfilerMailSlotServerTH(LPVOID);
+BOOL CALLBACK SymEnumModCB(PSTR,ULONG,PVOID);
 
 //-----------------------------------------------------------------------------
 // CRAMP_FlushProfileLogs
@@ -137,8 +140,6 @@ extern "C" __declspec(dllexport)
 //-----------------------------------------------------------------------------
 BOOL
 WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
-    static std::hash_map<DWORD,bool> h_mod;
-
     if(!f_func)
         f_func=g_CRAMP_Profiler.g_fFuncInfo;
     if(!f_func)
@@ -157,7 +158,6 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         TCHAR moduleName[MAX_PATH];
         TCHAR modShortNameBuf[MAX_PATH];
         MEMORY_BASIC_INFORMATION mbi;
-
 
         VirtualQuery((void *)addr,&mbi,sizeof(MEMORY_BASIC_INFORMATION));
 
@@ -188,45 +188,30 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         pSymbol->Size=0;
 
         csf.enter();
-        res=h_mod.find((DWORD)mbi.AllocationBase);
-        if(h_mod.end()==res){
+        res=s_h_mod.find((DWORD)mbi.AllocationBase);
+        if(s_h_mod.end()==res){
+            MODULEINFO mi={0};
+            if(!GetModuleInformation(h_proc,
+                                     (HMODULE)mbi.AllocationBase,
+                                     &mi,
+                                     sizeof(MODULEINFO))){
+                memset(&mi,0,sizeof(MODULEINFO));
+                mi.lpBaseOfDll=(void *)mbi.AllocationBase;
+            }
+
             if(!SymLoadModule(h_proc,
                               NULL,
                               moduleName,
                               NULL,
-                              (DWORD)mbi.AllocationBase,
-                              mbi.RegionSize)) // From SDK. But Was 0 earlier
+                              (DWORD)mi.lpBaseOfDll,
+                              mi.SizeOfImage)) // From SDK. Was 0 earlier
                 break;
-            h_mod[(DWORD)mbi.AllocationBase]=FALSE;
+            s_h_mod[(DWORD)mbi.AllocationBase]=FALSE;
         }
 
         bool match=TRUE;
         char undName[1024];
-        if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
-            match=FALSE;
-            // Try reloading the module ONCE MORE before giving up!
-            do{
-                if(h_mod.end()==res){ // If just loaded, give up
-                    (*res).second=TRUE;
-                    break;
-                }
-
-                if(TRUE==(*res).second) // Ensure reload ONCE
-                    break;
-
-                SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
-                if(!SymLoadModule(h_proc,
-                                  NULL,
-                                  moduleName,
-                                  NULL,
-                                  (DWORD)mbi.AllocationBase,
-                                  mbi.RegionSize))
-                    break;
-                if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol))
-                    break;
-                match=TRUE;
-            }while(0);
-        }
+        match=!!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol);
 
         // Getting the final symbol name
         if(FALSE==match)
@@ -305,6 +290,7 @@ OnProcessStart(void){
 
     char filename[256];
 
+    s_h_mod.clear();
     strcpy(g_CRAMP_Profiler.logpath,".");
     g_CRAMP_Profiler.IsInitialised=0;
     g_CRAMP_Profiler.g_exclusion=TRUE;
@@ -496,6 +482,22 @@ OnProcessStart(void){
 }
 
 //-----------------------------------------------------------------------------
+// SymEnumModCB
+//-----------------------------------------------------------------------------
+BOOL CALLBACK
+SymEnumModCB(PSTR ModuleName,
+             ULONG BaseOfDll,
+             PVOID IsInit){
+    if(IsInit){
+        s_h_mod[BaseOfDll]=FALSE;
+    }else{
+        if(SymUnloadModule(GetCurrentProcess(),BaseOfDll))
+            s_h_mod.erase(BaseOfDll);
+    }
+    return(TRUE);
+}
+
+//-----------------------------------------------------------------------------
 // CleanEmptyLogs
 //-----------------------------------------------------------------------------
 void
@@ -575,6 +577,7 @@ OnProcessEnd(void){
     }
 
     // Cleanup all debug information
+    SymEnumerateModules(GetCurrentProcess(),SymEnumModCB,NULL);
     SymCleanup(GetCurrentProcess());
 
     CleanEmptyLogs();
