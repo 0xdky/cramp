@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-01 19:09:55 dhruva>
+## Time-stamp: <2003-10-06 12:45:37 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -57,8 +57,9 @@ COBJS=$(OBJDIR)/cramp.obj $(OBJDIR)/TestCaseInfo.obj $(OBJDIR)/XMLParse.obj
 POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj
 OBJS=$(COBJS) $(POBJS) $(XOBJS)
 
+# Currently disabled base class build: Problem with SDK
 all: cramp
-cramp: dirs engine library baseclass test
+cramp: dirs engine library test
 remake: clean cramp
 
 # Dependancy to force a re-build
@@ -120,8 +121,9 @@ $(SRCDIR)/DPEBaseClass.cpp:
 $(SRCDIR)/DPEBaseClass.h:
 
 # Build the test cases: Profiler, XML
-test: dirs $(BINDIR)/TestProf.exe $(BINDIR)/XMLtest.exe \
-           $(BINDIR)/DPEBaseClassTest.exe
+test: dirs $(BINDIR)/TestProf.exe $(BINDIR)/XMLtest.exe
+basetest: baseclass $(BINDIR)/DPEBaseClassTest.exe
+
 $(BINDIR)/TestProf.exe: library $(OBJDIR)/TestProf.obj
     @$(LINK) $(LINK_DEBUG) $(OBJDIR)/TestProf.obj $(BINDIR)/$(PROFLIB).lib \
              /OUT:$(BINDIR)/TestProf.exe
@@ -143,6 +145,7 @@ $(OBJDIR)/XMLtest.obj: $(TSTDIR)/XMLtest.cpp
 $(OBJDIR)/DPEBaseClassTest.obj: $(TSTDIR)/DPEBaseClassTest.cpp
     @$(CPP)  /c $(CPP_DEBUG) /GX /I$(DPE_COMINC) \
              $(TSTDIR)/DPEBaseClassTest.cpp /Fo$(OBJDIR)/DPEBaseClassTest.obj
+
 $(TSTDIR)/TestProf.cpp: $(DEPS)
 $(TSTDIR)/XMLtest.cpp: $(DEPS)
 $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
