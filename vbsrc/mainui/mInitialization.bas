@@ -44,7 +44,7 @@ Public Sub GetEnvironmentVariable()
   Set objFSO = CreateObject("Scripting.FileSystemObject")
   
   'checking for the perl.exe -- in future
-  perlPath = strCrampPath + "/TOOLS/PERL/bin/perl.exe"
+  perlPath = strCrampPath + "/TOOLS/PERL/bin/wperl.exe"
   IsFileExistAndSize perlPath, IsFileExist, FileSize
   If IsFileExist = False And FileSize = 0 Then
     perlPath = "wperl.exe"

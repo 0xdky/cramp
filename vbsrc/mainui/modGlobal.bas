@@ -380,9 +380,15 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
 End Sub
 
 Public Sub RenameFormWindow()
-    frmMainui.Caption = gCurScenarioName & " - CRAMP [" & _
-    LCase(frmMainui.fraMainUI(frmMainui.tspMainUI.SelectedItem.index - 1).Caption) & _
-    "]"
+    If frmMainui.tspMainUI.SelectedItem.index = 2 Then
+        frmMainui.Caption = "CRAMP [" & _
+        LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
+        "]"
+    Else
+        frmMainui.Caption = gCurScenarioName & " - CRAMP [" & _
+        LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
+        "]"
+    End If
 End Sub
 
 Public Sub TestVBS()
@@ -443,7 +449,7 @@ Public Sub UpdateMenuEditor()
     
 End Sub
 
-Public Sub CheckSaveStatus()
+Public Function CheckSaveStatus() As Boolean
     If gSaveFlag Then
         Dim Msg, Style, Title, Response, MyString
         Msg = "Do you want to save the changes you made to " & _
@@ -455,13 +461,16 @@ Public Sub CheckSaveStatus()
         Select Case Response
             Case vbYes
                 SaveFunction gCurFileName
+                
             Case vbNo
                 
             Case vbCancel
-                Exit Sub
+                CheckSaveStatus = False
+                Exit Function
         End Select
     End If
-End Sub
+    CheckSaveStatus = True
+End Function
 
 Public Sub SaveIntoMRUFile()
     Dim sFileName As String
