@@ -5,6 +5,12 @@
 	* test/ChangeLog 1.3:
 		ChangeLog files in text mode
 
+	* docs/ChangeLog 1.4:
+	* scripts/ChangeLog 1.4:
+	* src/ChangeLog 1.5:
+	* test/ChangeLog 1.4:
+		Rebuilt logs
+
 	* docs/project.xls 1.1:
 		Project highlights
 
