@@ -14,3 +14,5 @@ UI:
         1. Provide a UI for generating the scenario file in XML format
         2. The same UI to analyse/edit an existing scenario file
         3. Launch CRAMP engine from UI
+
+[Incomplete]
