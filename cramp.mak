@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-11-03 20:00:51 dhruva>
+## Time-stamp: <2003-11-03 20:26:03 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -61,7 +61,8 @@ BDB_LIB=libdb41sd.lib
 !ENDIF
 
 !IF ("$(CRAMP_STUB)" == "1")
-CFLAGS=$(CFLAGS) /DCRAMP_STUB
+!MESSAGE Building a STUBBED profile library
+STUB=/DCRAMP_STUB
 !ENDIF
 
 INCLUDE=./src;./inc;$(INCLUDE)
@@ -72,7 +73,7 @@ LDFLAGS=$(LDFLAGS) /VERSION:$(VERSION)
 
 # For engine
 E_CFLAGS=$(CFLAGS) $(NOLOGO) /I$(XMLBASE)/include /I$(BDBBASE)/include
-E_CFLAGS=$(E_CFLAGS) /I$(STLBASE) /I$(BDBBASE)/include/dbinc
+E_CFLAGS=$(E_CFLAGS) $(STUB) /I$(STLBASE) /I$(BDBBASE)/include/dbinc
 E_CCFLAGS=$(E_CFLAGS) $(CPP_DEBUG) $(MT_DEBUG) /GX
 E_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
 E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(BDBBASE)/lib
