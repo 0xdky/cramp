@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-14 18:18:32 dhruva>
+// Time-stamp: <2003-11-17 12:07:07 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -102,6 +102,7 @@ TestCaseInfo
   TestCaseInfo *pScenario=0;
   pScenario=xml.GetScenario();
 
+#if 0
   ListOfTestCaseInfo lgc;
   try{
     lgc=pScenario->BlockListOfGC();
@@ -117,7 +118,7 @@ TestCaseInfo
     ptc=(*iter);
     if(!ptc)
       continue;
-    if(!ptc->SubProcStatus())
+    if(!ptc->MonProcStatus())
       continue;
     std::string &exec=ptc->TestCaseExec();
     PROCESS_INFORMATION pin={0};
@@ -133,8 +134,8 @@ TestCaseInfo
       for(SIZE_T cc=1;lpiniter!=lpin.end();lpiniter++,cc++){
         TestCaseInfo *psp=0;
         sprintf(tcname,"%s_mp#%d",str.c_str(),cc);
-        // Create a Sub proc
-        psp=ptc->AddTestCase(tcname,FALSE,TRUE);
+        // Create a monitored proc
+        psp=ptc->AddTestCase(tcname,CRAMP_TC_MONPROC);
         DEBUGCHK(psp);
         psp->TestCaseName("Monitoring only");
         psp->TestCaseExec(exec.c_str());
@@ -142,6 +143,8 @@ TestCaseInfo
       }
     }while(0);
   }
+#endif
+
   return(pScenario);
 }
 
@@ -236,10 +239,6 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
 
   ListOfTestCaseInfo::iterator iter=l_tci.begin();
   for(SIZE_T tc=0;iter!=l_tci.end();iter++){
-    // Sub processes are not executed!
-    if((*iter)->SubProcStatus())
-      continue;
-
     TestCaseInfo *ptc=(*iter);
     TestCaseInfo *porigtc=ptc;
     if(ptc->ReferStatus())
@@ -257,7 +256,8 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
         tc++;
       }
       continue;
-    }
+    }else if(!ptc->ExeProcStatus())
+      continue;
 
     STARTUPINFO si={sizeof(si)};
     PROCESS_INFORMATION pi={0};
@@ -430,10 +430,24 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario,CRAMPMessaging *ioMsg){
   h_snapshot=CreateToolhelp32Snapshot(TH32CS_SNAPALL,0);
   DEBUGCHK(!(h_snapshot==INVALID_HANDLE_VALUE));
 
+  std::list<PROCESS_INFORMATION> lpin;
   ListOfTestCaseInfo::iterator iter=lgc.begin();
   for(;iter!=lgc.end();iter++){
     TestCaseInfo *ptc=(*iter);
-    GetTestCaseMemoryDetails(h_snapshot,ptc);
+    if(!ptc||!ptc->MonProcStatus())
+      continue;
+    lpin.clear();
+    if(!GetProcessHandleFromName(ptc->TestCaseExec().c_str(),lpin))
+      continue;
+
+    std::list<PROCESS_INFORMATION>::iterator lpiniter=lpin.begin();
+    for(;lpiniter!=lpin.end();lpiniter++){
+      PROCESS_INFORMATION pin=(*lpiniter);
+      ptc->ProcessInfo(pin);
+      GetTestCaseMemoryDetails(h_snapshot,ptc);
+      CloseHandle(pin.hProcess);
+      pin.hProcess=0;
+    }
   }
   CloseHandle(h_snapshot);
   ret=TRUE;
@@ -504,7 +518,7 @@ JobNotifyTH(LPVOID){
             pin.dwProcessId=(SIZE_T)po;
             TestCaseInfo *pctc=0;
             try{
-              pctc=ptc->AddTestCase(0,FALSE,TRUE);
+              pctc=ptc->AddTestCase(0,ptc->Flag()|CRAMP_TC_SUBPROC);
               DEBUGCHK(pctc);
               pctc->ProcessInfo(pin);
               pctc->TestCaseName("Sub Process");
@@ -668,8 +682,7 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
       if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc)))
         break;
       // Actual RAM pmc.WorkingSetSize;
-      sprintf(msg,"# %s RAM: %ld bytes",ipTestCase->GetUID().c_str(),
-              pmc.WorkingSetSize);
+      sprintf(msg,"# RAM: %ld bytes",pmc.WorkingSetSize);
       ipTestCase->AddLog(msg);
     }while(0);
 

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-14 17:41:14 dhruva>
+// Time-stamp: <2003-11-17 10:31:23 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -20,8 +20,9 @@
 //----------------------- GENERIC STRUCTS AND TYPEDEFS-------------------------
 #define CRAMP_TC_BLOCK    1<<0
 #define CRAMP_TC_GROUP    1<<1
-#define CRAMP_TC_MONPROC  1<<2
-#define CRAMP_TC_SUBPROC  1<<3
+#define CRAMP_TC_EXEPROC  1<<2
+#define CRAMP_TC_MONPROC  1<<3
+#define CRAMP_TC_SUBPROC  1<<4
 
 // For getting active processes
 typedef struct{
@@ -50,11 +51,13 @@ public:
 
   // Must be called from the Scenario or a group
   TestCaseInfo *AddGroup(const char *ipUniqueID=0,
-                         BOOLEAN iBlock=TRUE);
+                         SIZE_T iFlag=CRAMP_TC_GROUP|CRAMP_TC_BLOCK);
+
   // Must be called from the Scenario or a group
   TestCaseInfo *AddTestCase(const char *ipUniqueID=0,
-                            BOOLEAN iBlock=TRUE,
-                            BOOLEAN iSub=FALSE);
+                            SIZE_T iFlag=CRAMP_TC_BLOCK|
+                            CRAMP_TC_EXEPROC|
+                            CRAMP_TC_MONPROC);
 
   // Can throw CRAMPException if reference is not valid
   void SetIDREF(const char *iIDREF);
@@ -74,15 +77,26 @@ public:
   TestCaseInfo *Scenario(void);
   TestCaseInfo *Remote(void);
 
+  SIZE_T Flag(void){
+    return(u_flag);
+  };
+
   BOOLEAN GroupStatus(void);
   // To support group like behaviour for
   // multi run entities
   BOOLEAN PseudoGroupStatus(void);
 
+  // Set this if EXECUTION is required
+  BOOLEAN ExeProcStatus(void);
+  void ExeProcStatus(BOOLEAN iIsExeProc);
+
+  // Set this to flag this as a sub process
   BOOLEAN SubProcStatus(void);
-  // Set this to monitor a running process
-  // Will be monitored only if it is still running at the time of monitoring
   void SubProcStatus(BOOLEAN iIsSubProc);
+
+  // Set this to monitor a running process
+  BOOLEAN MonProcStatus(void);
+  void MonProcStatus(BOOLEAN iIsMonProc);
 
   BOOLEAN RemoteStatus(void);
 
@@ -128,10 +142,13 @@ private:
   BOOLEAN b_group;                  // Is this a group
   BOOLEAN b_block;                  // Blocking or non blocking run
   BOOLEAN b_remote;                 // Is it for remote logging
+  BOOLEAN b_monproc;                // Should this be monitored?
+  BOOLEAN b_exeproc;                // Should this be executed?
   BOOLEAN b_subproc;                // Sub process, no execution
   BOOLEAN b_pseudogroup;            // Test case with multi run
 
   SIZE_T u_uid;                     // Unique ID to build references
+  SIZE_T u_flag;                    // Bit set to store various flags
   SIZE_T u_numruns;                 // Number of runs
   SIZE_T u_maxtimelimit;            // Max time limit for the process
 
@@ -163,7 +180,9 @@ private:
   // Throws an exception of type CRAMPException on error
   TestCaseInfo(TestCaseInfo *ipParent,
                const char *iUniqueID=0,
-               unsigned int iFlag=CRAMP_TC_BLOCK);
+               SIZE_T iFlag=CRAMP_TC_BLOCK|
+               CRAMP_TC_EXEPROC|
+               CRAMP_TC_MONPROC);
 
   // Internal methods
   inline void Init(void);

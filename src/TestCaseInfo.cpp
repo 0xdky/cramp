@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-14 18:09:00 dhruva>
+// Time-stamp: <2003-11-17 12:18:58 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -13,6 +13,7 @@
 
 #include "cramp.h"
 #include "TestCaseInfo.h"
+
 #include <algorithm>
 
 // Initialize static
@@ -46,6 +47,8 @@ TestCaseInfo::Init(void){
   b_block=TRUE;
   b_group=FALSE;
   b_remote=FALSE;
+  b_monproc=TRUE;
+  b_exeproc=TRUE;
   b_subproc=FALSE;
   b_pseudogroup=FALSE;
 
@@ -56,6 +59,7 @@ TestCaseInfo::Init(void){
   p_refertc=0;
 
   u_uid=0;
+  u_flag=0;
   u_numruns=1;
   u_maxtimelimit=0;
 
@@ -75,8 +79,9 @@ TestCaseInfo::TestCaseInfo(){
 //-----------------------------------------------------------------------------
 TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
                            const char *iUniqueID,
-                           unsigned int iFlags){
+                           SIZE_T iFlags){
   Init();
+  u_flag=iFlags;
 
   // Spin count may be used if on multi-processor
   if(!InitializeCriticalSectionAndSpinCount(&cs_tci,4000L)){
@@ -106,8 +111,11 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
 
   b_block=!!(iFlags&CRAMP_TC_BLOCK);
   b_group=!!(iFlags&CRAMP_TC_GROUP);
-  b_subproc=!!(iFlags&CRAMP_TC_SUBPROC);
   p_pgroup=ipParentGroup;
+
+  b_monproc=!!(iFlags&CRAMP_TC_MONPROC);
+  b_exeproc=!!(iFlags&CRAMP_TC_EXEPROC);
+  b_subproc=!!(iFlags&CRAMP_TC_SUBPROC);
 
   // Adding group/testcase to group. Scenario does not have parent!
   // Add this at end or you will find it and create a CYCLIC link!!
@@ -150,7 +158,7 @@ TestCaseInfo::~TestCaseInfo(){
     // Do not check for thread, it is closed after creation
     // to avoid holding on to threads which have spawned other
     // threads and want to die
-    if(pi_procinfo.hProcess)
+    if(!MonProcStatus()&&pi_procinfo.hProcess)
       CloseHandle(pi_procinfo.hProcess);
   }
   DeleteCriticalSection(&cs_tci);
@@ -220,7 +228,7 @@ TestCaseInfo::SetIDREF(const char *iIDREF){
 TestCaseInfo
 *TestCaseInfo::CreateScenario(const char *iUniqueID,
                               BOOLEAN iBlock){
-  unsigned int iFlags=CRAMP_TC_GROUP;
+  SIZE_T iFlags=CRAMP_TC_GROUP;
   if(iBlock)
     iFlags|=CRAMP_TC_BLOCK;
 
@@ -234,11 +242,14 @@ TestCaseInfo
   try{
     TestCaseInfo::p_scenario=new TestCaseInfo(0,iUniqueID,iFlags);
     DEBUGCHK(TestCaseInfo::p_scenario);
+    PROCESS_INFORMATION pin={0};
+    pin.dwProcessId=GetCurrentProcessId();
+    TestCaseInfo::p_scenario->ProcessInfo(pin);
+
     TestCaseInfo::p_remote=TestCaseInfo::p_scenario->AddGroup("REMOTE");
     DEBUGCHK(TestCaseInfo::p_remote);
     TestCaseInfo::p_remote->b_remote=TRUE;
     TestCaseInfo::p_remote->TestCaseName("REMOTE");
-
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
@@ -284,21 +295,20 @@ TestCaseInfo::DeleteScenario(TestCaseInfo *ipScenario){
 //-----------------------------------------------------------------------------
 TestCaseInfo
 *TestCaseInfo::AddGroup(const char *iUniqueID,
-                        BOOLEAN iBlock){
+                        SIZE_T iFlag){
   if(!GroupStatus()&&!PseudoGroupStatus())
     return(0);
 
   TestCaseInfo *pTCG=0;
-  unsigned int iFlags=CRAMP_TC_GROUP;
-  if(iBlock)
-    iFlags|=CRAMP_TC_BLOCK;
+  iFlag=iFlag|CRAMP_TC_GROUP;
 
   try{
-    pTCG=new TestCaseInfo(this,iUniqueID,iFlags);
+    pTCG=new TestCaseInfo(this,iUniqueID,iFlag);
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
   }
+
   return(pTCG);
 }
 
@@ -307,20 +317,17 @@ TestCaseInfo
 //-----------------------------------------------------------------------------
 TestCaseInfo
 *TestCaseInfo::AddTestCase(const char *iUniqueID,
-                           BOOLEAN iBlock,
-                           BOOLEAN iSubProc){
-  if(!iSubProc&&!GroupStatus()&&!PseudoGroupStatus())
+                           SIZE_T iFlag){
+  // Parent should either be MON/SUB OR Group/Pseudo
+  if(!(MonProcStatus()||SubProcStatus()||GroupStatus()||PseudoGroupStatus()))
     return(0);
 
-  TestCaseInfo *pTC=0;
-  unsigned int iFlags=0;
-  if(iBlock)
-    iFlags|=CRAMP_TC_BLOCK;
-  if(iSubProc)
-    iFlags|=CRAMP_TC_SUBPROC;
+  // Unset the group setting
+  iFlag=iFlag&~CRAMP_TC_GROUP;
 
+  TestCaseInfo *pTC=0;
   try{
-    pTC=new TestCaseInfo(this,iUniqueID,iFlags);
+    pTC=new TestCaseInfo(this,iUniqueID,iFlag);
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
@@ -379,6 +386,23 @@ TestCaseInfo::BlockStatus(BOOLEAN iIsBlocked){
 }
 
 //-----------------------------------------------------------------------------
+// ExeProcStatus
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::ExeProcStatus(void){
+  return(b_exeproc);
+}
+
+//-----------------------------------------------------------------------------
+// ExeProcStatus
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::ExeProcStatus(BOOLEAN iIsExeProc){
+  b_exeproc=iIsExeProc;
+  return;
+}
+
+//-----------------------------------------------------------------------------
 // SubProcStatus
 //-----------------------------------------------------------------------------
 BOOLEAN
@@ -391,7 +415,25 @@ TestCaseInfo::SubProcStatus(void){
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::SubProcStatus(BOOLEAN iIsSubProc){
+  b_exeproc=FALSE;
   b_subproc=iIsSubProc;
+  return;
+}
+
+//-----------------------------------------------------------------------------
+// MonProcStatus
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::MonProcStatus(void){
+  return(b_monproc);
+}
+
+//-----------------------------------------------------------------------------
+// MonProcStatus
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::MonProcStatus(BOOLEAN iIsMonProc){
+  b_monproc=iIsMonProc;
   return;
 }
 
@@ -447,13 +489,14 @@ TestCaseInfo::NumberOfRuns(SIZE_T iNumberOfRuns){
     return;
   b_pseudogroup=TRUE;
   char id[256];
+
   for(unsigned int ii=0;ii<iNumberOfRuns;ii++){
     TestCaseInfo *nptc=0;
     sprintf(id,"%s#%d",s_uid.c_str(),ii+1);
     if(GroupStatus())
-      nptc=AddGroup(id,BlockStatus());
+      nptc=AddGroup(id,u_flag);
     else
-      nptc=AddTestCase(id,BlockStatus());
+      nptc=AddTestCase(id,u_flag);
     DEBUGCHK(nptc);
     nptc->ReferStatus(TRUE);
     nptc->Reference(this);
@@ -496,7 +539,7 @@ TestCaseInfo::MonitorInterval(SIZE_T iMonitorInterval){
 }
 
 //-----------------------------------------------------------------------------
-// TestCaseExec
+// TestCaseName
 //-----------------------------------------------------------------------------
 std::string
 &TestCaseInfo::TestCaseName(void){
@@ -504,7 +547,7 @@ std::string
 }
 
 //-----------------------------------------------------------------------------
-// Name
+// TestCaseName
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::TestCaseName(const char *iName){
@@ -726,14 +769,23 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::AddLog(std::string ilog){
-  if(!g_CRAMP_Engine.g_fLogFile)
+  if(!g_CRAMP_Engine.g_fLogFile||!ilog.length())
     return;
 
+  char msg[BUFSIZE];
+  sprintf(msg,"%s|%d",
+          s_uid.c_str(),
+          ProcessInfo().dwProcessId);
+
   EnterCriticalSection(&g_CRAMP_Engine.g_cs_log);
+
   if('#'==ilog[0])
-    fprintf(g_CRAMP_Engine.g_fLogFile,"%s\n",ilog.c_str());
+    fprintf(g_CRAMP_Engine.g_fLogFile,"# %s|%s\n",
+            msg,
+            ilog.substr(1,ilog.length()).c_str());
   else
-    fprintf(g_CRAMP_Engine.g_fLogFile,"%s|%s\n",s_uid.c_str(),ilog.c_str());
+    fprintf(g_CRAMP_Engine.g_fLogFile,"%s|%s\n",msg,ilog.c_str());
+
   LeaveCriticalSection(&g_CRAMP_Engine.g_cs_log);
 
   return;
