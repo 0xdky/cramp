@@ -1,31 +1,48 @@
 VERSION 5.00
-Begin VB.Form frmLVColHS
-   BorderStyle     =   5  'Sizable ToolWindow
+Begin VB.Form frmLVColHS 
+   BorderStyle     =   4  'Fixed ToolWindow
    Caption         =   "Hide-Show Column"
-   ClientHeight    =   4476
-   ClientLeft      =   48
-   ClientTop       =   288
-   ClientWidth     =   1944
+   ClientHeight    =   5352
+   ClientLeft      =   36
+   ClientTop       =   276
+   ClientWidth     =   1932
+   ControlBox      =   0   'False
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   4476
-   ScaleWidth      =   1944
+   ScaleHeight     =   5352
+   ScaleWidth      =   1932
    ShowInTaskbar   =   0   'False
    StartUpPosition =   3  'Windows Default
-   Begin VB.Frame tottickColHSCHB
-      Height          =   4392
+   Begin VB.Frame tottickColHSCHB 
+      Height          =   5232
       Left            =   120
       TabIndex        =   0
       Top             =   0
       Width           =   1692
-      Begin VB.Frame Frame3
+      Begin VB.CommandButton cancleCommand 
+         Caption         =   "Cancle"
+         Height          =   288
+         Left            =   120
+         TabIndex        =   16
+         Top             =   4800
+         Width           =   972
+      End
+      Begin VB.CommandButton okCommand 
+         Caption         =   "Ok"
+         Height          =   288
+         Left            =   120
+         TabIndex        =   15
+         Top             =   4320
+         Width           =   972
+      End
+      Begin VB.Frame Frame3 
          Height          =   3852
          Left            =   120
          TabIndex        =   1
          Top             =   360
          Width           =   1452
-         Begin VB.CheckBox ticksColHSCHB
+         Begin VB.CheckBox ticksColHSCHB 
             Caption         =   "Ticks"
             Height          =   252
             Left            =   120
@@ -33,7 +50,7 @@ Begin VB.Form frmLVColHS
             Top             =   3480
             Width           =   1212
          End
-         Begin VB.CheckBox countColHSCHB
+         Begin VB.CheckBox countColHSCHB 
             Caption         =   "Count"
             Height          =   252
             Left            =   120
@@ -41,7 +58,7 @@ Begin VB.Form frmLVColHS
             Top             =   3180
             Width           =   1212
          End
-         Begin VB.CheckBox timeColHSCHB
+         Begin VB.CheckBox timeColHSCHB 
             Caption         =   "Time(ns)"
             Height          =   252
             Left            =   120
@@ -49,7 +66,7 @@ Begin VB.Form frmLVColHS
             Top             =   2880
             Width           =   1212
          End
-         Begin VB.CheckBox excepColHSCHB
+         Begin VB.CheckBox excepColHSCHB 
             Caption         =   "Raw Ticks"
             Height          =   270
             Left            =   120
@@ -57,7 +74,7 @@ Begin VB.Form frmLVColHS
             Top             =   2580
             Width           =   1212
          End
-         Begin VB.CheckBox depthColHSCHB
+         Begin VB.CheckBox depthColHSCHB 
             Caption         =   "Depth"
             Height          =   252
             Left            =   120
@@ -65,7 +82,7 @@ Begin VB.Form frmLVColHS
             Top             =   2280
             Width           =   1212
          End
-         Begin VB.CheckBox modColHSCHB
+         Begin VB.CheckBox modColHSCHB 
             Caption         =   "Module"
             Height          =   252
             Left            =   120
@@ -73,7 +90,7 @@ Begin VB.Form frmLVColHS
             Top             =   1980
             Width           =   1212
          End
-         Begin VB.CheckBox maxtickColHSCHB
+         Begin VB.CheckBox maxtickColHSCHB 
             Caption         =   "Max ticks"
             Height          =   252
             Left            =   120
@@ -81,7 +98,7 @@ Begin VB.Form frmLVColHS
             Top             =   1380
             Width           =   1212
          End
-         Begin VB.CheckBox totticksColHSCHB
+         Begin VB.CheckBox totticksColHSCHB 
             Caption         =   "Total ticks"
             Height          =   288
             Left            =   120
@@ -89,7 +106,7 @@ Begin VB.Form frmLVColHS
             Top             =   1680
             Width           =   1212
          End
-         Begin VB.CheckBox numColHSCHB
+         Begin VB.CheckBox numColHSCHB 
             Caption         =   "Number"
             Height          =   252
             Left            =   120
@@ -97,7 +114,7 @@ Begin VB.Form frmLVColHS
             Top             =   1080
             Width           =   1212
          End
-         Begin VB.CheckBox addrColHSCHB
+         Begin VB.CheckBox addrColHSCHB 
             Caption         =   "Address"
             Height          =   252
             Left            =   120
@@ -105,7 +122,7 @@ Begin VB.Form frmLVColHS
             Top             =   780
             Width           =   1212
          End
-         Begin VB.CheckBox funcColHSCHB
+         Begin VB.CheckBox funcColHSCHB 
             Caption         =   "Function"
             Height          =   252
             Left            =   120
@@ -113,7 +130,7 @@ Begin VB.Form frmLVColHS
             Top             =   480
             Width           =   1212
          End
-         Begin VB.CheckBox threColHSCHB
+         Begin VB.CheckBox threColHSCHB 
             Caption         =   "Thread"
             Height          =   288
             Left            =   120
@@ -122,7 +139,7 @@ Begin VB.Form frmLVColHS
             Width           =   1212
          End
       End
-      Begin VB.Label Label1
+      Begin VB.Label Label1 
          Caption         =   "Hide - Show Column"
          Height          =   204
          Left            =   120
@@ -139,13 +156,20 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
-Private Sub Form_Unload(Cancel As Integer)
+Private Sub okCommand_Click()
   StoreCheckBoxStatus
   frmMainui.manuHideShow.Enabled = True
-  'frmMainui.Enabled = True
+  Unload Me
+End Sub
+Private Sub cancleCommand_Click()
+  InitLVColHSForm
+  frmMainui.manuHideShow.Enabled = True
+  Unload Me
 End Sub
 
 Private Sub addrColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If addrColHSCHB.Value = 0 Then
     ReorderColumnPosition "Address", False
   Else
@@ -154,6 +178,8 @@ Private Sub addrColHSCHB_Click()
 End Sub
 
 Private Sub countColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If countColHSCHB.Value = 0 Then
     ReorderColumnPosition "Count", False
   Else
@@ -161,6 +187,8 @@ Private Sub countColHSCHB_Click()
   End If
 End Sub
 Private Sub depthColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If depthColHSCHB.Value = 0 Then
     ReorderColumnPosition "Depth", False
   Else
@@ -169,6 +197,8 @@ Private Sub depthColHSCHB_Click()
 End Sub
 
 Private Sub excepColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If excepColHSCHB.Value = 0 Then
     ReorderColumnPosition "Raw Ticks", False
   Else
@@ -177,6 +207,8 @@ Private Sub excepColHSCHB_Click()
 End Sub
 
 Private Sub funcColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If funcColHSCHB.Value = 0 Then
     ReorderColumnPosition "Function", False
   Else
@@ -185,6 +217,8 @@ Private Sub funcColHSCHB_Click()
 End Sub
 
 Private Sub maxtickColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If maxtickColHSCHB.Value = 0 Then
     ReorderColumnPosition "Max ticks", False
   Else
@@ -193,6 +227,8 @@ Private Sub maxtickColHSCHB_Click()
 End Sub
 
 Private Sub modColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If modColHSCHB.Value = 0 Then
     ReorderColumnPosition "Module", False
   Else
@@ -201,6 +237,8 @@ Private Sub modColHSCHB_Click()
 End Sub
 
 Private Sub numColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If numColHSCHB.Value = 0 Then
     ReorderColumnPosition "Number", False
   Else
@@ -209,6 +247,8 @@ Private Sub numColHSCHB_Click()
 End Sub
 
 Private Sub threColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If threColHSCHB.Value = 0 Then
     ReorderColumnPosition "Thread", False
   Else
@@ -217,7 +257,8 @@ Private Sub threColHSCHB_Click()
 End Sub
 
 Private Sub ticksColHSCHB_Click()
-
+  If Me.Visible = False Then Exit Sub
+  
   If ticksColHSCHB.Value = 0 Then
     ReorderColumnPosition "Ticks", False
   Else
@@ -227,6 +268,8 @@ Private Sub ticksColHSCHB_Click()
 End Sub
 
 Private Sub timeColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If timeColHSCHB.Value = 0 Then
     ReorderColumnPosition "Time(ns)", False
   Else
@@ -235,6 +278,8 @@ Private Sub timeColHSCHB_Click()
 End Sub
 
 Private Sub totticksColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
   If totticksColHSCHB.Value = 0 Then
     ReorderColumnPosition "Total ticks", False
   Else

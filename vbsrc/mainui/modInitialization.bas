@@ -360,14 +360,14 @@ Public Sub StoreUserSetting()
   colPosition = 0
   
   colHead = frmMainui.queryLV.ColumnHeaders.Count
-  If frmMainui.staCombo.Text = "STAT" Then
+  If frmMainui.queryLV.ColumnHeaders.Count = 6 Then 'STAT
     ReDim currsetArrayStat(colHead - 1)
       
     For ss = 0 To colHead - 1
       colPosition = frmMainui.queryLV.ColumnHeaders.Item(ss + 1).Position
       currsetArrayStat(colPosition - 1) = frmMainui.queryLV.ColumnHeaders.Item(ss + 1).Text
     Next
-  Else
+  Else 'THREADS/ADDR
     ReDim currsettingArray(colHead - 1)
 
     For ss = 0 To colHead - 1
@@ -401,7 +401,7 @@ currsettingArray(1) = "Module"
 currsettingArray(2) = "Function"
 currsettingArray(3) = "Address"
 currsettingArray(4) = "Depth"
-currsettingArray(5) = "Exception"
+currsettingArray(5) = "Raw Ticks"
 currsettingArray(6) = "Time(ns)"
 currsettingArray(7) = "Count"
 currsettingArray(8) = "Ticks"
@@ -453,7 +453,7 @@ Public Sub ShowHideCol()
             Case 7
               ReorderColumnPosition "Depth", False
             Case 8
-              ReorderColumnPosition "Exception", False
+              ReorderColumnPosition "Raw Ticks", False
             Case 9
               ReorderColumnPosition "Time(ns)", False
             Case 10

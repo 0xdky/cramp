@@ -1124,5 +1124,8 @@ Public Sub CleanUp()
   Erase currsettingArray
   Erase currsetArrayStat
   Erase chbstatusArray
-
+  
+  'unload frmlncolhs
+  Unload frmLVColHS
+  
 End Sub
