@@ -238,28 +238,28 @@ Public Declare Function SendMessage Lib "user32" _
 '***********************************************************
 ' My Code Starts Here
 '***********************************************************
-Private Declare Function FindFirstFile Lib "kernel32.dll" Alias "FindFirstFileA" _
+Public Declare Function FindFirstFile Lib "kernel32.dll" Alias "FindFirstFileA" _
                          (ByVal lpFileName As String, lpFindFileData As WIN32_FIND_DATA) As Long
 
-Private Declare Function FindNextFile Lib "kernel32.dll" Alias "FindNextFileA" _
+Public Declare Function FindNextFile Lib "kernel32.dll" Alias "FindNextFileA" _
                          (ByVal hFindFile As Long, lpFindFileData As WIN32_FIND_DATA) As Long
 
-Private Declare Function FindClose Lib "kernel32.dll" (ByVal hFindFile As Long) As Long
+Public Declare Function FindClose Lib "kernel32.dll" (ByVal hFindFile As Long) As Long
 
-Private Declare Function GetCursorPos Lib "user32" (lpPoint As POINTCORD) As Long
+Public Declare Function GetCursorPos Lib "user32" (lpPoint As POINTCORD) As Long
 
-Private Declare Function GetComputerNameEx Lib "kernel32" Alias "GetComputerNameExA" _
+Public Declare Function GetComputerNameEx Lib "kernel32" Alias "GetComputerNameExA" _
                          (ByVal lpCompName As COMPUTER_NAME_FORMAT, ByVal lpBuffer As String, _
                           nSize As Long) As Long
 
-Private Const MAX_PATH = 260
+Public Const MAX_PATH = 260
 
-Private Type FILETIME
+Public Type FILETIME
         dwLowDateTime As Long
         dwHighDateTime As Long
 End Type
 
-Private Type POINTCORD
+Public Type POINTCORD
         X As Long
         Y As Long
 End Type
@@ -279,29 +279,29 @@ End Type
 
 'icon code
 
-Private Const LVM_FIRST = &H1000
-Private Const LVM_GETHEADER = (LVM_FIRST + 31)
+Public Const LVM_FIRST = &H1000
+Public Const LVM_GETHEADER = (LVM_FIRST + 31)
 
-Private Const HDI_IMAGE = &H20
-Private Const HDI_FORMAT = &H4
+Public Const HDI_IMAGE = &H20
+Public Const HDI_FORMAT = &H4
     
-Private Const HDF_BITMAP_ON_RIGHT = &H1000
-Private Const HDF_IMAGE = &H800
-Private Const HDF_STRING = &H4000
+Public Const HDF_BITMAP_ON_RIGHT = &H1000
+Public Const HDF_IMAGE = &H800
+Public Const HDF_STRING = &H4000
     
-Private Const HDM_FIRST = &H1200
-Private Const HDM_SETITEM = (HDM_FIRST + 4)
+Public Const HDM_FIRST = &H1200
+Public Const HDM_SETITEM = (HDM_FIRST + 4)
     
-Private Const HDF_LEFT As Long = 0
-Private Const HDF_RIGHT As Long = 1
-Private Const HDF_CENTER As Long = 2
+Public Const HDF_LEFT As Long = 0
+Public Const HDF_RIGHT As Long = 1
+Public Const HDF_CENTER As Long = 2
     
-Private Enum enumShowHide
+Public Enum enumShowHide
     bShow = -1
     bHide = 0
 End Enum
 
-Private Type HDITEM
+Public Type HDITEM
    mask     As Long
    cxy      As Long
    pszText  As String
@@ -313,7 +313,7 @@ Private Type HDITEM
    iOrder   As Long
 End Type
 
-Private Enum COMPUTER_NAME_FORMAT
+Public Enum COMPUTER_NAME_FORMAT
   ComputerNameNetBIOS
   ComputerNameDnsHostname
   ComputerNameDnsDomain
@@ -409,139 +409,6 @@ Public Sub SetKeyValue(sKeyName As String, sValueName As String, _
    End Sub
    
    
-
-'***********************************************************
-' My Code Starts Here
-'***********************************************************
-
-'***********************************************************
-' set process id combo box
-'***********************************************************
-Public Function SetPIDCombo(fld As String) As String
-
-   Dim fHandle As Long
-   Dim Location As Long
-   Dim strLength As Long
-   Dim FileName As String
-   Dim ProcessID As String
-   Dim tmpStr As String
-   Dim bRet As Boolean
-   Dim addValue As Boolean
-   Dim cmbBool As Boolean
-   Dim processidArray() As String
-   Dim findData As WIN32_FIND_DATA
-     
-   On Error Resume Next
-   ReDim Preserve pidArray(0)
-   ReDim Preserve processidArray(0)
-   
-   addValue = False
-   cmbBool = False
-   fHandle = 0
-   Location = 0
-   strLength = 0
-   frmMainui.pidCombo.Clear
-   'add a trailing / if there isn't one
-   SetPath fld
-   'find the first file/folder in the root path
-   fHandle = FindFirstFile(fld & "*", findData)
-   
-   'get rid of the nulls
-   FileName = findData.cFileName
-   FileName = StripNulls(FileName)
-   
-   'loop until there's nothing left
-   Do While Len(FileName) <> 0
-      'get the next one
-      bRet = FindNextFile(fHandle, findData)
-      'nothing left in this folder so get out
-      If bRet = False Then
-         Exit Do
-      End If
-      'get rid of the nulls
-      FileName = findData.cFileName
-      FileName = StripNulls(FileName)
-      tmpStr = gstrCLogPath & FileName
-      tmpStr = Replace(tmpStr, "\", "/")
-      IsFileExistAndSize tmpStr, gIsFileExist, gFileSize
-      If gIsFileExist <> False And gFileSize <> 0 Then
-       'tmpStr = Right$(FileName, 3)
-       tmpStr = Right$(FileName, 4)
-       'If tmpStr = ".db" Then
-       If tmpStr = ".log" Then
-        strLength = Len(FileName)
-        Location = InStr(FileName, "#")
-        Location = strLength - Location
-        ProcessID = Right(FileName, Location)
-        Location = InStr(ProcessID, ".")
-        strLength = Len(ProcessID)
-        'Location = strLength - 3        '3 for .db
-        Location = strLength - 4        '4 for .log
-        ProcessID = Left(ProcessID, Location)
-        addValue = ChkDuplicateValueInArray(processidArray(), ProcessID)
-        If IsNumeric(ProcessID) And addValue = True Then
-          
-          processidArray(UBound(processidArray)) = ProcessID
-          ReDim Preserve processidArray(UBound(processidArray) + 1)
-        
-          Dim X As udtPID
-          pidArray(UBound(pidArray)) = X
-          If cmbBool = False Then
-            frmMainui.pidCombo.Text = ProcessID
-          End If
-          frmMainui.pidCombo.AddItem (ProcessID)
-          GetAllThreads UBound(pidArray), ProcessID
-          ReDim Preserve pidArray(UBound(pidArray) + 1)
-          cmbBool = True
-        End If
-      End If
-     End If
-     gIsFileExist = False
-     gFileSize = 0
-   Loop
-   bRet = FindClose(fHandle)
-   
-   If cmbBool = True Then
-     Dim pidHand As udtPID
-     pidHand = pidArray(0)
-     SetValueInComboBox pidHand, frmMainui.threadCombo
-     frmMainui.pidCombo.ListIndex = 0
-     frmMainui.queryCommand.Enabled = True
-   Else
-     MsgBox "ERROR :: No log files Under " + fld + " Folder"
-     frmMainui.queryCommand.Enabled = False
-   End If
-   
-   fHandle = 0
-   Location = 0
-   strLength = 0
-   cmbBool = False
-   Erase processidArray
-   
-End Function
-'***********************************************************
-' add / at the end of the path if it is not there
-'***********************************************************
-Public Function SetPath(instring As String) As String
-   'appends a forward slash to a path if needed
-   If Right$(instring, 1) <> "/" Then
-      instring = instring & "/"
-   End If
-   SetPath = instring
-End Function
-
-'***********************************************************
-' strip nulls from the string
-'***********************************************************
-Private Function StripNulls(OriginalStr As String) As String
-   'strip nulls from a string
-   If (InStr(OriginalStr, Chr(0)) > 0) Then
-      OriginalStr = Left$(OriginalStr, InStr(OriginalStr, Chr(0)) - 1)
-   End If
-   StripNulls = OriginalStr
-End Function
-
-
 'SJM Code for UNC path
 
 Public Function GetConnectionPermissions(ByVal dwPermissions As Long) As String
@@ -615,140 +482,4 @@ Public Function GetPointerToByteStringW(ByVal dwData As Long) As String
 End Function
 
 'SJM Code end
-
-'icon code start - pie
-'***********************************************************
-' show icon on header
-'***********************************************************
-Public Sub ShowSortIconInLVHeader(list As MSComctlLib.ListView, _
-                                  imgIconNo As Integer)
-    
-    Dim col As MSComctlLib.ColumnHeader
-    Dim lAlignment As Long
-    
-    'set all column header to off
-    For Each col In list.ColumnHeaders
-      With col
-        lAlignment = GetColHeaderAlignment(col)
-        ShowIcon .index, 0, bHide, list, lAlignment
-      End With
-    Next
-    ShowIcon list.SortKey + 1, imgIconNo, bShow, list, lAlignment
-End Sub
-
-'***********************************************************
-' get column header alignment
-'***********************************************************
-Private Function GetColHeaderAlignment(col As MSComctlLib.ColumnHeader)
-' Get the columns current alignment
-    With col
-        Select Case .Alignment
-            Case lvwColumnRight
-                GetColHeaderAlignment = HDF_RIGHT
-            Case lvwColumnCenter
-                GetColHeaderAlignment = HDF_CENTER
-            Case Else
-                GetColHeaderAlignment = HDF_LEFT
-        End Select
-    End With
-End Function
-
-'***********************************************************
-' show icon
-'***********************************************************
-Private Sub ShowIcon(colNo As Long, imgIconNo As Integer, bShowIcon As enumShowHide, list As MSComctlLib.ListView, lAlignment As Long)
-    Dim lHeader As Long
-    Dim HD      As HDITEM
-    
-    'get a handle if listview header
-    lHeader = SendMessage(list.hwnd, LVM_GETHEADER, 0, ByVal 0)
-    
-    'set structure
-    With HD
-        .mask = HDI_IMAGE Or HDI_FORMAT
-        
-        If bShowIcon Then
-            .fmt = HDF_STRING Or HDF_IMAGE Or HDF_BITMAP_ON_RIGHT
-            .iImage = imgIconNo
-        Else
-            .fmt = HDF_STRING
-        End If
-        .fmt = .fmt Or lAlignment
-    End With
-    
-    'modify the header icon
-    Call SendMessage(lHeader, HDM_SETITEM, colNo - 1, HD)
-   
-End Sub
-
-'***********************************************************
-' get icon number to display
-'***********************************************************
-Public Function GetIconNumber(imgNo As Integer) As Integer
-  
-  If imgNo = lvwAscending Then
-      GetIconNumber = lvwDescending
-  Else
-      GetIconNumber = lvwAscending
-  End If
-
-End Function
-
-'***********************************************************
-' get current cursor position
-'***********************************************************
-Public Sub GetCurrCursorPosition(x_cor As Long, y_cor As Long)
-
-  Dim mouse As POINTCORD
-  GetCursorPos mouse
-  x_cor = mouse.X
-  y_cor = mouse.Y
-
-End Sub
-
-'icon code end - pie
-
-
-'***********************************************************
-' checking for the duplicate entry in the array
-'***********************************************************
-Public Function ChkDuplicateValueInArray(processidArray() As String, tmpStr As String) As Boolean
-    Dim iCounter As Integer
-    Dim arrValue As String
-    
-    iCounter = 0
-    arrValue = ""
-    
-    On Error Resume Next
-    
-    If UBound(processidArray) < 0 Then Exit Function
-    
-    For iCounter = 0 To UBound(processidArray)
-      arrValue = processidArray(iCounter)
-      If arrValue = tmpStr Then
-        ChkDuplicateValueInArray = False
-        Exit For
-      Else
-        ChkDuplicateValueInArray = True
-      End If
-  Next
-End Function
-
-'***********************************************************
-' get the local computer name
-'***********************************************************
-Public Sub GetLocalComputerName()
-    Dim pc_name As String
-    pc_name = String(50, Chr(0))
-    
-    GetComputerNameEx ComputerNamePhysicalDnsFullyQualified, pc_name, 50
-    StripNulls pc_name
-    pc_name = Trim(pc_name)
-    'MsgBox pc_name
-    
-    If pc_name <> "" Then
-      frmMainui.compnameText.Text = pc_name
-    End If
-    
-End Sub
 
