@@ -10,8 +10,8 @@
 !define PRODUCT_VERSION "1.0"
 !define PRODUCT_PUBLISHER "Delmia Solutions Pvt Ltd"
 !define PRODUCT_WEB_SITE "http://www.delmia.com/"
-!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\CRAMP.exe"
-!define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+!define PRODUCT_DIR_REGKEY "Software\DELMIA\${PRODUCT_NAME}"
+!define PRODUCT_UNINST_KEY "Software\DELMIA\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 
 ; MUI 1.67 compatible ------
@@ -46,14 +46,11 @@
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "CRAMP-Setup.exe"
+OutFile "..\bin\CRAMP-Setup.exe"
 InstallDir "$PROGRAMFILES\CRAMP"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
-
-; Some Global vars
-VAR SBAT
 
 Function .onInit
   SetShellVarContext all
@@ -72,14 +69,18 @@ Section "CRAMP Engine" SEC01
   
   SetOutPath "$INSTDIR\docs"
   File "..\docs\CRAMP.ppt"
-  
+  File "..\docs\DPEBaseClass.ppt"
+  File "..\docs\CAAV5ItfDoc.ppt"
+
+  CreateShortCut "$DESKTOP\CRAMP.lnk" "$INSTDIR\bin\CRAMP.exe"
+
   CreateDirectory "$SMPROGRAMS\CRAMP"
   CreateShortCut "$SMPROGRAMS\CRAMP\CRAMP.lnk" "$INSTDIR\bin\CRAMP.exe"
 
   CreateDirectory "$SMPROGRAMS\CRAMP\docs"
   CreateShortCut "$SMPROGRAMS\CRAMP\docs\CRAMP.lnk" "$INSTDIR\docs\CRAMP.ppt"
-
-  CreateShortCut "$DESKTOP\CRAMP.lnk" "$INSTDIR\bin\CRAMP.exe"
+  CreateShortCut "$SMPROGRAMS\CRAMP\docs\Test Baseclass.lnk" "$INSTDIR\docs\DPEBaseClass.ppt"
+  CreateShortCut "$SMPROGRAMS\CRAMP\docs\CAA Interfaces.lnk" "$INSTDIR\docs\CAAV5ItfDoc.ppt"
 
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                     "CRAMP_PATH" $INSTDIR
@@ -99,7 +100,22 @@ Section "CRAMP Profiler" SEC02
   File "..\inc\libCRAMP.h"
   SetOutPath "$INSTDIR\docs"
   File "..\docs\CRAMP.ppt"
-  
+
+  push $R0
+  FileOpen $R0 $SMPROGRAMS\CRAMP\docs\CRAMP.lnk r
+  ifErrors CreateLink FileExist
+
+FileExist:
+  FileClose $R0
+  pop $R0
+  goto RegEntry
+
+CreateLink:
+  CreateDirectory "$SMPROGRAMS\CRAMP\docs"
+  CreateShortCut "$SMPROGRAMS\CRAMP\docs\CRAMP.lnk" "$INSTDIR\docs\CRAMP.ppt"
+  goto RegEntry
+
+RegEntry:
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
               "CRAMP_PROFILE_LOGSIZE" 500
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
@@ -117,10 +133,11 @@ Section "STAF" SEC03
   SetOutPath "$INSTDIR\TOOLS\STAF\bin"
   File /r "\Applications\AutoTest\STAF\bin\*"
 
-  FileOpen $SBAT "$SMSTARTUP\STAFServer.bat" w
-  FileWrite $SBAT "@TITLE=STAF Server$\n"
-  FileWrite $SBAT "@CALL $\"$INSTDIR\TOOLS\STAF\bin\STAFProc.exe$\""
-  FileClose $SBAT
+  CreateDirectory "$SMPROGRAMS\CRAMP"
+  CreateShortCut "$SMSTARTUP\STAF Server.lnk" "$INSTDIR\TOOLS\STAF\bin\STAFProc.exe" "" \
+                 "$INSTDIR\TOOLS\STAF\bin\STAFProc.ico" "" SW_SHOWMINIMIZED "" "STAF RPC server"
+  CreateShortCut "$SMPROGRAMS\CRAMP\STAF Server.lnk" "$INSTDIR\TOOLS\STAF\bin\STAFProc.exe" "" \
+                 "$INSTDIR\TOOLS\STAF\bin\STAFProc.ico" "" SW_SHOWMINIMIZED "" "STAF RPC server"
 
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                     "STAF_PATH" "$INSTDIR\TOOLS\STAF"
@@ -191,6 +208,14 @@ Section Uninstall
   RMDir  /REBOOTOK "$SMPROGRAMS\CRAMP"
   RMDir  /REBOOTOK "$INSTDIR"
 
+  # If some files are in use?
+  ifErrors FileDeleteError RegClean
+
+FileDeleteError:
+  MessageBox MB_ICONINFORMATION|MB_SETFOREGROUND|MB_OK "Some files were in use, manually delete $INSTDIR later"
+  goto RegClean
+
+RegClean:
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                  "STAF_PATH"
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
