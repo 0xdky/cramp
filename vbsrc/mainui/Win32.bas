@@ -264,6 +264,42 @@ Public Type WIN32_FIND_DATA
         cAlternate As String * 14
 End Type
 
+'icon code
+
+Private Const LVM_FIRST = &H1000
+Private Const LVM_GETHEADER = (LVM_FIRST + 31)
+
+Private Const HDI_IMAGE = &H20
+Private Const HDI_FORMAT = &H4
+    
+Private Const HDF_BITMAP_ON_RIGHT = &H1000
+Private Const HDF_IMAGE = &H800
+Private Const HDF_STRING = &H4000
+    
+Private Const HDM_FIRST = &H1200
+Private Const HDM_SETITEM = (HDM_FIRST + 4)
+    
+Private Const HDF_LEFT As Long = 0
+Private Const HDF_RIGHT As Long = 1
+Private Const HDF_CENTER As Long = 2
+    
+Private Enum enumShowHide
+    bShow = -1
+    bHide = 0
+End Enum
+
+Private Type HDITEM
+   mask     As Long
+   cxy      As Long
+   pszText  As String
+   hbm      As Long
+   cchTextMax As Long
+   fmt      As Long
+   lParam   As Long
+   iImage   As Long
+   iOrder   As Long
+End Type
+
 Public Function SetValueEx(ByVal hKey As Long, sValueName As String, _
 lType As Long, vValue As Variant) As Long
     Dim lValue As Long
@@ -530,4 +566,86 @@ Public Function GetPointerToByteStringW(ByVal dwData As Long) As String
 End Function
 
 'SJM Code end
+
+'icon code start - pie
+'***********************************************************
+' show icon on header
+'***********************************************************
+Public Sub ShowSortIconInLVHeader(list As MSComctlLib.ListView, _
+                                  imgIconNo As Integer)
+    
+    Dim col As MSComctlLib.ColumnHeader
+    Dim lAlignment As Long
+    
+    'set all column header to off
+    For Each col In list.ColumnHeaders
+      With col
+        lAlignment = GetColHeaderAlignment(col)
+        ShowIcon .index, 0, bHide, list, lAlignment
+      End With
+    Next
+    ShowIcon list.SortKey + 1, imgIconNo, bShow, list, lAlignment
+End Sub
+
+'***********************************************************
+' get column header alignment
+'***********************************************************
+Private Function GetColHeaderAlignment(col As MSComctlLib.ColumnHeader)
+' Get the columns current alignment
+    With col
+        Select Case .Alignment
+            Case lvwColumnRight
+                GetColHeaderAlignment = HDF_RIGHT
+            Case lvwColumnCenter
+                GetColHeaderAlignment = HDF_CENTER
+            Case Else
+                GetColHeaderAlignment = HDF_LEFT
+        End Select
+    End With
+End Function
+
+'***********************************************************
+' show icon
+'***********************************************************
+Private Sub ShowIcon(colNo As Long, imgIconNo As Integer, bShowIcon As enumShowHide, list As MSComctlLib.ListView, lAlignment As Long)
+    Dim lHeader As Long
+    Dim HD      As HDITEM
+    
+    'get a handle if listview header
+    lHeader = SendMessage(list.hwnd, LVM_GETHEADER, 0, ByVal 0)
+    
+    'set structure
+    With HD
+        .mask = HDI_IMAGE Or HDI_FORMAT
+        
+        If bShowIcon Then
+            .fmt = HDF_STRING Or HDF_IMAGE Or HDF_BITMAP_ON_RIGHT
+            .iImage = imgIconNo
+        Else
+            .fmt = HDF_STRING
+        End If
+        .fmt = .fmt Or lAlignment
+    End With
+    
+    'modify the header icon
+    Call SendMessage(lHeader, HDM_SETITEM, colNo - 1, HD)
+   
+End Sub
+
+'***********************************************************
+' get icon number to display
+'***********************************************************
+Public Function GetIconNumber(imgNo As Integer) As Integer
+  
+  If imgNo = lvwAscending Then
+      GetIconNumber = lvwDescending
+  Else
+      GetIconNumber = lvwAscending
+  End If
+
+End Function
+
+'icon code end - pie
+
+
 

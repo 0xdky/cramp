@@ -32,7 +32,7 @@ Public gobjDic As New Dictionary
 Public gstrCLogPath As String
 Public gperlPath As String
 Public gperlScript As String
-Public gstrQueryArg As String
+Public gquerySort As String
 Public gstrSpace As String
 Public giFileName As String
 Public gstrSlection As String
@@ -44,7 +44,6 @@ Public gFileSize As Long
 Public gDicCountUpper As Long
 Public gDicCountLower As Long
 Public gIsFileExist As Boolean
-Public starstopBool As Boolean
 
 '****************************************************
 ' Return the node's object type
@@ -678,20 +677,6 @@ Public Sub IsFileExistAndSize(giFileName, gIsFileExist, gFileSize)
   End If
 End Sub
 '***********************************************************
-' running the perl script
-'***********************************************************
-Public Sub RunPerlScript()
-  Dim hInst As Long
-
-  If frmMainui.queryText.Text <> "" Then
-    gstrQueryArg = gperlPath + gstrSpace + gperlScript + gstrSpace + frmMainui.queryText.Text
-    hInst = Shell(gstrQueryArg, vbNormalFocus)
-    gstrQueryArg = frmMainui.queryText.Text
-  Else
-    MsgBox "ERROR :: Query Argument Is Not Exists"
-  End If
-End Sub
-'***********************************************************
 ' moving the controls
 '***********************************************************
 Public Sub MoveControls(strVal As String)
@@ -757,26 +742,23 @@ Dim queryText As String
 
 Select Case strVal
     Case "THREADS"
-         queryText = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace _
-                     + frmMainui.threadCombo.Text + gstrSpace + frmMainui.rtCombo.Text _
-                     + gstrSpace + frmMainui.limitText.Text
-         gstrQueryArg = queryText
+         queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
+                     & frmMainui.threadCombo.Text & gstrSpace & frmMainui.rtCombo.Text _
+                     & gstrSpace & frmMainui.limitText.Text
          If frmMainui.appendCheck.Value = 1 Then
-            queryText = queryText + gstrSpace + UCase(frmMainui.appendCheck.Caption)
+            queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
          End If
     Case "ADDR"
-         queryText = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace _
-                     + strVal + gstrSpace + frmMainui.addrCombo.Text + gstrSpace _
-                     + frmMainui.limitText.Text
-         gstrQueryArg = queryText
+         queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
+                     & strVal & gstrSpace & frmMainui.addrCombo.Text & gstrSpace _
+                     & frmMainui.limitText.Text
          If frmMainui.appendCheck.Value = 1 Then
-            queryText = queryText + gstrSpace + UCase(frmMainui.appendCheck.Caption)
+            queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
          End If
     Case "STAT"
-         queryText = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace + strVal
-         gstrQueryArg = queryText
+         queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace & strVal
          If frmMainui.appendCheck.Value = 1 Then
-            queryText = queryText + gstrSpace + UCase(frmMainui.appendCheck.Caption)
+            queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
          End If
 End Select
 
@@ -997,7 +979,8 @@ End Sub
 '***********************************************************
 ' run perl script through createprocess
 '***********************************************************
-Public Sub RunPerlScriptWithCP()
+Public Sub RunPerlScriptWithCP(Optional intColNum As Variant, _
+                               Optional intOrder As Variant)
 
     Dim Command As String
     Dim TaskID As Long
@@ -1014,9 +997,12 @@ Public Sub RunPerlScriptWithCP()
     Const INFINITE = -1
 
     If frmMainui.queryText.Text <> "" Then
-     Command = gperlPath + gstrSpace + gperlScript + gstrSpace + frmMainui.queryText.Text
-      gstrQueryArg = frmMainui.queryText.Text
-
+     If IsMissing(intColNum) Then
+       Command = gperlPath & gstrSpace & gperlScript & gstrSpace & frmMainui.queryText.Text
+     Else
+       Command = gperlPath & gstrSpace & gquerySort & gstrSpace & intColNum & gstrSpace & intOrder
+     End If
+      
       sInfo.cb = Len(sInfo)
       lSuccess = CreateProcess(sNull, _
                               Command, _
@@ -1050,22 +1036,30 @@ Public Sub CreateDictionary()
   Dim MyFileStream
 
   I = 0
-  Set MyFileStream = gobjFSO.OpenTextFile(giFileName, 1, False)
-  'clean up dictionary
-  If gobjDic.Count > 0 Then
-    gobjDic.removeAll
-  End If
-  'cteate dictionary
-  Do Until MyFileStream.AtEndOfStream
-    strQuery = MyFileStream.ReadLine
-    If strQuery <> "" Then
-      gobjDic.Add I, strQuery
-      I = I + 1
+  IsFileExistAndSize giFileName, gIsFileExist, gFileSize
+  If gIsFileExist <> False And gFileSize <> 0 Then
+    Set MyFileStream = gobjFSO.OpenTextFile(giFileName, 1, False)
+    'clean up dictionary
+    If gobjDic.Count > 0 Then
+      gobjDic.removeAll
     End If
-  Loop
-  'Close file
-  MyFileStream.Close
+    'create dictionary
+    Do Until MyFileStream.AtEndOfStream
+      strQuery = MyFileStream.ReadLine
+      If strQuery <> "" Then
+        gobjDic.Add I, strQuery
+        I = I + 1
+      End If
+    Loop
+    'Close file
+    MyFileStream.Close
+  Else
+    MsgBox "ERROR : File " & giFileName & " Not Found While Creating Dictionary."
+  End If
+  
   I = 0
+  gIsFileExist = False
+  gFileSize = 0
 End Sub
 '***********************************************************
 ' hide-show of next and previous button
@@ -1091,29 +1085,33 @@ Public Sub HideShowNextPre()
   frmMainui.totLabel.Caption = "Total items : " & Chr(13) & gobjDic.Count
 End Sub
 
+'***********************************************************
+' cleaning up globals
+'***********************************************************
 Public Sub CleanUp()
   'clean up dictionary
   If gobjDic.Count > 0 Then
     gobjDic.removeAll
   End If
 
-  'clean up list view
-  frmMainui.queryLV.ListItems.Clear
-  frmMainui.queryLV.ColumnHeaders.Clear
-
-  'clean up combo box
-  frmMainui.pidCombo.Clear
-  frmMainui.staCombo.Clear
-  frmMainui.threadCombo.Clear
-  frmMainui.rtCombo.Clear
-  frmMainui.addrCombo.Clear
-  'clean up text box
-  frmMainui.queryText.Text = ""
-  frmMainui.limitText.Text = ""
-  frmMainui.listitemText.Text = ""
-  'clean up lable
-  frmMainui.rngLabel.Caption = ""
-  frmMainui.totLabel.Caption = ""
+  With frmMainui
+    'clean up list view
+    .queryLV.ListItems.Clear
+    .queryLV.ColumnHeaders.Clear
+    'clean up combo box
+    .pidCombo.Clear
+    .staCombo.Clear
+    .threadCombo.Clear
+    .rtCombo.Clear
+    .addrCombo.Clear
+    'clean up text box
+    .queryText.Text = ""
+    .limitText.Text = ""
+    .listitemText.Text = ""
+    'clean up lable
+    .rngLabel.Caption = ""
+    .totLabel.Caption = ""
+  End With
   
   'set counter to zero
   gFileSize = 0

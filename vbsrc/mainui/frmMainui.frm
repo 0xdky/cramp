@@ -9,6 +9,8 @@ Begin VB.Form frmMainui
    ClientTop       =   3060
    ClientWidth     =   8664
    LinkTopic       =   "Form1"
+   MaxButton       =   0   'False
+   MinButton       =   0   'False
    ScaleHeight     =   8496
    ScaleWidth      =   8664
    Begin VB.Frame fraMainUI 
@@ -19,6 +21,28 @@ Begin VB.Form frmMainui
       Top             =   600
       Visible         =   0   'False
       Width           =   7332
+      Begin MSComctlLib.ImageList SortIconImageList 
+         Left            =   6720
+         Top             =   6840
+         _ExtentX        =   804
+         _ExtentY        =   804
+         BackColor       =   -2147483643
+         ImageWidth      =   8
+         ImageHeight     =   7
+         MaskColor       =   12632256
+         _Version        =   393216
+         BeginProperty Images {2C247F25-8591-11D1-B16A-00C0F0283628} 
+            NumListImages   =   2
+            BeginProperty ListImage1 {2C247F27-8591-11D1-B16A-00C0F0283628} 
+               Picture         =   "frmMainui.frx":0000
+               Key             =   ""
+            EndProperty
+            BeginProperty ListImage2 {2C247F27-8591-11D1-B16A-00C0F0283628} 
+               Picture         =   "frmMainui.frx":00D2
+               Key             =   ""
+            EndProperty
+         EndProperty
+      End
       Begin VB.Frame Frame4 
          Caption         =   "Profiling"
          Height          =   972
@@ -332,9 +356,9 @@ Begin VB.Form frmMainui
       End
       Begin VB.ComboBox cboTrueFalse 
          Height          =   315
-         ItemData        =   "frmMainui.frx":0000
+         ItemData        =   "frmMainui.frx":01A4
          Left            =   6000
-         List            =   "frmMainui.frx":000A
+         List            =   "frmMainui.frx":01AE
          TabIndex        =   9
          Text            =   "TRUE"
          Top             =   4920
@@ -520,6 +544,7 @@ Const NORMAL_PRIORITY_CLASS = &H20&
 Const INFINITE = -1
 
 Private SelectedIndex As Integer
+Private imgIconNo As Integer
 
 '***********************************************************
 ' Sets the IdRef field in attributes
@@ -694,6 +719,8 @@ Private Sub Form_Load()
     '***********************************************************
     ' My Code Starts Here
     '***********************************************************
+    'descending order
+    imgIconNo = lvwDescending
     'get all cramp environment variable
     GetEnvironmentVariable
     'add raw/tick
@@ -1259,10 +1286,12 @@ Private Sub nextCommand_Click()
   gDicCountUpper = gDicCountUpper + listitemText.Text
   SetValueInListView
   HideShowNextPre
-  Screen.MousePointer = vbDefault
   'show hide col
   ShowHideCol
+  'show icon on header
+  ShowSortIconInLVHeader Me.queryLV, imgIconNo
   manuCurrSetting.Checked = False
+  Screen.MousePointer = vbDefault
 End Sub
 '***********************************************************
 ' previous button click
@@ -1280,10 +1309,12 @@ Private Sub preCommand_Click()
   
   SetValueInListView
   HideShowNextPre
-  Screen.MousePointer = vbDefault
   'show hide col
   ShowHideCol
+  'show icon on header
+  ShowSortIconInLVHeader Me.queryLV, imgIconNo
   manuCurrSetting.Checked = False
+  Screen.MousePointer = vbDefault
 End Sub
 '***********************************************************
 ' listitem lost focus
@@ -1296,19 +1327,21 @@ Private Sub listitemText_LostFocus()
     listitemText.Text = 2000
   End If
 End Sub
-
+'***********************************************************
+' pop up menu when right click in the listview
+'***********************************************************
 Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
   If queryLV.ColumnHeaders.Count > 0 Then
-    'pop up menu when right click in the listview
     If Button = vbRightButton Then
       PopupMenu mnuLVRigCL
     End If
   End If
 End Sub
-
+'***********************************************************
+' click on the manu hide-show
+'***********************************************************
 Private Sub manuHideShow_Click()
   Screen.MousePointer = vbHourglass
-  'click on the manu hide-show
   InitLVColHSForm
   'set check box sensitivity
   SetCHBSensitivity
@@ -1319,12 +1352,39 @@ Private Sub manuHideShow_Click()
   'frmMainui.Enabled = False
   Screen.MousePointer = vbDefault
 End Sub
-
+'***********************************************************
+' set current setting
+'***********************************************************
 Private Sub manuCurrSetting_Click()
   Screen.MousePointer = vbHourglass
   manuCurrSetting.Checked = True
-  'set current setting
   StoreUserSetting
   Screen.MousePointer = vbDefault
+End Sub
+'***********************************************************
+' column header click fpr sorting
+'***********************************************************
+Private Sub queryLV_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
+  
+  DoEvents
+  
+  With Me.queryLV
+    'tie images to listview headers
+    .ColumnHeaderIcons = SortIconImageList
+    .SortKey = ColumnHeader.index - 1
+  End With
+  
+  imgIconNo = GetIconNumber(imgIconNo)
+  
+  'sort
+  RunPerlScriptWithCP ColumnHeader.index - 1, imgIconNo
+  CreateDictionary
+  SetValueInListView
+  
+  'show icon on header
+  ShowSortIconInLVHeader Me.queryLV, imgIconNo
+  
+  'show hide col
+  ShowHideCol
 End Sub
 

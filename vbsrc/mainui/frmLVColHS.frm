@@ -23,7 +23,7 @@ Begin VB.Form frmLVColHS
       Begin VB.CommandButton cancleCommand 
          Caption         =   "Cancle"
          Height          =   288
-         Left            =   120
+         Left            =   360
          TabIndex        =   16
          Top             =   4800
          Width           =   972
@@ -31,7 +31,7 @@ Begin VB.Form frmLVColHS
       Begin VB.CommandButton okCommand 
          Caption         =   "Ok"
          Height          =   288
-         Left            =   120
+         Left            =   360
          TabIndex        =   15
          Top             =   4320
          Width           =   972

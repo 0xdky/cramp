@@ -68,6 +68,9 @@ Public Sub GetEnvironmentVariable()
   'get the environment variable "CRAMP_LOGPATH"
   gstrCLogPath = Environ("CRAMP_LOGPATH")
   gstrCLogPath = Replace(gstrCLogPath, "\", "/")
+  'set sort perl script path
+  gquerySort = gCRAMPPath + "/bin/querysort.pl"
+  gquerySort = Replace(gquerySort, "\", "/")
   'add a trailing / if there isn't one
   Call SetPath(gstrCLogPath)
   'query.psf file
@@ -76,7 +79,7 @@ Public Sub GetEnvironmentVariable()
   Set gobjFSO = CreateObject("Scripting.FileSystemObject")
   Set gobjDic = CreateObject("Scripting.Dictionary")
   
-  'checking for the perl.exe -- in future
+  'checking for the wperl.exe
   gperlPath = gCRAMPPath + "/TOOLS/PERL/bin/wperl.exe"
   gperlPath = Replace(gperlPath, "\", "/")
   IsFileExistAndSize gperlPath, gIsFileExist, gFileSize
@@ -87,14 +90,26 @@ Public Sub GetEnvironmentVariable()
   'checking for the profileDB.pl
   IsFileExistAndSize gperlScript, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
-    MsgBox "ERROR :: profileDB.pl Is Not Found Under " + gperlScript + " Folder"
+    MsgBox "ERROR :: profileDB.pl Is Not Found Under " & gCRAMPPath & _
+                     "\bin" & " Folder"
   End If
   
-  'start
-  starstopBool = True
+  'checking for the querysort.pl
+  IsFileExistAndSize gquerySort, gIsFileExist, gFileSize
+  If gIsFileExist = False And gFileSize = 0 Then
+    MsgBox "ERROR :: querysort.pl Is Not Found Under " & gCRAMPPath & _
+                     "\bin" & " Folder"
+  End If
   
   'set setting
   StoredefaultSetting
+  'load frmlvcolhs form
+  Load frmLVColHS
+  frmLVColHS.Visible = False
+    
+  gIsFileExist = False
+  gFileSize = 0
+  
 End Sub
 
 '***********************************************************
@@ -134,7 +149,6 @@ Public Sub SetThreAndAddrCombo()
                            frmMainui.limitText.Text
     
   'run perl script to get all the threads
-  'RunPerlScript
   RunPerlScriptWithCP
 
   IsFileExistAndSize giFileName, gIsFileExist, gFileSize
@@ -409,18 +423,6 @@ currsettingArray(8) = "Ticks"
 End Sub
 
 '***********************************************************
-' set column to its original position
-'***********************************************************
-Public Sub RestoreToDefaultSetting()
-  Dim ss As Long
-  ss = 0
-  For ss = 1 To frmMainui.queryLV.ColumnHeaders.Count
-    frmMainui.queryLV.ColumnHeaders.Item(ss).Position = ss
-  Next
-  ss = 0
-End Sub
-
-'***********************************************************
 ' show hide column
 '***********************************************************
 Public Sub ShowHideCol()
@@ -475,48 +477,35 @@ End Sub
 Public Sub ReorderColumnPosition(strCol As String, chbVal As Boolean)
   
   Dim ss As Integer
-  Dim collocation As Integer
   Dim strVal As String
-  Dim found As Boolean
   
   ss = 0
-  collocation = 0
   strVal = ""
-  found = False
   
-  frmMainui.queryLV.Refresh
+  With frmMainui
+    .queryLV.Refresh
   
-  'set to original column setting
-  RestoreToDefaultSetting
-  
-  'search for the passed string
-  For ss = 1 To frmMainui.queryLV.ColumnHeaders.Count
-    strVal = frmMainui.queryLV.ColumnHeaders.Item(ss).Text
-    If strVal = strCol Then
-      collocation = frmMainui.queryLV.ColumnHeaders.Item(ss).Position
-      found = True
-      Exit For
-    End If
-  Next
+    'show hide column
+    For ss = 1 To .queryLV.ColumnHeaders.Count
+      strVal = .queryLV.ColumnHeaders.Item(ss).Text
+      If strVal = strCol Then
+        If chbVal = True Then
+          .queryLV.ColumnHeaders(.queryLV.ColumnHeaders.Item(ss).index).Width = 1440
+        Else
+          .queryLV.ColumnHeaders(.queryLV.ColumnHeaders.Item(ss).index).Width = 0
+        End If
+        Exit For
+      End If
+    Next
 
-  'hide-show column
-  If found = True Then
-    If chbVal = True Then
-      frmMainui.queryLV.ColumnHeaders(collocation).Width = 1440
-    Else
-      frmMainui.queryLV.ColumnHeaders(collocation).Width = 0
-    End If
-  End If
+    'reorder column
+    SetNewColumnPosition
 
-  'reorder column
-  SetNewColumnPosition
-
-  frmMainui.queryLV.Refresh
+    .queryLV.Refresh
+  End With
   
   ss = 0
-  collocation = 0
   strVal = ""
-  found = False
 
 End Sub
 
