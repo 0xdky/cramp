@@ -1,13 +1,19 @@
-Attribute VB_Name = "mInitialization"
+Attribute VB_Name = "modInitialization"
 Option Explicit
+'***********************************************************
+' set raw-tick combo box
+'***********************************************************
 Public Sub SetRTCombo()
-  Dim strTick As String
-  strTick = "TICK"
+  Dim strRaw As String
+  strRaw = "RAW"
 
   frmMainui.rtCombo.AddItem (frmMainui.rtCombo.Text)
-  frmMainui.rtCombo.AddItem (strTick)
-  strRawTick = frmMainui.rtCombo.Text
+  frmMainui.rtCombo.AddItem (strRaw)
+  gstrRawTick = frmMainui.rtCombo.Text
 End Sub
+'***********************************************************
+' set stat-threads-addr combo box
+'***********************************************************
 Public Sub SetSTACombo()
   Dim strStat As String
   strStat = "STAT"
@@ -15,49 +21,59 @@ Public Sub SetSTACombo()
   frmMainui.staCombo.AddItem (frmMainui.staCombo.Text)
   frmMainui.staCombo.AddItem (strStat)
   frmMainui.staCombo.AddItem (frmMainui.addrCombo.Text)
-  strSlection = frmMainui.staCombo.Text
+  gstrSlection = frmMainui.staCombo.Text
 End Sub
-
+'***********************************************************
+' set process id combo box
+'***********************************************************
 Public Sub SetProcessIDCombo()
   Dim folder As Boolean
 
-  folder = objFSO.FolderExists(strCLogPath)
+  folder = gobjFSO.FolderExists(gstrCLogPath)
 
   'if "CRAMP_LOGPATH" exists then get the process id
   If folder = True Then
-    Call SetPIDCombo(strCLogPath, True)
+    Call SetPIDCombo(gstrCLogPath, True)
   Else
-    MsgBox "Folder " + strCLogPath + " Does Not Exists"
+    MsgBox "Folder " + gstrCLogPath + " Does Not Exists"
   End If
 End Sub
+'***********************************************************
+' get and set variables
+'***********************************************************
 Public Sub GetEnvironmentVariable()
-  
-  strSpace = Space(1)
-  strQuery = "QUERY"
+  gstrSpace = Space(1)
   'get the environment variable "CRAMP_PATH"
-  strCrampPath = gCRAMPPath
-  perlScript = strCrampPath + "/bin/profileDB.pl"
+  gperlScript = gCRAMPPath + "/bin/profileDB.pl"
   'get the environment variable "CRAMP_LOGPATH"
-  strCLogPath = Environ("CRAMP_LOGPATH")
-  strCLogPath = Replace(strCLogPath, "\", "/")
-  Set objFSO = CreateObject("Scripting.FileSystemObject")
+  gstrCLogPath = Environ("CRAMP_LOGPATH")
+  gstrCLogPath = Replace(gstrCLogPath, "\", "/")
+  'add a trailing / if there isn't one
+  Call SetPath(gstrCLogPath)
+  'query.psf file
+  giFileName = gstrCLogPath + "query.psf"
+
+  Set gobjFSO = CreateObject("Scripting.FileSystemObject")
   
   'checking for the perl.exe -- in future
-  perlPath = strCrampPath + "/TOOLS/PERL/bin/wperl.exe"
-  IsFileExistAndSize perlPath, IsFileExist, FileSize
-  If IsFileExist = False And FileSize = 0 Then
-    perlPath = "wperl.exe"
+  gperlPath = gCRAMPPath + "/TOOLS/PERL/bin/wperl.exe"
+  IsFileExistAndSize gperlPath, gIsFileExist, gFileSize
+  If gIsFileExist = False And gFileSize = 0 Then
+    gperlPath = "wperl.exe"
   End If
   
   'checking for the profileDB.pl
-  IsFileExistAndSize perlScript, IsFileExist, FileSize
-  If IsFileExist = False And FileSize = 0 Then
-    MsgBox "ERROR :: profileDB.pl Is Not Found Under " + perlScript + " Folder"
+  IsFileExistAndSize gperlScript, gIsFileExist, gFileSize
+  If gIsFileExist = False And gFileSize = 0 Then
+    MsgBox "ERROR :: profileDB.pl Is Not Found Under " + gperlScript + " Folder"
   End If
 End Sub
 
+'***********************************************************
+' set thread and address combo box
+'***********************************************************
 Public Sub SetThreAndAddrCombo()
-  Dim MyArray
+  Dim MyArray, MyFileStream, ThisFileText, arrFile
   Dim strLine As String
   Dim threadArray() As String
   Dim addrArray() As String
@@ -71,28 +87,29 @@ Public Sub SetThreAndAddrCombo()
   strAll = "ALL"
   
   'move query.psf to querynew.psf
-  IsFileExistAndSize strCLogPath + "query.psf", IsFileExist, FileSize
-  If IsFileExist <> False And FileSize <> 0 Then
-    IsFileExistAndSize strCLogPath + "querynew.psf", IsFileExist, FileSize
-      If IsFileExist <> False And FileSize <> 0 Then
-        objFSO.DeleteFile strCLogPath + "querynew.psf", True
+  IsFileExistAndSize gstrCLogPath + "query.psf", gIsFileExist, gFileSize
+  If gIsFileExist <> False And gFileSize <> 0 Then
+    IsFileExistAndSize gstrCLogPath + "querynew.psf", gIsFileExist, gFileSize
+      If gIsFileExist <> False And gFileSize <> 0 Then
+        gobjFSO.DeleteFile gstrCLogPath + "querynew.psf", True
       End If
-      objFSO.MoveFile strCLogPath + "query.psf", strCLogPath + "querynew.psf"
+      gobjFSO.MoveFile gstrCLogPath + "query.psf", gstrCLogPath + "querynew.psf"
+      
+      gIsFileExist = False
+      gFileSize = 0
   End If
 
   '1756 QUERY ALL RAW 0
-  frmMainui.queryText.Text = frmMainui.pidCombo.Text + strSpace + strQuery + strSpace _
-                           + strAll + strSpace + frmMainui.rtCombo.Text + strSpace + _
+  frmMainui.queryText.Text = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace _
+                           + strAll + gstrSpace + frmMainui.rtCombo.Text + gstrSpace + _
                            frmMainui.limitText.Text
   'run perl script to get all the threads
   RunPerlScript
-  'read query.psf file
-  iFileName = strCLogPath + "query.psf"
 
-  IsFileExistAndSize iFileName, IsFileExist, FileSize
-  If IsFileExist <> False And FileSize <> 0 Then
+  IsFileExistAndSize giFileName, gIsFileExist, gFileSize
+  If gIsFileExist <> False And gFileSize <> 0 Then
     'read the query.psf file line by line
-    Set MyFileStream = objFSO.OpenTextFile(iFileName, 1, False)
+    Set MyFileStream = gobjFSO.OpenTextFile(giFileName, 1, False)
     cmbBool = False
     Do Until MyFileStream.AtEndOfStream
       strLine = MyFileStream.ReadLine
@@ -124,14 +141,14 @@ Public Sub SetThreAndAddrCombo()
     'Close file
     MyFileStream.Close
 
-    IsFileExist = False
-    FileSize = 0
+    gIsFileExist = False
+    gFileSize = 0
   Else
     'through error of query.psf file is not exists or size is zero
-    IsFileExist = False
-    FileSize = 0
+    gIsFileExist = False
+    gFileSize = 0
     cmbBool = False
-    MsgBox "File " + iFileName + " Does Not Exists Or Size Is Zero."
+    MsgBox "File " + giFileName + " Does Not Exists Or Size Is Zero."
   End If
   
   'set thread array into the thread combobox
@@ -146,14 +163,16 @@ Public Sub SetThreAndAddrCombo()
   ReDim addrArray(0)
 
   'move querynew.psf to query.psf
-  IsFileExistAndSize strCLogPath + "query.psf", IsFileExist, FileSize
-  If IsFileExist <> False And FileSize <> 0 Then
-    objFSO.DeleteFile strCLogPath + "query.psf", True
-    IsFileExistAndSize strCLogPath + "querynew.psf", IsFileExist, FileSize
-    If IsFileExist <> False And FileSize <> 0 Then
-      objFSO.MoveFile strCLogPath + "querynew.psf", strCLogPath + "query.psf"
+  IsFileExistAndSize gstrCLogPath + "query.psf", gIsFileExist, gFileSize
+  If gIsFileExist <> False And gFileSize <> 0 Then
+    gobjFSO.DeleteFile gstrCLogPath + "query.psf", True
+    IsFileExistAndSize gstrCLogPath + "querynew.psf", gIsFileExist, gFileSize
+    If gIsFileExist <> False And gFileSize <> 0 Then
+      gobjFSO.MoveFile gstrCLogPath + "querynew.psf", gstrCLogPath + "query.psf"
     End If
+    
+    gIsFileExist = False
+    gFileSize = 0
   End If
-
 End Sub
 

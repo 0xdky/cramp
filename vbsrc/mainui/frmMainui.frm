@@ -4,19 +4,19 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8130
-   ClientLeft      =   5325
+   ClientHeight    =   8136
+   ClientLeft      =   5328
    ClientTop       =   3060
    ClientWidth     =   8460
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8130
+   ScaleHeight     =   8136
    ScaleWidth      =   8460
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   1
-      Left            =   6000
+      Left            =   480
       TabIndex        =   2
-      Top             =   -6480
+      Top             =   600
       Visible         =   0   'False
       Width           =   7212
       Begin VB.Frame Frame3 
@@ -32,8 +32,8 @@ Begin VB.Form frmMainui
             TabIndex        =   31
             Top             =   240
             Width           =   6492
-            _ExtentX        =   11456
-            _ExtentY        =   6165
+            _ExtentX        =   11451
+            _ExtentY        =   6160
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
             _Version        =   393217
@@ -104,7 +104,6 @@ Begin VB.Form frmMainui
             Height          =   288
             Left            =   4680
             TabIndex        =   18
-            Text            =   "ADDR"
             Top             =   600
             Width           =   1092
          End
@@ -112,7 +111,7 @@ Begin VB.Form frmMainui
             Height          =   288
             Left            =   3600
             TabIndex        =   17
-            Text            =   "RAW"
+            Text            =   "TICK"
             Top             =   600
             Width           =   972
          End
@@ -191,9 +190,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   0
-      Left            =   720
+      Left            =   480
       TabIndex        =   1
-      Top             =   840
+      Top             =   7320
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -276,8 +275,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   4048
+         _ExtentX        =   9716
+         _ExtentY        =   4043
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -295,8 +294,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9710
-         _ExtentY        =   6165
+         _ExtentX        =   9716
+         _ExtentY        =   6160
          _Version        =   393217
          HideSelection   =   0   'False
          Style           =   7
@@ -309,8 +308,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8175
-      _ExtentX        =   14420
-      _ExtentY        =   13785
+      _ExtentX        =   14415
+      _ExtentY        =   13780
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -604,21 +603,21 @@ Private Sub lvwAttributes_Click()
     If UCase(Selection) = UCase("ExecPath") Then
         cmdBrowse.Move PX + CellWidth - 300, PY
         cmdBrowse.Visible = True
-        SelectedIndex = lvwAttributes.SelectedItem.index
+        SelectedIndex = lvwAttributes.SelectedItem.Index
         
         Exit Sub
     ElseIf UCase(Selection) = UCase("IdRef") Then
         CreateIdRefList
-        Dim index As Integer
+        Dim Index As Integer
         cboIdRef.Clear
         cboIdRef.Move PX, PY, CellWidth - 150
         cboIdRef.Visible = True
         cboIdRef.Text = lvwAttributes.SelectedItem.SubItems(1)
-        For index = 1 To gIdRef.Count
-            cboIdRef.AddItem gIdRef.Item(index)
-        Next index
+        For Index = 1 To gIdRef.Count
+            cboIdRef.AddItem gIdRef.Item(Index)
+        Next Index
         cboIdRef.SetFocus
-        SelectedIndex = lvwAttributes.SelectedItem.index
+        SelectedIndex = lvwAttributes.SelectedItem.Index
         
         Exit Sub
     
@@ -632,7 +631,7 @@ Private Sub lvwAttributes_Click()
             cboTrueFalse.Visible = True
             cboTrueFalse.Text = Selection
             cboTrueFalse.SetFocus
-            SelectedIndex = lvwAttributes.SelectedItem.index
+            SelectedIndex = lvwAttributes.SelectedItem.Index
             
             Exit Sub
             
@@ -646,7 +645,7 @@ Private Sub lvwAttributes_Click()
     txtInput.Visible = True
     'txtInput.SelText = Selection
     txtInput.SetFocus
-    SelectedIndex = lvwAttributes.SelectedItem.index
+    SelectedIndex = lvwAttributes.SelectedItem.Index
         
 End Sub
 
@@ -703,12 +702,12 @@ End Sub
 'First save the existing scenario if it is modified
 'then open the clicked scenario
 '***********************************************************
-Private Sub mnuMRU_Click(index As Integer)
+Private Sub mnuMRU_Click(Index As Integer)
     Dim RetStatus As Boolean
     RetStatus = CheckSaveStatus
     
     Dim sScenarioName As String
-    sScenarioName = gMRUList(0, index)
+    sScenarioName = gMRUList(0, Index)
     Dim tmpStr As String
     CleanAndRestart
     
@@ -822,8 +821,8 @@ Private Sub tspMainUI_Click()
         fraMainUI(ii).Visible = False
     Next ii
     
-    fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
-    fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
+    fraMainUI(tspMainUI.SelectedItem.Index - 1).Visible = True
+    fraMainUI(tspMainUI.SelectedItem.Index - 1).Move 600, 840
     
     RenameFormWindow
 End Sub
@@ -862,90 +861,120 @@ End Sub
 '***********************************************************
 ' My Code Starts Here
 '***********************************************************
+
+'***********************************************************
+' set address combo box
+'***********************************************************
 Private Sub addrCombo_Click()
-'set query text
-SetQueryText (staCombo.Text)
+  'set query text
+  SetQueryText (staCombo.Text)
 End Sub
+'***********************************************************
+' append check box control
+'***********************************************************
 Private Sub appendCheck_Click()
-
-'set query text
-SetQueryText (staCombo.Text)
-
+  'set query text
+  SetQueryText (staCombo.Text)
 End Sub
 
+'***********************************************************
+' limit text box lost focus notification
+'***********************************************************
 Private Sub limitText_LostFocus()
-
-If Not IsNumeric(limitText.Text) Then
-  limitText.Text = 0
-End If
-'set query text
-SetQueryText (staCombo.Text)
-
+  If Not IsNumeric(limitText.Text) Then
+    limitText.Text = 0
+  End If
+  'set query text
+  SetQueryText (staCombo.Text)
 End Sub
 
+'***********************************************************
+' set process id combo box
+'***********************************************************
 Private Sub pidCombo_Click()
-'set thread and address combo
-SetThreAndAddrCombo
-'set query text
-SetQueryText (staCombo.Text)
-'set list view
-SetValueInListView
+  'set thread and address combo
+  SetThreAndAddrCombo
+  'set query text
+  SetQueryText (staCombo.Text)
+  'set list view
+  SetValueInListView
 End Sub
 
+'***********************************************************
+' query command control
+'***********************************************************
 Private Sub queryCommand_Click()
-'set query.psf output into the listview
-SetValueInListView
+  'set query.psf output into the listview
+  SetValueInListView
 End Sub
 
+'***********************************************************
+' set raw-tick combo box
+'***********************************************************
 Private Sub rtCombo_Click()
-'set query text
-SetQueryText (frmMainui.staCombo.Text)
-'set raw-tick string
-strRawTick = rtCombo.Text
+  'set query text
+  SetQueryText (frmMainui.staCombo.Text)
+  'set raw-tick string
+  gstrRawTick = rtCombo.Text
 End Sub
+'***********************************************************
+' set stat-threads-addr combo box
+'***********************************************************
 Private Sub staCombo_Click()
-'set query text
-SetQueryText (staCombo.Text)
-'move controls
-MoveControls (staCombo.Text)
-'set selection string
-strSlection = staCombo.Text
+  'set query text
+  SetQueryText (staCombo.Text)
+  'move controls
+  MoveControls (staCombo.Text)
+  'set selection string
+  gstrSlection = staCombo.Text
 End Sub
 
+'***********************************************************
+' set threads combo box
+'***********************************************************
 Private Sub threadCombo_Click()
-'set query text
-SetQueryText (frmMainui.staCombo.Text)
+  'set query text
+  SetQueryText (frmMainui.staCombo.Text)
 End Sub
 
+'***********************************************************
+' run command control
+'***********************************************************
 Private Sub runCommand_Click()
-    'set orocess id combobox
-    SetProcessIDCombo
-    If queryCommand.Enabled = True Then
-      'set threads into thread combobox and address in addr combobox
-      SetThreAndAddrCombo
-      'set query text
-      SetQueryText (frmMainui.staCombo.Text)
-      'set list view
-      SetValueInListView
-    End If
+  'set orocess id combobox
+  SetProcessIDCombo
+  If queryCommand.Enabled = True Then
+    'set threads into thread combobox and address in addr combobox
+    SetThreAndAddrCombo
+    'set query text
+    SetQueryText (frmMainui.staCombo.Text)
+    'set list view
+    SetValueInListView
+  End If
 End Sub
 
+'***********************************************************
+' stat-threads-addr lost focus notification
+'***********************************************************
 Private Sub staCombo_LostFocus()
   Dim strVal As String
   strVal = staCombo.Text
 
   If staCombo.Text <> "THREADS" Or staCombo.Text <> "STAT" _
      Or staCombo.Text <> "ADDR" Then
-     staCombo.Text = strSlection
+     staCombo.Text = gstrSlection
   End If
 End Sub
 
+'***********************************************************
+' raw-tick lost ficus notification
+'***********************************************************
 Private Sub rtCombo_LostFocus()
   Dim strVal As String
   strVal = staCombo.Text
 
   If staCombo.Text <> "RAW" Or staCombo.Text <> "TICK" Then
-     rtCombo.Text = strRawTick
+     rtCombo.Text = gstrRawTick
   End If
 End Sub
 

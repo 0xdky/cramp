@@ -24,6 +24,21 @@ Public Enum ObjectType
     otTestcase = 3
 End Enum
 
+'***********************************************************
+' My Code Starts Here
+'***********************************************************
+Public gobjFSO As New FileSystemObject
+Public gstrCLogPath As String
+Public gperlPath As String
+Public gperlScript As String
+Public gstrQueryArg As String
+Public gstrSpace As String
+Public giFileName As String
+Public gstrSlection As String
+Public gstrRawTick As String
+Public gFileSize As Long
+Public gIsFileExist As Boolean
+
 '****************************************************
 ' Return the node's object type
 '****************************************************
@@ -109,7 +124,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
     Dim nodeName As String
     Dim ii As Integer
     Dim bSuccess As Boolean
-    Dim index As Integer
+    Dim Index As Integer
     Dim tmpName As String
     
     Select Case tblType
@@ -123,9 +138,9 @@ Public Function NewRecordName(tblType As ObjectType) As String
         Case otTestcase
             nodeName = "Testcase."
     End Select
-    index = 1
+    Index = 1
     Do
-        tmpName = nodeName & index
+        tmpName = nodeName & Index
         bSuccess = True
         For ii = 0 To gIdCounter - 1
             If gNameList(ii) = tmpName Then
@@ -133,7 +148,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
                 Exit For
             End If
         Next ii
-        index = index + 1
+        Index = Index + 1
     Loop Until bSuccess = True
     
     NewRecordName = tmpName
@@ -380,7 +395,7 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
 End Sub
 
 Public Sub RenameFormWindow()
-    If frmMainui.tspMainUI.SelectedItem.index = 2 Then
+    If frmMainui.tspMainUI.SelectedItem.Index = 2 Then
         frmMainui.Caption = "CRAMP [" & _
         LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
         "]"
@@ -624,3 +639,275 @@ End Function
     'SetKeyValue "Environment", "StringValue", "HelloShirish", REG_SZ
     
 'End Sub
+
+
+'***********************************************************
+' My Code Starts Here
+'***********************************************************
+
+'***********************************************************
+' checking for the existance and size of the file
+'***********************************************************
+Public Sub IsFileExistAndSize(giFileName, gIsFileExist, gFileSize)
+  Dim FileInfo
+  If giFileName <> "" Then
+    gIsFileExist = gobjFSO.FileExists(giFileName)
+      If gIsFileExist <> False Then
+        Set FileInfo = gobjFSO.GetFile(giFileName)
+        gFileSize = FileInfo.Size
+      Else
+        gFileSize = 0
+      End If
+  End If
+End Sub
+'***********************************************************
+' running the perl script
+'***********************************************************
+Public Sub RunPerlScript()
+  Dim hInst As Long
+    
+  If frmMainui.queryText.Text <> "" Then
+    gstrQueryArg = gperlPath + gstrSpace + gperlScript + gstrSpace + frmMainui.queryText.Text
+    hInst = Shell(gstrQueryArg, vbNormalFocus)
+    gstrQueryArg = frmMainui.queryText.Text
+  Else
+    MsgBox "ERROR :: Query Argument Is Not Exists"
+  End If
+End Sub
+'***********************************************************
+' moving the controls
+'***********************************************************
+Public Sub MoveControls(strVal As String)
+
+  With frmMainui
+    Select Case strVal
+      Case "THREADS"
+           'hide-show controls
+           .threadCombo.Visible = True
+           .rtCombo.Visible = True
+           .addrCombo.Visible = False
+           .limitText.Visible = True
+           'hide-show lables
+           .threadLabel.Visible = True
+           .rtLabel.Visible = True
+           .addLabel.Visible = False
+           .limitLabel.Visible = True
+           'move controls
+           .limitText.Move 4680, 600
+           .appendCheck.Move 5640, 600
+           'move lables
+           .limitLabel.Move 4680, 360
+      Case "ADDR"
+           'hide-show controls
+           .threadCombo.Visible = False
+           .rtCombo.Visible = False
+           .addrCombo.Visible = True
+           .limitText.Visible = True
+           'hide-show lables
+           .threadLabel.Visible = False
+           .rtLabel.Visible = False
+           .addLabel.Visible = True
+           .limitLabel.Visible = True
+           'move controls
+           .addrCombo.Move 2520, 600
+           .limitText.Move 3720, 600
+           .appendCheck.Move 4670, 600
+           'move lables
+           .addLabel.Move 2520, 360
+           .limitLabel.Move 3720, 360
+      Case "STAT"
+           'hide-show controls
+           .threadCombo.Visible = False
+           .rtCombo.Visible = False
+           .addrCombo.Visible = False
+           .limitText.Visible = False
+           'hide-show lables
+           .threadLabel.Visible = False
+           .rtLabel.Visible = False
+           .addLabel.Visible = False
+           .limitLabel.Visible = False
+           'move controls
+           .appendCheck.Move 2510, 600
+    End Select
+  End With
+End Sub
+'***********************************************************
+' set query text
+'***********************************************************
+Public Sub SetQueryText(strVal As String)
+
+Dim queryText As String
+
+Select Case strVal
+    Case "THREADS"
+         queryText = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace _
+                     + frmMainui.threadCombo.Text + gstrSpace + frmMainui.rtCombo.Text _
+                     + gstrSpace + frmMainui.limitText.Text
+         gstrQueryArg = queryText
+         If frmMainui.appendCheck.Value = 1 Then
+            queryText = queryText + gstrSpace + UCase(frmMainui.appendCheck.Caption)
+         End If
+    Case "ADDR"
+         queryText = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace _
+                     + strVal + gstrSpace + frmMainui.addrCombo.Text + gstrSpace _
+                     + frmMainui.limitText.Text
+         gstrQueryArg = queryText
+         If frmMainui.appendCheck.Value = 1 Then
+            queryText = queryText + gstrSpace + UCase(frmMainui.appendCheck.Caption)
+         End If
+    Case "STAT"
+         queryText = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace + strVal
+         gstrQueryArg = queryText
+         If frmMainui.appendCheck.Value = 1 Then
+            queryText = queryText + gstrSpace + UCase(frmMainui.appendCheck.Caption)
+         End If
+End Select
+
+'MsgBox queryText
+If frmMainui.queryCommand.Enabled = True Then
+  frmMainui.queryText.Text = queryText
+  queryText = ""
+End If
+End Sub
+'***********************************************************
+' checking for the duplicate entry in the array
+'***********************************************************
+Public Function ChkValueInArray(tmpArry() As String, tmpStr As String) As Boolean
+    Dim iCounter As Integer
+    Dim arrValue As String
+    
+    For iCounter = 0 To UBound(tmpArry)
+      arrValue = tmpArry(iCounter)
+      If arrValue = tmpStr Then
+        ChkValueInArray = False
+        Exit For
+      Else
+        ChkValueInArray = True
+      End If
+  Next
+End Function
+'***********************************************************
+' set array in the respective combo box
+'***********************************************************
+Public Sub SetValueInComboBox(tmpArry() As String, tmpStr As String, thisCombo As ComboBox)
+  Dim aa As Integer
+  Dim strArray As String
+  
+  thisCombo.Clear
+  For aa = 0 To UBound(tmpArry)
+    strArray = tmpArry(aa)
+    If strArray <> "" Then
+      If aa = 0 Then
+        thisCombo.Text = strArray
+        thisCombo.AddItem (strArray)
+      Else
+        thisCombo.AddItem (strArray)
+      End If
+     End If
+  Next
+      
+  'add ALL at the last into the thread combo box
+  If tmpStr = "THREADS" Then
+    tmpStr = "ALL"
+    thisCombo.Text = tmpStr
+    thisCombo.AddItem (tmpStr)
+  End If
+End Sub
+
+'***********************************************************
+' set the query.psf file info into the listview
+'***********************************************************
+Public Sub SetValueInListView()
+
+Dim MyArray, MyFileStream, ThisFileText, arrFile
+Dim cur As MousePointerConstants
+Dim strQuery As String
+Dim ss As Integer
+Dim aa As Integer
+
+Screen.MousePointer = vbHourglass
+aa = 0
+
+With frmMainui
+  'clean up list view
+  .queryLV.ListItems.Clear
+  .queryLV.View = lvwReport
+    
+  'run perl script
+  RunPerlScript
+    
+  'insert headers
+  AddHeaders
+    
+  IsFileExistAndSize giFileName, gIsFileExist, gFileSize
+  If gIsFileExist <> False And gFileSize <> 0 Then
+    'read the query.psf file line by line
+    Set MyFileStream = gobjFSO.OpenTextFile(giFileName, 1, False)
+      
+    Do Until MyFileStream.AtEndOfStream
+      strQuery = MyFileStream.ReadLine
+        
+      MyArray = Split(strQuery, "|", -1, 1)
+      If UBound(MyArray) > .queryLV.ColumnHeaders.Count - 1 Then
+        'insert headers
+        .staCombo.Text = "THREADS"
+        AddHeaders
+        .staCombo.Text = "STAT"
+      End If
+        
+      For ss = 0 To UBound(MyArray)
+        'storing thread
+        strQuery = MyArray(ss)
+        If ss = 0 Then
+          .queryLV.ListItems.Add = strQuery
+        Else
+          .queryLV.ListItems(aa + 1).SubItems(ss) = strQuery
+        End If
+      Next
+      aa = aa + 1
+    Loop
+    'Close file
+    MyFileStream.Close
+    gIsFileExist = False
+    gFileSize = 0
+  End If
+End With
+
+Screen.MousePointer = vbDefault
+
+End Sub
+'***********************************************************
+' add headers into the listview
+'***********************************************************
+Public Sub AddHeaders()
+Dim clm As ColumnHeader
+
+With frmMainui
+  .queryLV.ColumnHeaders.Clear
+
+  If .staCombo.Text = "STAT" Then
+    Set clm = .queryLV.ColumnHeaders.Add(, , "MODULE")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "FUNC-NAME")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "FUNC-ADDR")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "NO-CALLS")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "TOT-TICKS")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "MAXTIME")
+  Else
+    Set clm = .queryLV.ColumnHeaders.Add(, , "THREAD")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "MODULE")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "FUNC-NAME")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "FUNC-ADDR")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "DEPTH")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "RET-STATUS")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "TIME(ns)")
+    If .staCombo.Text = "ADDR" And frmMainui.limitText.Text = -1 Then
+      Set clm = .queryLV.ColumnHeaders.Add(, , "COUNT")
+    Else
+      Set clm = .queryLV.ColumnHeaders.Add(, , "TICKS")
+    End If
+  End If
+End With
+End Sub
+
+
+
