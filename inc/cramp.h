@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-01-28 10:15:17 dky>
+// Time-stamp: <2004-03-10 18:49:18 dky>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -19,49 +19,55 @@
 #include <stdio.h>
 #include <process.h>
 #include <Pdh.h>
+#include <pcre.h>
 
 #include <list>
 #include <queue>
 #include <string>
 #include <hash_map>
 
+#define HAVE_FILTER
 //-----------------------------------------------------------------------------
 // Global for CRAMP Profiler
 //-----------------------------------------------------------------------------
 typedef struct{
-  unsigned long _calls;
-  BOOLEAN _pending;
-  BOOLEAN _filtered;
-  __int64 _maxticks;
-  __int64 _totalticks;
+    unsigned long _calls;
+    BOOLEAN _pending;
+    BOOLEAN _filtered;
+    __int64 _maxticks;
+    __int64 _totalticks;
 }FuncInfo;
 
 typedef struct{
-  char logpath[256];
-  BOOLEAN g_exclusion;
+    char logpath[256];
+    BOOLEAN g_exclusion;
 
-  FILE *g_fLogFile;
-  FILE *g_fFuncInfo;
+    FILE *g_fLogFile;
+    FILE *g_fFuncInfo;
 
-  long IsInitialised;
+    long IsInitialised;
 
-  unsigned int g_pid;
-  long g_l_profile;
-  long g_l_stoplogging;
-  long g_l_maxcalllimit;
-  long g_l_logsizelimit;
-  long g_l_calldepthlimit;
+    unsigned int g_pid;
+    long g_l_profile;
+    long g_l_stoplogging;
+    long g_l_maxcalllimit;
+    long g_l_logsizelimit;
+    long g_l_calldepthlimit;
 
-  std::queue<std::string> g_LogQueue;
-  std::list<std::string> g_FilterList;
-  std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
-  std::hash_map<unsigned int,BOOLEAN> h_FilteredModAddr;
+    pcre *g_regcomp;
+    pcre_extra *g_regstudy;
 
-  HANDLE g_h_mailslot;
-  HANDLE g_h_mailslotTH;
-  HANDLE g_h_logsizemonTH;
-  CRITICAL_SECTION g_cs_log;
-  CRITICAL_SECTION g_cs_prof;
+    std::string g_FilterString;
+    std::queue<std::string> g_LogQueue;
+    std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
+    std::hash_map<unsigned int,BOOLEAN> h_FilteredModAddr;
+
+    HANDLE g_h_mailslot;
+    HANDLE g_h_mailslotTH;
+    HANDLE g_h_logsizemonTH;
+    CRITICAL_SECTION g_cs_fun;
+    CRITICAL_SECTION g_cs_log;
+    CRITICAL_SECTION g_cs_prof;
 
 }Global_CRAMP_Profiler;
 
@@ -75,21 +81,21 @@ extern Global_CRAMP_Profiler g_CRAMP_Profiler;
 //-----------------------------------------------------------------------------
 class TestCaseInfo;
 typedef struct{
-  HANDLE g_hJOB;
-  HANDLE g_hMUT;
-  HANDLE g_hIOCP;
-  HANDLE g_hJOBTimer;
-  PDH_HQUERY g_hQuery;
+    HANDLE g_hJOB;
+    HANDLE g_hMUT;
+    HANDLE g_hIOCP;
+    HANDLE g_hJOBTimer;
+    PDH_HQUERY g_hQuery;
 
-  char g_JOBNAME[256];
-  FILE *g_fLogFile;
-  long g_l_stopengine;
-  DWORD g_scenariostatus;
+    char g_JOBNAME[256];
+    FILE *g_fLogFile;
+    long g_l_stopengine;
+    DWORD g_scenariostatus;
 
-  TestCaseInfo *g_pScenario;
+    TestCaseInfo *g_pScenario;
 
-  CRITICAL_SECTION g_cs_gc;
-  CRITICAL_SECTION g_cs_log;
+    CRITICAL_SECTION g_cs_gc;
+    CRITICAL_SECTION g_cs_log;
 }Global_CRAMP_Engine;
 
 #ifndef __MAIN_SRC
@@ -144,9 +150,9 @@ typedef unsigned (__stdcall *PTHREAD_START) (void *);
 //-----------------------------------------------------------------------------
 class CRAMPException{
 public:
-  CRAMPException(){};
-  ~CRAMPException(){};
+    CRAMPException(){};
+    ~CRAMPException(){};
 
-  SIZE_T _error;
-  std::string _message;
+    SIZE_T _error;
+    std::string _message;
 };

@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-03-03 15:32:49 dky>
+## Time-stamp: <2004-03-10 18:44:58 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -17,6 +17,8 @@ XMLBASE=$(BASEDRIVE):/Applications/xerces
 BDBBASE=$(BASEDRIVE):/Applications/bdb
 # SGI's STL
 STLBASE=$(BASEDRIVE):/Applications/stl
+# PCRE
+PCREBASE=$(BASEDRIVE):/Applications/pcre
 
 # DPE Cominc folder for DPE server header files
 DPE_COMINC=../../DPE/Cominc
@@ -77,8 +79,8 @@ LDFLAGS=$(LDFLAGS)
 # For engine
 E_CFLAGS=$(CFLAGS) $(NOLOGO) /I$(XMLBASE)/include /I$(BDBBASE)/include
 E_CFLAGS=$(E_CFLAGS) $(STUB) /I$(STLBASE) /I$(BDBBASE)/include/dbinc
-E_CCFLAGS=$(E_CFLAGS) $(CPP_DEBUG) $(MT_DEBUG) /GX
-E_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
+E_CCFLAGS=$(E_CFLAGS) /I$(PCREBASE) $(CPP_DEBUG) $(MT_DEBUG) /GX
+E_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG) /LIBPATH:$(PCREBASE)
 E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(BDBBASE)/lib
 
 # Add new files here
@@ -164,7 +166,7 @@ $(SRCDIR)/XMLParse.h: $(DEPS)
 library: dirs $(PROFLIB).dll
 $(PROFLIB).dll: $(POBJS)
     @$(LINK) /DLL $(LINK_DEBUG) $(E_LDFLAGS) $(POBJS) imagehlp.lib \
-             /OUT:$(BINDIR)/$(PROFLIB).dll
+             pcre.lib /OUT:$(BINDIR)/$(PROFLIB).dll
 $(OBJDIR)/CallMon.obj: $(LIBSRCDIR)/CallMon.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/CallMon.cpp \
              /Fo$(OBJDIR)/CallMon.obj

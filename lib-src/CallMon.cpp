@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-09 10:57:56 dky>
+// Time-stamp: <2004-03-10 19:45:59 dky>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -269,7 +269,8 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
         deep=callInfoStack.size();
         if(deep){
             // Max call depth has reached
-            InterlockedCompareExchange(&deep,0,g_CRAMP_Profiler.g_l_calldepthlimit);
+            InterlockedCompareExchange(&deep,0,
+                                       g_CRAMP_Profiler.g_l_calldepthlimit);
             if(!deep){
                 filtered=TRUE;
                 break;
@@ -437,7 +438,7 @@ DumpLastError(){
                   FORMAT_MESSAGE_IGNORE_INSERTS,
                   NULL,
                   GetLastError(),
-                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                   (LPTSTR) &lpMsgBuf,    0,    NULL );
     OutputDebugString((LPCTSTR)lpMsgBuf);
     LocalFree(lpMsgBuf);

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-09 10:56:53 dky>
+// Time-stamp: <2004-03-11 09:25:12 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -8,12 +8,14 @@
 // 09-22-2003  Cre                                                          dky
 // 02-28-2004  Mod Disable filtering, filter during dumping thru PERL       dky
 // 03-09-2004  Mod Moved generation of function info to flush               dky
+// 03-11-2004  Mod Undo previous changes and PCRE filtering                 dky
 //-----------------------------------------------------------------------------
 #define __DLLMAIN_SRC
 
 #include "cramp.h"
 #include "CallMonLOG.h"
 
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -33,6 +35,17 @@ BOOL WriteFuncInfo(unsigned int,unsigned long,FILE *f_func);
 void LogFileSizeMonTH(void *);
 DWORD WINAPI ProfilerMailSlotServerTH(LPVOID);
 
+// Ensure locking and unlocking with in a scope
+class CRAMPFunctionCS{
+public:
+    CRAMPFunctionCS(){
+        EnterCriticalSection(&g_CRAMP_Profiler.g_cs_fun);
+    };
+    ~CRAMPFunctionCS(){
+        LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_fun);
+    };
+};
+
 //-----------------------------------------------------------------------------
 // CRAMP_FlushProfileLogs
 //-----------------------------------------------------------------------------
@@ -50,7 +63,6 @@ extern "C" __declspec(dllexport)
     EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
     FILE *f_stat=0;
-    FILE *f_func=0;
     char filename[MAX_PATH];
     sprintf(filename,"%s/cramp_stat#%d.log",
             g_CRAMP_Profiler.logpath,
@@ -61,25 +73,12 @@ extern "C" __declspec(dllexport)
         return;
     }
 
-    sprintf(filename,"%s/cramp_funcinfo#%d.log",
-            g_CRAMP_Profiler.logpath,
-            g_CRAMP_Profiler.g_pid);
-    f_func=fopen(filename,"wc");
-    if(!f_func){
-        DEBUGCHK(0);
-        fclose(f_stat);
-        return;
-    }
-
     std::hash_map<unsigned int,FuncInfo>::iterator iter;
     iter=g_CRAMP_Profiler.g_hFuncCalls.begin();
     for(;iter!=g_CRAMP_Profiler.g_hFuncCalls.end();iter++){
         // Ignore filtered methods
         if((*iter).second._filtered)
             continue;
-
-        // Collect the function details at end
-        WriteFuncInfo((*iter).first,(*iter).second._calls,f_func);
 
         // Dump statistics information
         fprintf(f_stat,"%08X|%d|%I64d|%I64d|%I64d\n",
@@ -97,7 +96,6 @@ extern "C" __declspec(dllexport)
 
     // Flush and close the file handles
     fclose(f_stat);
-    fclose(f_func);
 
     // Unlock the hash
     LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
@@ -158,6 +156,7 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
 
     BOOL ret=FALSE;
     HANDLE h_proc=0;
+    CRAMPFunctionCS fcs;
     do{
         h_proc=GetCurrentProcess();
         if(!h_proc)
@@ -224,35 +223,43 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         }
         SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
 
-#ifdef HAVE_FILTER
         // Find if method is filtered
         do{
-            ret=g_CRAMP_Profiler.g_exclusion;
-            if(g_CRAMP_Profiler.g_FilterList.empty())
+            if(!g_CRAMP_Profiler.g_regcomp)
                 break;
-            char lfunc[1024];
-            char lmodl[MAX_PATH];
-            strcpy(lfunc,undName);
-            strcpy(lmodl,modShortNameBuf);
-            _strlwr(lfunc);
-            _strlwr(lmodl);
-            std::list<std::string>::iterator iter;
-            int cmp=1;
-            iter=g_CRAMP_Profiler.g_FilterList.begin();
-            for(;iter!=g_CRAMP_Profiler.g_FilterList.end();iter++){
-                if(!(cmp=strcmp(lmodl,(*iter).c_str()))||
-                   strstr(lfunc,(*iter).c_str())){
-                    if(!cmp)
-                        g_CRAMP_Profiler.h_FilteredModAddr[
-                            (unsigned int)mbi.AllocationBase]=ret;
-                    ret=!ret;
+
+            ret=g_CRAMP_Profiler.g_exclusion;
+            if(g_CRAMP_Profiler.g_FilterString.empty())
+                break;
+
+            // If module level filtering
+            int rc;
+            int ovector[256];
+            rc=pcre_exec(g_CRAMP_Profiler.g_regcomp,
+                         g_CRAMP_Profiler.g_regstudy,
+                         modShortNameBuf,
+                         strlen(modShortNameBuf),
+                         0,
+                         0,
+                         ovector,
+                         256);
+            if(rc<0){
+                rc=pcre_exec(g_CRAMP_Profiler.g_regcomp,
+                             g_CRAMP_Profiler.g_regstudy,
+                             undName,
+                             strlen(undName),
+                             0,
+                             0,
+                             ovector,
+                             256);
+                if(rc<0)
                     break;
-                }
+            }else{
+                g_CRAMP_Profiler.h_FilteredModAddr[
+                    (unsigned int)mbi.AllocationBase]=TRUE;
             }
+            ret=!ret;
         }while(0);
-#else
-        ret=TRUE;
-#endif
         if(ret)
             fprintf(f_func,"%08X|%s|%s|%ld\n",
                     addr,modShortNameBuf,undName,calls);
@@ -293,7 +300,8 @@ OnProcessStart(void){
     g_CRAMP_Profiler.g_h_mailslot=0;
     g_CRAMP_Profiler.g_h_mailslotTH=0;
     g_CRAMP_Profiler.g_h_logsizemonTH=0;
-
+    g_CRAMP_Profiler.g_regcomp=0;
+    g_CRAMP_Profiler.g_regstudy=0;
     g_CRAMP_Profiler.g_pid=GetCurrentProcessId();
 
     if(getenv("CRAMP_LOGPATH"))
@@ -320,20 +328,72 @@ OnProcessStart(void){
         g_CRAMP_Profiler.g_exclusion=FALSE;
 
 #ifdef HAVE_FILTER
-    // Build the filter list
+    // Build the REGEXP filter string
     do{
+        char fltstr[MAX_PATH];
+        std::list<std::string> l_flt;
         sprintf(filename,"%s/cramp_profile.flt",g_CRAMP_Profiler.logpath);
         fstream f_flt;
         f_flt.open(filename,ios::in|ios::nocreate);
         if(!(f_flt.rdbuf())->is_open())
             break;
+
         while(!f_flt.eof()){
-            f_flt.getline(filename,1024,'\n');
+            f_flt.getline(filename,MAX_PATH,'\n');
             if(!strlen(filename))
                 continue;
-            g_CRAMP_Profiler.g_FilterList.push_back(_strlwr(filename));
+
+            // Clean up the filter string
+            int ep=0;
+            fltstr[ep]='\0';
+            for(int cc=0;filename[cc];cc++){
+                if(isspace(filename[cc]))
+                    continue;
+                if(isalnum(filename[cc])){
+                    fltstr[ep]=filename[cc];
+                    ep++;
+                }else{
+                    fltstr[ep]='\\'; // Escape non alpha numerics
+                    ep++;
+                    fltstr[ep]=filename[cc];
+                    ep++;
+                }
+            }
+            fltstr[ep]='\0';
+            if(!strlen(fltstr))
+                continue;
+            l_flt.push_back(fltstr);
         }
         f_flt.close();
+
+        if(l_flt.empty())
+            break;
+
+        char first=1;
+        l_flt.unique();         // Make the filter unique
+        for(std::list<std::string>::iterator iter=l_flt.begin();
+            iter!=l_flt.end();iter++){
+            if(!first)
+                g_CRAMP_Profiler.g_FilterString.append("|");
+            else
+                first=0;
+
+            g_CRAMP_Profiler.g_FilterString.append("\\b");
+            g_CRAMP_Profiler.g_FilterString.append((*iter));
+            g_CRAMP_Profiler.g_FilterString.append("\\b");
+        }
+
+        const char *error;
+        int erroffset;
+        g_CRAMP_Profiler.g_regcomp=
+            pcre_compile(g_CRAMP_Profiler.g_FilterString.c_str(),
+                         0,
+                         &error,
+                         &erroffset,
+                         NULL);
+
+        if(!g_CRAMP_Profiler.g_regcomp)
+            break;
     }while(0);
 #endif
 
@@ -372,7 +432,12 @@ OnProcessStart(void){
             DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
             break;
         }
-
+        if(!InitializeCriticalSectionAndSpinCount(&g_CRAMP_Profiler.g_cs_fun,
+                                                  4000L)){
+            DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+            DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_log);
+            break;
+        }
 
         // Create a log file size monitoring thread
         buff=getenv("CRAMP_PROFILE_LOGSIZE");
@@ -472,8 +537,18 @@ OnProcessEnd(void){
         TerminateThread(g_CRAMP_Profiler.g_h_logsizemonTH,0);
     g_CRAMP_Profiler.g_h_logsizemonTH=0;
 
+    DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_fun);
     DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_log);
     DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+
+    if(g_CRAMP_Profiler.g_regcomp){
+        free(g_CRAMP_Profiler.g_regcomp);
+        g_CRAMP_Profiler.g_regcomp=0;
+    }
+    if(g_CRAMP_Profiler.g_regstudy){
+        free(g_CRAMP_Profiler.g_regstudy);
+        g_CRAMP_Profiler.g_regstudy=0;
+    }
 
     CleanEmptyLogs();
 
@@ -604,8 +679,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
                     DWORD fdwReason,
                     LPVOID lpvReserved){
     long dest=1;
-    switch (fdwReason)
-    {
+    switch (fdwReason){
         case DLL_PROCESS_ATTACH:
             OnProcessStart();
         case DLL_THREAD_ATTACH:
