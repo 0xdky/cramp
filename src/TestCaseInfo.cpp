@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-01 17:43:56 dhruva>
+// Time-stamp: <2003-12-09 14:47:58 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -842,9 +842,12 @@ TestCaseInfo::AddLog(std::string ilog){
     return;
 
   char msg[BUFSIZE];
-  sprintf(msg,"%s|%d",
-          s_uid.c_str(),
-          ProcessInfo().dwProcessId);
+  if(RemoteStatus())
+    sprintf(msg,"REMOTE");
+  else
+    sprintf(msg,"%s|%d",
+            s_uid.c_str(),
+            ProcessInfo().dwProcessId);
 
   EnterCriticalSection(&g_CRAMP_Engine.g_cs_log);
 

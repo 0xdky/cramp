@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-01 17:51:40 dhruva>
+// Time-stamp: <2003-12-09 15:24:54 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -16,6 +16,7 @@
 #include "engine.h"
 #include "XMLParse.h"
 #include "TestCaseInfo.h"
+#include "PerfCounters.h"
 
 #include <stdio.h>
 #include <tchar.h>
@@ -168,6 +169,9 @@ WINAPI WinMain(HINSTANCE hinstExe,
       h_arr[xx]=0;
     }
   }while(0);
+
+  // Clean up performance counters
+  CleanPIDCounterHash();
 
   // Get all exit status and delete the internal tree
   if(g_CRAMP_Engine.g_pScenario){
