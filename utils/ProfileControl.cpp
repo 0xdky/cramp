@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-02-25 12:55:29 dky>
+// Time-stamp: <2004-06-21 17:57:15 dky>
 //-----------------------------------------------------------------------------
 // File  : ProfileControl.cpp
 // Usage : ProfileControl.exe PROFILE_HOST PID START|STOP|FLUSH
@@ -8,6 +8,7 @@
 // mm-dd-yyyy  History                                                      tri
 // 12-03-2003  Cre                                                          dky
 // 02-04-2004  Mod  Can give list of PID (comma separated) to control       dky
+// 06-21-2004  Mod  Replace localhost with "." to support it as default     dky
 //-----------------------------------------------------------------------------
 #define __PROFILECONTROL_SRC
 
@@ -50,6 +51,12 @@ WINAPI WinMain(HINSTANCE hinstExe,
                         pidlist,MAX_PATH,0,0);
     WideCharToMultiByte(CP_ACP,0,argvW[3],-1,
                         msg,256,0,0);
+
+    // Use "." notation for local host
+    if(!stricmp(comp,"localhost")){
+        comp[0]='.';
+        comp[1]='\0';
+    }
 
     // Loop through all PID's
     pid=strtok(pidlist,",");

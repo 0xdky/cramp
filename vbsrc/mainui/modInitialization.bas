@@ -16,7 +16,7 @@ End Sub
 '***********************************************************
 Public Sub SetSTACombo()
   Dim strSTA As String
-  
+
   strSTA = "STAT"
   frmMainui.staCombo.AddItem (strSTA)
   strSTA = "THREADS"
@@ -47,7 +47,7 @@ End Sub
 Public Sub GetEnvironmentVariable()
   Dim ss As Integer
   ss = 0
-  
+
   gstrSpace = Space(1)
   gPrevQuery = ""
   gSPrevQuery = ""
@@ -57,15 +57,15 @@ Public Sub GetEnvironmentVariable()
   gDicCountUpper = frmMainui.listitemText.Text
   frmMainui.nextCommand.Enabled = False
   frmMainui.preCommand.Enabled = False
-  
+
   ReDim currsettingArray(0)
   ReDim currsetArrayStat(0)
   ReDim chbstatusArray(12)
-  
+
   For ss = 0 To UBound(chbstatusArray)
     chbstatusArray(ss) = 1
   Next
-  
+
   'get the environment variable "CRAMP_PATH"
   gperlScript = gCRAMPPath + "/bin/profileDQ.pl"
   gperlScript = Replace(gperlScript, "\", "/")
@@ -82,7 +82,7 @@ Public Sub GetEnvironmentVariable()
 
   Set gobjFSO = CreateObject("Scripting.FileSystemObject")
   Set gobjDic = CreateObject("Scripting.Dictionary")
-  
+
   'checking for the wperl.exe
   gperlPath = gCRAMPPath + "/TOOLS/PERL/bin/wperl.exe"
   gperlPath = Replace(gperlPath, "\", "/")
@@ -90,21 +90,21 @@ Public Sub GetEnvironmentVariable()
   If gIsFileExist = False And gFileSize = 0 Then
     gperlPath = "wperl.exe"
   End If
-  
+
   'checking for the profileDQ.pl
   IsFileExistAndSize gperlScript, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
     MsgBox "ERROR :: profileDQ.pl Is Not Found Under " & gCRAMPPath & _
                      "\bin" & " Folder"
   End If
-  
+
   'checking for the querysort.pl
   IsFileExistAndSize gquerySort, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
     MsgBox "ERROR :: querysort.pl Is Not Found Under " & gCRAMPPath & _
                      "\bin" & " Folder"
   End If
-  
+
   'set setting
   StoredefaultSetting
   'load frmlvcolhs form
@@ -112,17 +112,18 @@ Public Sub GetEnvironmentVariable()
   'set check box status
   InitLVColHSForm
   frmLVColHS.Visible = False
-    
+
   gIsFileExist = False
   gFileSize = 0
-  
+
   'check for CRAMP_DEBUG
   If Environ("CRAMP_DEBUG") <> "" Then
     frmMainui.queryText.Enabled = True
   End If
-  
+
   'get computer name
-  GetLocalComputerName
+  'GetLocalComputerName
+  frmMainui.compnameText.Text="localhost"
 
 End Sub
 
@@ -137,27 +138,27 @@ Public Sub GetAllThreads(pidPosition As Long, strPID As String)
   Dim cmbBool As Boolean
   Dim ss As Long
   Dim pidHand As udtPID
-  
+
   ss = 0
-  
+
   On Error Resume Next
-  
+
   If pidPosition < 0 Then Exit Sub
   If strPID = "" Then Exit Sub
-  
+
   strDB = "cramp#" & strPID & ".db"
   strDB = gstrCLogPath & strDB
   IsFileExistAndSize strDB, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
     Exit Sub
   End If
-  
+
   pidHand = pidArray(pidPosition)
   ReDim pidHand.thrArray(0)
-  
+
   'pid QUERY ALL TICK 0
   frmMainui.queryText.Text = strPID & gstrSpace & "QUERY" & gstrSpace & "THREADS"
-    
+
   'run perl script to get all the threads
   RunPerlScriptWithCP
 
@@ -176,7 +177,7 @@ Public Sub GetAllThreads(pidPosition As Long, strPID As String)
         cmbBool = True
       End If
     Loop
-    
+
     'Close file
      MyFileStream.Close
      pidArray(pidPosition) = pidHand
@@ -190,16 +191,16 @@ Public Sub GetAllThreads(pidPosition As Long, strPID As String)
     cmbBool = False
     'MsgBox "File " + giFileName + " does not exists Or size is zero."
   End If
-  
+
   ss = 0
-  
+
 End Sub
 
 '***********************************************************
 ' store check box status
 '***********************************************************
 Public Sub StoreCheckBoxStatus()
-  
+
   'store check box values of columan hide-show form
   ReDim chbstatusArray(12)
   With frmLVColHS
@@ -217,19 +218,19 @@ Public Sub StoreCheckBoxStatus()
     chbstatusArray(11) = .posiColHSCHB.Value
     chbstatusArray(12) = .tpsecColHSCHB.Value
   End With
-  
+
 End Sub
 
 '***********************************************************
 ' initialize second form
 '***********************************************************
 Public Sub InitLVColHSForm()
-  
+
   On Error Resume Next
-  
+
   'set check box values in columan hide-show form
   If Not UBound(chbstatusArray) = 12 Then Exit Sub
-  
+
   With frmLVColHS
     .threColHSCHB.Value = chbstatusArray(0)
     .funcColHSCHB.Value = chbstatusArray(1)
@@ -255,7 +256,7 @@ With frmLVColHS
   .modColHSCHB.Enabled = True
   .funcColHSCHB.Enabled = True
   .addrColHSCHB.Enabled = True
-  
+
   .numColHSCHB.Enabled = False
   .totticksColHSCHB.Enabled = False
   .maxtickColHSCHB.Enabled = False
@@ -293,14 +294,14 @@ Public Sub SetNewColumnPosition()
   Dim aa As Long
   Dim strStored As String
   Dim strColName As String
-  
+
   ss = 0
   aa = 0
   strStored = ""
   strColName = ""
-  
+
   On Error Resume Next
-  
+
   If frmMainui.staCombo.Text = "STAT" And _
      frmMainui.queryLV.ColumnHeaders.Count = 7 Then
     If Not UBound(currsetArrayStat) > 0 Then Exit Sub
@@ -332,9 +333,9 @@ Public Sub SetNewColumnPosition()
       Next
     Next
   End If
-  
+
   frmMainui.queryLV.Refresh
-  
+
   ss = 0
   aa = 0
   strStored = ""
@@ -350,13 +351,13 @@ Public Sub StoreUserSetting()
 
   ss = 0
   colPosition = 0
-  
+
   On Error Resume Next
-  
+
   colHead = frmMainui.queryLV.ColumnHeaders.Count
   If frmMainui.queryLV.ColumnHeaders.Count = 7 Then 'STAT
     ReDim currsetArrayStat(colHead - 1)
-      
+
     For ss = 0 To colHead - 1
       colPosition = frmMainui.queryLV.ColumnHeaders.Item(ss + 1).Position
       currsetArrayStat(colPosition - 1) = frmMainui.queryLV.ColumnHeaders.Item(ss + 1).Text
@@ -369,7 +370,7 @@ Public Sub StoreUserSetting()
       currsettingArray(colPosition - 1) = frmMainui.queryLV.ColumnHeaders.Item(ss + 1).Text
     Next
   End If
-  
+
   ss = 0
   colPosition = 0
 End Sub
@@ -408,17 +409,17 @@ End Sub
 ' show hide column
 '***********************************************************
 Public Sub ShowHideCol()
-  
+
   Dim ss As Integer
   Dim chbVal As Integer
-  
+
   ss = 0
   chbVal = 0
-  
+
   On Error Resume Next
-  
+
   If Not UBound(chbstatusArray) = 12 Then Exit Sub
-  
+
   With frmLVColHS
     For ss = 0 To UBound(chbstatusArray)
       chbVal = chbstatusArray(ss)
@@ -454,7 +455,7 @@ Public Sub ShowHideCol()
     End If
   Next
   End With
-  
+
   ss = 0
   chbVal = 0
 
@@ -463,18 +464,18 @@ End Sub
 ' set column position as per user setting and show hide col
 '***********************************************************
 Public Sub ReorderColumnPosition(strCol As String, chbVal As Boolean)
-  
+
   Dim ss As Integer
   Dim strVal As String
-  
+
   ss = 0
   strVal = ""
-  
+
   On Error Resume Next
-  
+
   With frmMainui
     .queryLV.Refresh
-  
+
     'show hide column
     For ss = 1 To .queryLV.ColumnHeaders.Count
       strVal = .queryLV.ColumnHeaders.Item(ss).Text
@@ -493,7 +494,7 @@ Public Sub ReorderColumnPosition(strCol As String, chbVal As Boolean)
 
     .queryLV.Refresh
   End With
-  
+
   ss = 0
   strVal = ""
 
@@ -543,11 +544,11 @@ Public Function SetPIDCombo(fld As String) As String
    Dim cmbBool As Boolean
    Dim processidArray() As String
    Dim findData As WIN32_FIND_DATA
-     
+
    On Error Resume Next
    ReDim Preserve pidArray(0)
    ReDim Preserve processidArray(0)
-   
+
    addValue = False
    cmbBool = False
    fHandle = 0
@@ -558,11 +559,11 @@ Public Function SetPIDCombo(fld As String) As String
    SetPath fld
    'find the first file/folder in the root path
    fHandle = FindFirstFile(fld & "*", findData)
-   
+
    'get rid of the nulls
    FileName = findData.cFileName
    FileName = StripNulls(FileName)
-   
+
    'loop until there's nothing left
    Do While Len(FileName) <> 0
       'get the next one
@@ -593,10 +594,10 @@ Public Function SetPIDCombo(fld As String) As String
         ProcessID = Left(ProcessID, Location)
         addValue = ChkDuplicateValueInArray(processidArray(), ProcessID)
         If IsNumeric(ProcessID) And addValue = True Then
-          
+
           processidArray(UBound(processidArray)) = ProcessID
           ReDim Preserve processidArray(UBound(processidArray) + 1)
-        
+
           Dim X As udtPID
           pidArray(UBound(pidArray)) = X
           If cmbBool = False Then
@@ -613,7 +614,7 @@ Public Function SetPIDCombo(fld As String) As String
      gFileSize = 0
    Loop
    bRet = FindClose(fHandle)
-   
+
    If cmbBool = True Then
      Dim pidHand As udtPID
      pidHand = pidArray(0)
@@ -624,13 +625,13 @@ Public Function SetPIDCombo(fld As String) As String
      MsgBox "ERROR :: No log files Under " + fld + " Folder"
      frmMainui.queryCommand.Enabled = False
    End If
-   
+
    fHandle = 0
    Location = 0
    strLength = 0
    cmbBool = False
    Erase processidArray
-   
+
 End Function
 '***********************************************************
 ' add / at the end of the path if it is not there
@@ -660,10 +661,10 @@ End Function
 '***********************************************************
 Public Sub ShowSortIconInLVHeader(list As MSComctlLib.ListView, _
                                   imgIconNo As Integer)
-    
+
     Dim col As MSComctlLib.ColumnHeader
     Dim lAlignment As Long
-    
+
     'set all column header to off
     For Each col In list.ColumnHeaders
       With col
@@ -697,14 +698,14 @@ End Function
 Public Sub ShowIcon(colNo As Long, imgIconNo As Integer, bShowIcon As enumShowHide, list As MSComctlLib.ListView, lAlignment As Long)
     Dim lHeader As Long
     Dim HD      As HDITEM
-    
+
     'get a handle if listview header
     lHeader = SendMessage(list.hwnd, LVM_GETHEADER, 0, ByVal 0)
-    
+
     'set structure
     With HD
         .mask = HDI_IMAGE Or HDI_FORMAT
-        
+
         If bShowIcon Then
             .fmt = HDF_STRING Or HDF_IMAGE Or HDF_BITMAP_ON_RIGHT
             .iImage = imgIconNo
@@ -713,17 +714,17 @@ Public Sub ShowIcon(colNo As Long, imgIconNo As Integer, bShowIcon As enumShowHi
         End If
         .fmt = .fmt Or lAlignment
     End With
-    
+
     'modify the header icon
     Call SendMessage(lHeader, HDM_SETITEM, colNo - 1, HD)
-   
+
 End Sub
 
 '***********************************************************
 ' get icon number to display
 '***********************************************************
 Public Function GetIconNumber(imgNo As Integer) As Integer
-  
+
   If imgNo = lvwAscending Then
       GetIconNumber = lvwDescending
   Else
@@ -753,14 +754,14 @@ End Sub
 Public Function ChkDuplicateValueInArray(processidArray() As String, tmpStr As String) As Boolean
     Dim iCounter As Integer
     Dim arrValue As String
-    
+
     iCounter = 0
     arrValue = ""
-    
+
     On Error Resume Next
-    
+
     If UBound(processidArray) < 0 Then Exit Function
-    
+
     For iCounter = 0 To UBound(processidArray)
       arrValue = processidArray(iCounter)
       If arrValue = tmpStr Then
@@ -778,17 +779,14 @@ End Function
 Public Sub GetLocalComputerName()
     Dim pc_name As String
     pc_name = String(50, Chr(0))
-    
+
     GetComputerNameEx ComputerNamePhysicalDnsFullyQualified, pc_name, 50
     StripNulls pc_name
     pc_name = Trim(pc_name)
     'MsgBox pc_name
-    
+
     If pc_name <> "" Then
       frmMainui.compnameText.Text = pc_name
     End If
-    
+
 End Sub
-
-
-
