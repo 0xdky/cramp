@@ -60,4 +60,3 @@ Public Declare Function GetExitCodeProcess Lib "kernel32" _
 Public Declare Function WaitForSingleObject Lib "kernel32" _
     (ByVal hObject As Long, ByVal waitTime As Long) As Long
     
-
