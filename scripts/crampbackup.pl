@@ -11,7 +11,9 @@ $target="E:/BACKUPS/cramp";
 die("Unable to find source or target") unless(-d $source && -d $target);
 my @curr=localtime();
 $year=$curr[5]+1900;
+$curr[4]++;
 $name="$target/CRAMP_$curr[2]_$curr[1]#$curr[4]_$curr[3]_$year.zip";
+
 while(-f $name){
     sleep(60-$curr[0]);
     @curr=localtime();
