@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-07 11:50:40 dhruva>
+// Time-stamp: <2003-10-07 14:33:35 pmistry>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -81,7 +81,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   if(0!=u_uid){
     TestCaseInfo *ptc=FindTCFromUID(u_uid);
     if(ptc){
-      if(!IsReferenceValid(ptc)){
+      if(!IsReferenceValid(ipParentGroup,ptc)){
         CRAMPException excep;
         excep._message="ERROR: Cyclic dependency!";
         excep._error=u_uid;
@@ -471,7 +471,8 @@ TestCaseInfo
 // IsReferenceValid
 //-----------------------------------------------------------------------------
 BOOLEAN
-TestCaseInfo::IsReferenceValid(TestCaseInfo *ipGroup){
+TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
+                               TestCaseInfo *ipGroup){
   if(!ipGroup||!ipGroup->GroupStatus())
     return(FALSE);
   BOOLEAN ret=TRUE;
@@ -480,10 +481,10 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipGroup){
   for(;TRUE==ret&&iter!=l_tc.end();iter++){
     TestCaseInfo *ptc=(*iter);
     if(ptc->GroupStatus())
-      if(UniqueID()==ptc->UniqueID())
+      if(ipEntry->UniqueID()==ptc->UniqueID())
         ret=FALSE;
       else
-        ret=IsReferenceValid(ptc);
+        ret=IsReferenceValid(ipEntry,ptc);
   }
   return(ret);
 }

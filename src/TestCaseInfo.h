@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-07 11:48:08 dhruva>
+// Time-stamp: <2003-10-07 14:30:32 pmistry>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -130,6 +130,9 @@ private:
   void GroupStatus(BOOLEAN iIsGroup);
   void ReferStatus(BOOLEAN iIsReference);
   TestCaseInfo *FindTCFromUID(SIZE_T iuid);
-  BOOLEAN IsReferenceValid(TestCaseInfo *ipGroup);
+  // First arg is the parent to which the "this" is getting added
+  // We could have added "this" and avoided the 1st arg but if
+  // invalid, we have to remove it. This is more expensive.
+  BOOLEAN IsReferenceValid(TestCaseInfo *ipEntry,TestCaseInfo *ipGroup);
 };
 typedef std::list<TestCaseInfo *> ListOfTestCaseInfo;
