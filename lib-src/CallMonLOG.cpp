@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 18:19:52 dhruva>
+// Time-stamp: <2003-10-21 15:02:12 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -112,25 +112,6 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
   ProfileLimit *ppl=GetProfileLimit();
   if(ppl)
     ppl->AddLog((ci.endTime-ci.startTime),logmsg,!normalRet);
-
-#if 0
-  EnterCriticalSection(&g_cs_log);
-  // ThreadID|Module|Func|FuncAddr|Rettype|TimeMS|Ticks
-  fprintf(g_f_logfile,"%d|%s|%s|%08X|%s|%I64d|%I64d\n",
-          GetCurrentThreadId(),
-          ci.modl.c_str(),
-          ci.func.c_str(),
-          ci.funcAddr,
-          rettype.c_str(),
-          (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
-          (ci.endTime-ci.startTime));
-  if(1000==g_u_counter){
-    fflush(g_f_logfile);
-    fflush(g_f_callfile);
-    g_u_counter=0;
-  }
-  LeaveCriticalSection(&g_cs_log);
-#endif
 
   return;
 }

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-20 15:06:02 dhruva>
+// Time-stamp: <2003-10-21 15:32:27 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -33,15 +33,15 @@ static const unsigned OFFSET_CALL_BYTES=5;
 // To toggle profiling
 extern long g_l_profile;
 extern CRITICAL_SECTION g_cs_prof;
+extern DB *g_pdb_funcinfo;
 
 // To minimize calls to system methods
 typedef struct{
-  SIZE_T _funcAddr;
   SIZE_T _calls;
-  std::string _funcname;
-  std::string _modname;
+  BOOLEAN _profile;
+  char _modname[256];
+  char _funcname[512];
 }FuncInfo;
-std::list<FuncInfo> g_listOfFI;
 
 // Start of MSVC-specific code
 
@@ -209,30 +209,29 @@ void indent(int level)
 //
 DWORD CallMonitor::tlsSlot=0xFFFFFFFF;
 
-CallMonitor::CallMonitor() {queryTicks(&threadStartTime);}
+CallMonitor::CallMonitor(){
+  queryTicks(&threadStartTime);
+}
 
-CallMonitor::~CallMonitor() {}
+CallMonitor::~CallMonitor(){
+}
 
-void CallMonitor::threadAttach(CallMonitor *newObj)
-{
+void CallMonitor::threadAttach(CallMonitor *newObj){
   if (tlsSlot==0xFFFFFFFF) tlsSlot = TlsAlloc();
   TlsSetValue(tlsSlot,newObj);
 }
 
-void CallMonitor::threadDetach()
-{
+void CallMonitor::threadDetach(){
   delete &threadObj();
 }
 
-CallMonitor &CallMonitor::threadObj()
-{
+CallMonitor &CallMonitor::threadObj(){
   CallMonitor *self = (CallMonitor *)
     TlsGetValue(tlsSlot);
   return *self;
 }
 
-CallMonitor *CallMonitor::threadPtr()
-{
+CallMonitor *CallMonitor::threadPtr(){
   CallMonitor *self=(CallMonitor *)TlsGetValue(tlsSlot);
   return(self);
 }
@@ -241,82 +240,56 @@ CallMonitor *CallMonitor::threadPtr()
 void CallMonitor::enterProcedure(ADDR parentFramePtr,
                                  ADDR funcAddr,
                                  ADDR *retAddrPtr,
-                                 const TICKS &entryTime)
-{
-  // Record procedure entry on shadow stack
+                                 const TICKS &entryTime){
+
+  BOOLEAN ret=FALSE;
   callInfoStack.push_back(CallInfo());
-
-  CallInfo &ci = callInfoStack.back();
-  ci.funcAddr = funcAddr;
-  ci.parentFrame = parentFramePtr;
-  ci.origRetAddr = *retAddrPtr;
-  ci.entryTime = entryTime;
-
-#ifdef CRAMP_CALLGRAPH
+  CallInfo &ci=callInfoStack.back();
+  ci.funcAddr=funcAddr;
   EnterCriticalSection(&g_cs_prof);
-  getFuncInfo(ci.funcAddr,ci.modl,ci.func);
+  ret=getFuncInfo(ci.funcAddr,ci.modl,ci.func);
   LeaveCriticalSection(&g_cs_prof);
+  if(!ret){
+    callInfoStack.pop_back();
+    return;
+  }
+
+  ci.startTime=0;
+  ci.parentFrame=parentFramePtr;
+  ci.origRetAddr=*retAddrPtr;
+  ci.entryTime=entryTime;
   logEntry(ci);
-#endif
+  callInfoStack.push_back(ci);
 
-  // Redirect eventual return to local thunk
-  *retAddrPtr = (ADDR)_pexitThunk;
-
-  queryTicks(&ci.startTime); // Track approx. start time
+  *retAddrPtr=(ADDR)_pexitThunk; // Redirect eventual return to local thunk
+  queryTicks(&ci.startTime);    // Track approx. start time
+  return;
 }
 
 // Performs standard exit processing
 void CallMonitor::exitProcedure(ADDR parentFramePtr,
                                 ADDR *retAddrPtr,
-                                const TICKS &endTime)
-{
+                                const TICKS &endTime){
   // Pops shadow stack until finding a call record
   // that matches the current stack layout.
   bool inSync=false;
-  while(1)
-  {
+  while(1){
     // Retrieve original call record
-    CallInfo &ci = callInfoStack.back();
-    ci.endTime = endTime;
-    *retAddrPtr = ci.origRetAddr;
-    if (ci.parentFrame==parentFramePtr)
-    {
-
-#ifndef CRAMP_CALLGRAPH
-      BOOLEAN add=FALSE;
-      do{
-        ProfileLimit *ppl=CallMonLOG::GetProfileLimit();
-        if(!ppl)
-          break;
-        ProfileData &ppd=ppl->GetLeastEntry();
-        if((ci.endTime-ci.startTime)<ppd._ticks)
-          break;
-        EnterCriticalSection(&g_cs_prof);
-        getFuncInfo(ci.funcAddr,ci.modl,ci.func);
-        LeaveCriticalSection(&g_cs_prof);
-        add=TRUE;
-      }while(0);
-      if(add)
-        logExit(ci,true);
-#else
-      logExit(ci,true); // Record normal exit
-#endif
+    CallInfo &ci=callInfoStack.back();
+    ci.endTime=endTime;
+    *retAddrPtr=ci.origRetAddr;
+    if(ci.parentFrame==parentFramePtr){
+      logExit(ci,true);         // Record normal exit
       callInfoStack.pop_back();
       return;
     }
-#ifndef CRAMP_CALLGRAPH
-    EnterCriticalSection(&g_cs_prof);
-    getFuncInfo(ci.funcAddr,ci.modl,ci.func);
-    LeaveCriticalSection(&g_cs_prof);
-#endif
-    logExit(ci,false);    // Record exceptional exit
+    logExit(ci,false);          // Record exceptional exit
     callInfoStack.pop_back();
   }
 }
 
 // Default entry logging procedure
-void CallMonitor::logEntry(CallInfo &ci)
-{
+void CallMonitor::logEntry(CallInfo &ci){
   indent(callInfoStack.size()-1);
   string module,name;
   getFuncInfo(ci.funcAddr,module,name);
@@ -325,8 +298,7 @@ void CallMonitor::logEntry(CallInfo &ci)
 }
 
 // Default exit logging procedure
-void CallMonitor::logExit(CallInfo &ci,bool normalRet)
-{
+void CallMonitor::logExit(CallInfo &ci,bool normalRet){
   indent(callInfoStack.size()-1);
   if (!normalRet) printf("exception ");
   TICKS ticksPerSecond;
@@ -336,8 +308,7 @@ void CallMonitor::logExit(CallInfo &ci,bool normalRet)
          (ci.endTime-ci.startTime));
 }
 
-void DumpLastError()
-{
+void DumpLastError(){
   LPVOID lpMsgBuf;
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                 FORMAT_MESSAGE_FROM_SYSTEM |
@@ -350,23 +321,34 @@ void DumpLastError()
   LocalFree( lpMsgBuf );
 }
 
-void CallMonitor::getFuncInfo(ADDR addr,
-                              string &module,
-                              string &funcName)
-{
-  // Minimize expensive calls
+BOOLEAN
+CallMonitor::getFuncInfo(ADDR addr,
+                         string &module,
+                         string &funcName){
+  DBT key,data;
+  memset(&key,0,sizeof(key));
+  memset(&data,0,sizeof(data));
+  key.size=sizeof(ADDR);
+  key.data=&addr;
+  data.flags=DB_DBT_MALLOC;
+
+  // Get from BDB HASH
   do{
-    if(!g_listOfFI.size())
+    if(!g_pdb_funcinfo)
       break;
-    std::list<FuncInfo>::iterator iter=g_listOfFI.begin();
-    for(;iter!=g_listOfFI.end();iter++){
-      FuncInfo &fi=(*iter);
-      if(fi._funcAddr==addr){
-        fi._calls++;
-        module=fi._modname;
-        funcName=fi._funcname;
-        return;
+    if(!g_pdb_funcinfo->get(g_pdb_funcinfo,NULL,&key,&data,0)){
+      FuncInfo *pfi=(FuncInfo *)data.data;
+      // Method filtered
+      if(!pfi->_profile){
+        return(FALSE);
       }
+      pfi->_calls++;
+      module=pfi->_modname;
+      funcName=pfi->_funcname;
+      data.size=sizeof(*pfi);
+      data.data=pfi;
+      DEBUGCHK(!g_pdb_funcinfo->put(g_pdb_funcinfo,NULL,&key,&data,0));
+      return(TRUE);
     }
   }while(0);
 
@@ -414,15 +396,14 @@ void CallMonitor::getFuncInfo(ADDR addr,
   {
     // Unmangle name, throwing away decorations
     // that don't affect uniqueness:
-    if ( 0 == UnDecorateSymbolName(
-           pSymbol->Name, undName,
-           sizeof(undName),
-           UNDNAME_NO_MS_KEYWORDS |
-           UNDNAME_NO_ACCESS_SPECIFIERS |
-           UNDNAME_NO_FUNCTION_RETURNS |
-           UNDNAME_NO_ALLOCATION_MODEL |
-           UNDNAME_NO_ALLOCATION_LANGUAGE |
-           UNDNAME_NO_MEMBER_TYPE))
+    if(0==UnDecorateSymbolName(pSymbol->Name, undName,
+                               sizeof(undName),
+                               UNDNAME_NO_MS_KEYWORDS |
+                               UNDNAME_NO_ACCESS_SPECIFIERS |
+                               UNDNAME_NO_FUNCTION_RETURNS |
+                               UNDNAME_NO_ALLOCATION_MODEL |
+                               UNDNAME_NO_ALLOCATION_LANGUAGE |
+                               UNDNAME_NO_MEMBER_TYPE))
       strcpy(undName,pSymbol->Name);
   }
   SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
@@ -431,13 +412,18 @@ void CallMonitor::getFuncInfo(ADDR addr,
   funcName = undName;
 
   // Cache the information
-  FuncInfo fin;
-  fin._funcAddr=addr;
-  fin._calls=1;
-  fin._modname=module;
-  fin._funcname=undName;
-  g_listOfFI.push_back(fin);
-
-  return;
+  // Add it to BDB HASH
+  if(g_pdb_funcinfo){
+    FuncInfo fin;
+    fin._calls=1;
+    fin._profile=TRUE;
+    strcpy(fin._modname,modShortNameBuf);
+    strcpy(fin._funcname,undName);
+    data.size=sizeof(fin);
+    data.data=&fin;
+    DEBUGCHK(!g_pdb_funcinfo->put(g_pdb_funcinfo,NULL,&key,&data,
+                                  DB_NOOVERWRITE));
+  }
+  return(TRUE);
 }
 //End of file
