@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 17:10:49 dhruva>
+// Time-stamp: <2003-11-01 19:03:38 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -97,29 +97,18 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   if(iUniqueID){
     b_uid=TRUE;
     u_uid=hashstring(iUniqueID);
+    if(FindTCFromUID(u_uid)){
+      CRAMPException excep;
+      excep._message="ERROR: ID is not unique!";
+      excep._error=u_uid;
+      throw(excep);
+    }
   }
+
   b_block=iBlock;
   b_group=iGroup;
   b_subproc=iSubProc;
   p_pgroup=ipParentGroup;
-
-  // Very important phase... Setting UID, establish links
-  if(b_uid){
-    TestCaseInfo *ptc=FindTCFromUID(u_uid);
-    if(ptc){
-      if(!IsReferenceValid(ptc,ipParentGroup)){
-        CRAMPException excep;
-        excep._message="ERROR: Cyclic dependency!";
-        excep._error=u_uid;
-        throw(excep);
-      }
-      // Since this is a reference, generate a uid
-      u_uid=0;
-      b_uid=FALSE;
-      ReferStatus(TRUE);
-      Reference(ptc);
-    }
-  }
 
   // Adding group/testcase to group. Scenario does not have parent!
   // Add this at end or you will find it and create a CYCLIC link!!
@@ -190,6 +179,35 @@ TestCaseInfo::hashstring(const char *s){
   for(int i=0;s[i]!='\0';i+=1)
     h=(h<<5)-h+s[i];
   return(h);
+}
+
+//-----------------------------------------------------------------------------
+// SetIDREF
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::SetIDREF(const char *iIDREF){
+  if(!iIDREF)
+    return;
+
+  SIZE_T refid=hashstring(iIDREF);
+  TestCaseInfo *ptc=FindTCFromUID(refid);
+  if(ptc){
+    if(!IsReferenceValid(ptc,GetParentGroup())){
+      CRAMPException excep;
+      excep._message="ERROR: Cyclic dependency!";
+      excep._error=refid;
+      throw(excep);
+    }
+    ReferStatus(TRUE);
+    Reference(ptc);
+  }else{
+    CRAMPException excep;
+    excep._message="ERROR: Reference not found!";
+    excep._error=refid;
+    throw(excep);
+  }
+
+  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -267,7 +285,8 @@ TestCaseInfo::DeleteScenario(TestCaseInfo *ipScenario){
 // AddGroup
 //-----------------------------------------------------------------------------
 TestCaseInfo
-*TestCaseInfo::AddGroup(const char *iUniqueID,BOOLEAN iBlock){
+*TestCaseInfo::AddGroup(const char *iUniqueID,
+                        BOOLEAN iBlock){
   if(!GroupStatus()&&!PseudoGroupStatus())
     return(0);
   TestCaseInfo *pTCG=0;

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 16:52:53 dhruva>
+// Time-stamp: <2003-11-01 19:02:06 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -53,6 +53,9 @@ public:
   TestCaseInfo *AddTestCase(const char *ipUniqueID=0,
                             BOOLEAN iBlock=TRUE,
                             BOOLEAN iSub=FALSE);
+
+  // Can throw CRAMPException if reference is not valid
+  void SetIDREF(const char *iIDREF);
 
   TestCaseInfo *GetParentGroup(void);
 

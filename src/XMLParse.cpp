@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 14:41:14 dhruva>
+// Time-stamp: <2003-11-01 19:08:05 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -16,7 +16,6 @@
 #include <list>
 #include <string>
 
-// #include <string.h>
 #include <stdlib.h>
 #include <fstream.h>
 
@@ -43,6 +42,7 @@
 
 typedef enum{
   ID=0,
+  IDREF,
   NAME,
   RELEASE,
   MAXRUNTIME,
@@ -77,6 +77,7 @@ ElemAttr g_ElemAttrMap[]={
   SCENARIO, "PROFILING"           ,   PROFILING           ,
   SCENARIO, "MONINTERVAL"         ,   MONINTERVAL         ,
   GROUP   , "ID"                  ,   ID                  ,
+  GROUP   , "IDREF"               ,   IDREF               ,
   GROUP   , "NAME"                ,   NAME                ,
   GROUP   , "BLOCK"               ,   BLOCK               ,
   GROUP   , "MAXRUNTIME"          ,   MAXRUNTIME          ,
@@ -84,6 +85,7 @@ ElemAttr g_ElemAttrMap[]={
   GROUP   , "STOPONFIRSTFAILURE"  ,   STOPONFIRSTFAILURE  ,
   GROUP   , "PROFILING"           ,   PROFILING           ,
   TESTCASE, "ID"                  ,   ID                  ,
+  TESTCASE, "IDREF"               ,   IDREF               ,
   TESTCASE, "EXECPATH"            ,   EXECPATH            ,
   TESTCASE, "NUMRUNS"             ,   NUMRUNS             ,
   TESTCASE, "NAME"                ,   NAME                ,
@@ -353,6 +355,16 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
     for(;from!=myelement.end();++from){
       switch(g_ElemAttrMap[(*from).index].attrenum){
         case ID:
+          break;
+        case IDREF:
+          try{
+            pChild->SetIDREF((*from).attrvalue);
+          }
+          catch(CRAMPException excep){
+            TestCaseInfo::DeleteScenario(_pRoot);
+            _pRoot=0;
+            return(false);
+          }
           break;
         case NAME:
           pChild->TestCaseName((*from).attrvalue);
