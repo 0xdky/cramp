@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-11-19 10:40:38 dhruva>
+## Time-stamp: <2003-11-19 10:59:59 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : cramp_staf.pl
 ## Desc  : PERL script to run testcases on a pool of computers using STAF
@@ -39,7 +39,7 @@ if(exists($ENV{'STAF_PATH'})){
         exit -1;
     }
     $STAF_EXEC="$STAF_PATH/bin/cstaf.exe";
-    $STAF_POOL="$STAF_PATH/bin/pool.cfg";
+    $STAF_POOL="$STAF_PATH/bin/stafpool.cfg";
 }else{
     exit -1;
 }
