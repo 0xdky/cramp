@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 10:18:35 dhruva>
+// Time-stamp: <2003-10-23 13:00:47 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -18,9 +18,6 @@
 #include <Windows.h>
 #include <string>
 #include <process.h>
-
-// Add Berkeley database headers
-#include "db.h"
 
 //------------------------ MACROS AND DEFINED ---------------------------------
 #define JOB_NAME "CRAMP_JOB"
