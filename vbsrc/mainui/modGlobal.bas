@@ -403,7 +403,7 @@ Public Sub InitialiseMRUFileList()
         Next jj
     Next ii
     
-    sFileName = gCRAMPPath & "\res\MostRecentFiles.txt"
+    sFileName = gCRAMPPath & "\..\res\MostRecentFiles.txt"
     
     If Not FileExists(sFileName) Then
         Exit Sub
@@ -466,7 +466,7 @@ End Sub
 Public Sub SaveIntoMRUFile()
     Dim sFileName As String
     Dim ii As Integer
-    sFileName = gCRAMPPath & "\res\MostRecentFiles.txt"
+    sFileName = gCRAMPPath & "\..\res\MostRecentFiles.txt"
     
     If Not FileExists(sFileName) Then
         Exit Sub
