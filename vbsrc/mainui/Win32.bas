@@ -244,11 +244,18 @@ Private Declare Function FindNextFile Lib "kernel32.dll" Alias "FindNextFileA" _
 
 Private Declare Function FindClose Lib "kernel32.dll" (ByVal hFindFile As Long) As Long
 
+Private Declare Function GetCursorPos Lib "user32" (lpPoint As POINTCORD) As Long
+
 Private Const MAX_PATH = 260
 
 Private Type FILETIME
         dwLowDateTime As Long
         dwHighDateTime As Long
+End Type
+
+Private Type POINTCORD
+        X As Long
+        Y As Long
 End Type
 
 Public Type WIN32_FIND_DATA
@@ -450,8 +457,8 @@ Public Function SetPIDCombo(fld As String) As String
         ProcessID = Left(ProcessID, Location)
         'addValue = ChkValueInArray(pidArray(), ProcessID)
         If IsNumeric(ProcessID) Then
-          Dim x As udtPID
-          pidArray(UBound(pidArray)) = x
+          Dim X As udtPID
+          pidArray(UBound(pidArray)) = X
           If cmbBool = False Then
             frmMainui.pidCombo.Text = ProcessID
           End If
@@ -658,6 +665,18 @@ Public Function GetIconNumber(imgNo As Integer) As Integer
   End If
 
 End Function
+
+'***********************************************************
+' get current cursor position
+'***********************************************************
+Public Sub GetCurrCursorPosition(x_cor As Long, y_cor As Long)
+
+  Dim mouse As POINTCORD
+  GetCursorPos mouse
+  x_cor = mouse.X
+  y_cor = mouse.Y
+
+End Sub
 
 'icon code end - pie
 

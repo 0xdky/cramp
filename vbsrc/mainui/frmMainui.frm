@@ -2,15 +2,12 @@ VERSION 5.00
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
-   BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
    ClientHeight    =   8496
-   ClientLeft      =   5328
-   ClientTop       =   3060
+   ClientLeft      =   5340
+   ClientTop       =   3072
    ClientWidth     =   8676
    LinkTopic       =   "Form1"
-   MaxButton       =   0   'False
-   MinButton       =   0   'False
    ScaleHeight     =   8496
    ScaleWidth      =   8676
    Begin VB.Frame fraMainUI 
@@ -18,9 +15,9 @@ Begin VB.Form frmMainui
       Index           =   1
       Left            =   600
       TabIndex        =   2
-      Top             =   720
+      Top             =   600
       Visible         =   0   'False
-      Width           =   7332
+      Width           =   7450
       Begin MSComctlLib.ImageList SortIconImageList 
          Left            =   6720
          Top             =   6840
@@ -46,7 +43,7 @@ Begin VB.Form frmMainui
       Begin VB.Frame Frame4 
          Caption         =   "Profiling"
          Height          =   972
-         Left            =   240
+         Left            =   300
          TabIndex        =   32
          Top             =   240
          Width           =   6852
@@ -108,7 +105,7 @@ Begin VB.Form frmMainui
       Begin VB.Frame Frame3 
          Caption         =   "Result"
          Height          =   3972
-         Left            =   240
+         Left            =   300
          TabIndex        =   29
          Top             =   3120
          Width           =   6852
@@ -218,7 +215,7 @@ Begin VB.Form frmMainui
       Begin VB.Frame Frame2 
          Caption         =   "Query"
          Height          =   700
-         Left            =   240
+         Left            =   300
          TabIndex        =   26
          Top             =   2400
          Width           =   6852
@@ -251,7 +248,7 @@ Begin VB.Form frmMainui
       Begin VB.Frame Frame1 
          Caption         =   "Query Option"
          Height          =   972
-         Left            =   240
+         Left            =   300
          TabIndex        =   13
          Top             =   1320
          Width           =   6852
@@ -366,7 +363,7 @@ Begin VB.Form frmMainui
       Index           =   0
       Left            =   600
       TabIndex        =   1
-      Top             =   8040
+      Top             =   7920
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -785,12 +782,14 @@ Private Sub Form_Unload(Cancel As Integer)
     
     If Not CheckSaveStatus Then
         Cancel = -1
+    Else
+        CleanUp 'pie added this code
     End If
     
     '***********************************************************
     ' My Code Starts Here
     '***********************************************************
-    CleanUp
+    'CleanUp
 End Sub
 
 '***********************************************************
@@ -899,6 +898,8 @@ Private Sub mnuExit_Click()
     
     If Not CheckSaveStatus Then
         Exit Sub
+    Else
+      CleanUp 'pie added this code
     End If
     End
 End Sub
@@ -1114,9 +1115,12 @@ End Sub
 '***********************************************************
 ' set integer value only
 '***********************************************************
-Private Sub limitText_Change()
-  If limitText.Text = "-" Or limitText.Text = "" Then Exit Sub
-  If Not IsNumeric(limitText.Text) Then limitText.Text = "10"
+Private Sub limitText_KeyPress(KeyAscii As Integer)
+  'check for -ve sign
+  If KeyAscii = 45 Then
+    Exit Sub
+  End If
+  KeyAscii = ChkForDigit(KeyAscii)
 End Sub
 '***********************************************************
 ' limit text box lost focus notification
@@ -1132,8 +1136,8 @@ End Sub
 '***********************************************************
 ' set integer value only
 '***********************************************************
-Private Sub pidText_Change()
-  If Not IsNumeric(pidText.Text) Then pidText.Text = ""
+Private Sub pidText_KeyPress(KeyAscii As Integer)
+  KeyAscii = ChkForDigit(KeyAscii)
 End Sub
 '***********************************************************
 ' set process id combo box
@@ -1331,8 +1335,8 @@ End Sub
 '***********************************************************
 ' set integer value
 '***********************************************************
-Private Sub listitemText_Change()
-  If Not IsNumeric(listitemText.Text) Then listitemText.Text = "100"
+Private Sub listitemText_KeyPress(KeyAscii As Integer)
+  KeyAscii = ChkForDigit(KeyAscii)
 End Sub
 '***********************************************************
 ' listitem lost focus
@@ -1348,7 +1352,7 @@ End Sub
 '***********************************************************
 ' pop up menu when right click in the listview
 '***********************************************************
-Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
+Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
   If queryLV.ColumnHeaders.Count > 0 Then
     If Button = vbRightButton Then
       PopupMenu mnuLVRigCL
@@ -1360,11 +1364,21 @@ End Sub
 '***********************************************************
 Private Sub manuHideShow_Click()
   Screen.MousePointer = vbHourglass
+  
+  Dim X_Cord As Long
+  Dim Y_cord As Long
+  
+  X_Cord = 0
+  Y_cord = 0
+  
   InitLVColHSForm
   'set check box sensitivity
   SetCHBSensitivity
-  frmLVColHS.Top = frmMainui.Top + 2553
-  frmLVColHS.Left = frmMainui.Left - 2892
+  GetCurrCursorPosition X_Cord, Y_cord
+  'MsgBox X_Cord & "    " & Y_cord
+  frmLVColHS.Top = X_Cord
+  frmLVColHS.Left = Y_cord
+  
   frmLVColHS.Visible = True
   manuHideShow.Enabled = False
   'frmMainui.Enabled = False
@@ -1420,5 +1434,96 @@ Private Sub queryLV_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
   
   End With
   
+End Sub
+
+'***********************************************************
+' resizing the window
+'***********************************************************
+Private Sub Form_Resize()
+  fraMainUI(0).Move 600, 840
+  fraMainUI(1).Move 600, 840
+    
+  Dim l, t, w, h
+  If Me.WindowState <> vbMinimized Then
+    If Me.WindowState <> vbMaximized Then
+      If Me.Width < 9000 Then     'prevent form getting too small in width
+        Me.Width = 9000
+      End If
+      If Me.Height < 9000 Then    'prevent from getting too small in height
+        Me.Height = 9000
+      End If
+    End If
+        
+    tspMainUI.Width = Me.Width - 550
+    tspMainUI.Height = Me.Height - 1200
+        
+    'scenario tab page
+    fraMainUI(0).Width = tspMainUI.Width - (2 * (fraMainUI(0).Left - tspMainUI.Left))
+    fraMainUI(0).Height = tspMainUI.Height - (1.5 * (fraMainUI(0).Top - tspMainUI.Top))
+        
+    With Me
+      'move the tree listview
+      l = .tvwNodes.Left
+      t = .tvwNodes.Top
+      w = fraMainUI(0).Width - (3 * (tvwNodes.Left - fraMainUI(0).Left)) - cmdAddGroup.Width
+      h = fraMainUI(0).Height - (3 * (fraMainUI(0).Top - tvwNodes.Top)) - lvwAttributes.Height
+      .tvwNodes.Move l, t, w - 2000, h + 200
+      
+      'move the scenario listview
+      l = .lvwAttributes.Left
+      t = tvwNodes.Height - (2 * (tvwNodes.Top - fraMainUI(0).Top))
+      w = fraMainUI(0).Width - (2 * (fraMainUI(0).Left - lvwAttributes.Left))
+      h = .lvwAttributes.Height
+      .lvwAttributes.Move l, t, w + 200, h
+      
+      'move push button in width
+      cmdAddGroup.Left = tvwNodes.Width + 550
+      cmdAddTc.Left = tvwNodes.Width + 550
+      cmdDelete.Left = tvwNodes.Width + 550
+      cmdRun.Left = tvwNodes.Width + 550
+      
+      'move push button in height
+      cmdAddGroup.Top = tvwNodes.Top
+      cmdAddTc.Top = cmdAddGroup.Top + (2 * cmdAddGroup.Height)
+      cmdDelete.Top = cmdAddTc.Top + (2 * cmdAddTc.Height)
+      cmdRun.Top = cmdDelete.Top + (2 * cmdDelete.Height)
+      
+      'set column header width
+      If .lvwAttributes.ColumnHeaders.Count >= 2 Then
+        .lvwAttributes.ColumnHeaders(2).Width = .lvwAttributes.Width - .lvwAttributes.ColumnHeaders(1).Width
+      End If
+      
+      'hide controls
+      txtInput.Visible = False
+      cboTrueFalse.Visible = False
+      cboIdRef.Visible = False
+      cmdBrowse.Visible = False
+    End With
+                
+    'profiler tab page
+    fraMainUI(1).Width = tspMainUI.Width - (2 * (fraMainUI(0).Left - tspMainUI.Left))
+    fraMainUI(1).Height = tspMainUI.Height - (1.5 * (fraMainUI(0).Top - tspMainUI.Top))
+    
+    Frame4.Width = fraMainUI(1).Width - (2 * (fraMainUI(1).Left - Frame4.Left))
+    Frame1.Width = fraMainUI(1).Width - (2 * (fraMainUI(1).Left - Frame1.Left))
+    Frame2.Width = fraMainUI(1).Width - (2 * (fraMainUI(1).Left - Frame2.Left))
+    Frame3.Width = fraMainUI(1).Width - (2 * (fraMainUI(1).Left - Frame3.Left))
+    
+    'Frame3.Height = fraMainUI(1).Height - 3260
+    Frame3.Height = fraMainUI(1).Height - Frame4.Height - Frame1.Height _
+                    - Frame2.Height - (fraMainUI(1).Top - Frame4.Top + 100)
+    
+    'move the profiler listview
+    With Me.queryLV
+      l = .Left
+      t = .Top
+      w = Frame3.Width - (2 * (Frame3.Left - .Left))
+      h = Frame3.Height - 950
+      .Move l, t, w + 150, h
+    End With
+  End If
+  
+  Me.Refresh
+
 End Sub
 

@@ -2,7 +2,7 @@ VERSION 5.00
 Begin VB.Form frmLVColHS 
    BorderStyle     =   4  'Fixed ToolWindow
    Caption         =   "Hide-Show Column"
-   ClientHeight    =   3048
+   ClientHeight    =   3432
    ClientLeft      =   36
    ClientTop       =   276
    ClientWidth     =   3264
@@ -10,12 +10,12 @@ Begin VB.Form frmLVColHS
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   3048
+   ScaleHeight     =   3432
    ScaleWidth      =   3264
    ShowInTaskbar   =   0   'False
    StartUpPosition =   3  'Windows Default
    Begin VB.Frame tottickColHSCHB 
-      Height          =   2952
+      Height          =   3312
       Left            =   120
       TabIndex        =   0
       Top             =   0
@@ -25,7 +25,7 @@ Begin VB.Form frmLVColHS
          Height          =   288
          Left            =   1680
          TabIndex        =   15
-         Top             =   2520
+         Top             =   2880
          Width           =   972
       End
       Begin VB.CommandButton okCommand 
@@ -33,15 +33,23 @@ Begin VB.Form frmLVColHS
          Height          =   288
          Left            =   360
          TabIndex        =   14
-         Top             =   2520
+         Top             =   2880
          Width           =   972
       End
       Begin VB.Frame Frame3 
-         Height          =   2052
+         Height          =   2412
          Left            =   120
          TabIndex        =   1
          Top             =   360
          Width           =   2772
+         Begin VB.CheckBox tpsecColHSCHB 
+            Caption         =   "Ticks/sec"
+            Height          =   252
+            Left            =   120
+            TabIndex        =   17
+            Top             =   2021
+            Width           =   1212
+         End
          Begin VB.CheckBox posiColHSCHB 
             Caption         =   "Position"
             Height          =   252
@@ -287,3 +295,12 @@ Private Sub posiColHSCHB_Click()
   End If
 End Sub
 
+Private Sub tpsecColHSCHB_Click()
+  If Me.Visible = False Then Exit Sub
+  
+  If tpsecColHSCHB.Value = 0 Then
+    ReorderColumnPosition "Ticks/sec", False
+  Else
+    ReorderColumnPosition "Ticks/sec", True
+  End If
+End Sub

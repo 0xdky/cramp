@@ -17,9 +17,9 @@ End Sub
 Public Sub SetSTACombo()
   Dim strSTA As String
   
-  strSTA = "THREADS"
-  frmMainui.staCombo.AddItem (strSTA)
   strSTA = "STAT"
+  frmMainui.staCombo.AddItem (strSTA)
+  strSTA = "THREADS"
   frmMainui.staCombo.AddItem (strSTA)
   strSTA = "ADDR"
   frmMainui.staCombo.AddItem (strSTA)
@@ -57,7 +57,7 @@ Public Sub GetEnvironmentVariable()
   
   ReDim currsettingArray(0)
   ReDim currsetArrayStat(0)
-  ReDim chbstatusArray(11)
+  ReDim chbstatusArray(12)
   
   For ss = 0 To UBound(chbstatusArray)
     chbstatusArray(ss) = 1
@@ -182,7 +182,7 @@ End Sub
 Public Sub StoreCheckBoxStatus()
   
   'store check box values of columan hide-show form
-  ReDim chbstatusArray(11)
+  ReDim chbstatusArray(12)
   With frmLVColHS
     chbstatusArray(0) = .threColHSCHB.Value
     chbstatusArray(1) = .funcColHSCHB.Value
@@ -196,6 +196,7 @@ Public Sub StoreCheckBoxStatus()
     chbstatusArray(9) = .timeColHSCHB.Value
     chbstatusArray(10) = .ticksColHSCHB.Value
     chbstatusArray(11) = .posiColHSCHB.Value
+    chbstatusArray(12) = .tpsecColHSCHB.Value
   End With
   
 End Sub
@@ -208,7 +209,7 @@ Public Sub InitLVColHSForm()
   On Error Resume Next
   
   'set check box values in columan hide-show form
-  If Not UBound(chbstatusArray) = 11 Then Exit Sub
+  If Not UBound(chbstatusArray) = 12 Then Exit Sub
   
   With frmLVColHS
     .threColHSCHB.Value = chbstatusArray(0)
@@ -223,6 +224,7 @@ Public Sub InitLVColHSForm()
     .timeColHSCHB.Value = chbstatusArray(9)
     .ticksColHSCHB.Value = chbstatusArray(10)
     .posiColHSCHB.Value = chbstatusArray(11)
+    .tpsecColHSCHB.Value = chbstatusArray(12)
   End With
 End Sub
 '***********************************************************
@@ -244,12 +246,14 @@ With frmLVColHS
   .timeColHSCHB.Enabled = False
   .ticksColHSCHB.Enabled = False
   .posiColHSCHB.Enabled = False
+  .tpsecColHSCHB.Enabled = False
 
   'If frmMainui.staCombo.Text = "STAT" Then
-  If frmMainui.queryLV.ColumnHeaders.Count = 6 Then
+  If frmMainui.queryLV.ColumnHeaders.Count = 7 Then
     .numColHSCHB.Enabled = True
     .totticksColHSCHB.Enabled = True
     .maxtickColHSCHB.Enabled = True
+    .tpsecColHSCHB.Enabled = True
   Else
     .threColHSCHB.Enabled = True
     .depthColHSCHB.Enabled = True
@@ -279,7 +283,7 @@ Public Sub SetNewColumnPosition()
   On Error Resume Next
   
   If frmMainui.staCombo.Text = "STAT" And _
-     frmMainui.queryLV.ColumnHeaders.Count = 6 Then
+     frmMainui.queryLV.ColumnHeaders.Count = 7 Then
     If Not UBound(currsetArrayStat) > 0 Then Exit Sub
     For ss = 0 To UBound(currsetArrayStat)
       strStored = currsetArrayStat(ss)
@@ -331,7 +335,7 @@ Public Sub StoreUserSetting()
   On Error Resume Next
   
   colHead = frmMainui.queryLV.ColumnHeaders.Count
-  If frmMainui.queryLV.ColumnHeaders.Count = 6 Then 'STAT
+  If frmMainui.queryLV.ColumnHeaders.Count = 7 Then 'STAT
     ReDim currsetArrayStat(colHead - 1)
       
     For ss = 0 To colHead - 1
@@ -357,13 +361,14 @@ End Sub
 Public Sub StoredefaultSetting()
 
 'for STAT
-ReDim currsetArrayStat(5)
+ReDim currsetArrayStat(6)
 currsetArrayStat(0) = "Module"
 currsetArrayStat(1) = "Function"
 currsetArrayStat(2) = "Address"
 currsetArrayStat(3) = "Number"
-currsetArrayStat(4) = "Total ticks"
-currsetArrayStat(5) = "Max ticks"
+currsetArrayStat(4) = "Ticks/sec"
+currsetArrayStat(5) = "Total ticks"
+currsetArrayStat(6) = "Max ticks"
 
 'for THREADS and ADDR
 ReDim currsettingArray(9)
@@ -393,7 +398,7 @@ Public Sub ShowHideCol()
   
   On Error Resume Next
   
-  If Not UBound(chbstatusArray) = 11 Then Exit Sub
+  If Not UBound(chbstatusArray) = 12 Then Exit Sub
   
   With frmLVColHS
     For ss = 0 To UBound(chbstatusArray)
@@ -424,6 +429,8 @@ Public Sub ShowHideCol()
               ReorderColumnPosition "Ticks", False
             Case 11
               ReorderColumnPosition "Position", False
+            Case 12
+              ReorderColumnPosition "Ticks/sec", False
         End Select
     End If
   Next

@@ -1,8 +1,8 @@
-frmMainui = 38, 34, 721, 717, , 13, 1, 640, 648, C
+frmMainui = 38, 34, 721, 717, Z, 13, 1, 640, 648, C
 modGlobal = 159, 10, 916, 741, 
-modXMLParse = 189, -4, 872, 613, C
+modXMLParse = 189, -4, 872, 613, 
 modDatabase = 286, 72, 1028, 750, 
 Win32 = 195, 112, 878, 635, 
 modFileHandling = 191, 18, 928, 625, 
-modInitialization = 216, 216, 843, 829, Z
+modInitialization = 216, 216, 843, 829, 
 frmLVColHS = 189, 189, 816, 802, , 162, 162, 789, 775, C

@@ -56,7 +56,7 @@ Public Function nodetype(testNode As Node) As ObjectType
     If testNode Is Nothing Then
         nodetype = otNone
     Else
-        Select Case Left$(testNode.Key, 1)
+        Select Case Left$(testNode.key, 1)
             Case "s"
                 nodetype = otScenario
             Case "g"
@@ -186,7 +186,7 @@ End Sub
 '
 '************************************************************
 Public Sub IncreaseGlobalCounters(ByVal selectedNode As Node)
-    gIdList(gIdCounter) = selectedNode.Key
+    gIdList(gIdCounter) = selectedNode.key
     gNameList(gIdCounter) = selectedNode.Text
     gIdCounter = gIdCounter + 1
 
@@ -203,7 +203,7 @@ Public Sub UpdateGlobalCounters(ByVal selectedNode As Node)
             gNameList(ii) = gNameList(gIdCounter - 1)
             gNameList(gIdCounter - 1) = ""
         End If
-        If gIdList(ii) = selectedNode.Key Then
+        If gIdList(ii) = selectedNode.key Then
             gIdList(ii) = gIdList(gIdCounter - 1)
             gIdList(gIdCounter - 1) = ""
         End If
@@ -223,7 +223,7 @@ Public Sub DeleteGlobalCounters(ByVal selectedNode As Node)
             gNameList(ii) = gNameList(gIdCounter - 1)
             gNameList(gIdCounter - 1) = ""
         End If
-        If gIdList(ii) = selectedNode.Key Then
+        If gIdList(ii) = selectedNode.key Then
             gIdList(ii) = gIdList(gIdCounter - 1)
             gIdList(gIdCounter - 1) = ""
         End If
@@ -245,7 +245,7 @@ Public Sub SetActionButtons()
         Exit Sub
     End If
 
-    nodeName = selectedNode.Key
+    nodeName = selectedNode.key
 
     Select Case Left$(nodeName, 1)
         Case "s"
@@ -343,7 +343,7 @@ Public Sub DeleteNode(ByVal selectedNode As Node)
     ClearNodeNamesFromGlobalLists selectedNode
 
     Set parentNode = selectedNode.Parent
-    frmMainui.tvwNodes.Nodes.Remove (selectedNode.Key)
+    frmMainui.tvwNodes.Nodes.Remove (selectedNode.key)
     frmMainui.tvwNodes.SelectedItem = parentNode
     frmMainui.tvwNodes.SetFocus
     RefreshData
@@ -386,7 +386,7 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
 
     tblType = nodetype(nodeElement)
     tblName = ReturnTableName(tblType)
-    uId = nodeElement.Key
+    uId = nodeElement.key
 
     'Open the connection
     cnn.Open _
@@ -543,9 +543,9 @@ Public Sub SaveFunction(strFileName As String)
     Set TNode = frmMainui.tvwNodes.Nodes(1).root
     Set elementNode = xmlDoc.createElement("Scenario")
 
-    elementNode.setAttribute "Id", TNode.Key
+    elementNode.setAttribute "Id", TNode.key
 
-    WriteAttributes elementNode, otScenario, TNode.Key
+    WriteAttributes elementNode, otScenario, TNode.key
 
     Set RootElementNode = xmlDoc.appendChild(elementNode)
 
@@ -612,7 +612,7 @@ Public Sub CreateIdRefList()
         gIdRef.Remove 1
     Wend
 
-    RetStatus = NodeCanBeAdded(rootNode, selectedNode.Key)
+    RetStatus = NodeCanBeAdded(rootNode, selectedNode.key)
 
 End Sub
 
@@ -623,7 +623,7 @@ Public Function NodeCanBeAdded(parentNode As Node, _
     Dim selectedType As ObjectType
     Dim RetStatus As Boolean
 
-    If parentNode.Key = NodeId Then
+    If parentNode.key = NodeId Then
         NodeCanBeAdded = False
         Exit Function
     End If
@@ -645,7 +645,7 @@ Public Function NodeCanBeAdded(parentNode As Node, _
         'selectedType = nodetype(frmMainui.tvwNodes.SelectedItem)
         If nodetype(frmMainui.tvwNodes.SelectedItem) = _
                 nodetype(childNode) Then
-           gIdRef.Add childNode.Text, childNode.Key
+           gIdRef.Add childNode.Text, childNode.key
         End If
 
     Next ii
@@ -953,6 +953,7 @@ With frmMainui
     Set clm = .queryLV.ColumnHeaders.Add(, , "Function")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Address")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Number")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Ticks/sec")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Total ticks")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Max ticks")
   Else
@@ -1198,7 +1199,7 @@ Public Sub GetStackForGivenPosition()
   strThre = ""
 
   On Error Resume Next
-  If Not UBound(chbstatusArray) = 11 Then Exit Sub
+  If Not UBound(chbstatusArray) = 12 Then Exit Sub
   
   If chbstatusArray(0) = 0 Then
     MsgBox "ERROR :: Thread column does not exist"
@@ -1282,6 +1283,19 @@ Public Sub GetStackForGivenPosition()
   strPosi = ""
   strThre = ""
 End Sub
+'***********************************************************
+' check for digit
+'***********************************************************
+Public Function ChkForDigit(key As Integer) As Integer
+  Dim tKeyAscii As Integer
+  tKeyAscii = 0
+  
+  'check for digit
+  If key >= Asc(0) And key <= Asc(9) Then tKeyAscii = key
+  'or the backspace key
+  If key = 8 Then tKeyAscii = 8
+  ChkForDigit = tKeyAscii
+End Function
 '***********************************************************
 ' cleaning up globals
 '***********************************************************
