@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-04 10:13:34 dhruva>
+// Time-stamp: <2003-11-04 13:13:24 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -37,7 +37,7 @@ static std::hash_map<unsigned int,BOOLEAN> h_FilteredModAddr;
 
 void DumpLogsTH(void);
 void CALLBACK FlushLogCB(void *,BOOLEAN);
-void CALLBACK LogFileSizeMonCB(void *,BOOLEAN);
+void LogFileSizeMonTH(void *);
 
 BOOL OnProcessStart(void);
 BOOL OnProcessEnd(void);
@@ -300,6 +300,14 @@ OnProcessStart(void){
       g_CRAMP_Profiler.g_l_maxcalllimit=0;
   }
 
+  buff=getenv("CRAMP_PROFILE_CALLDEPTH");
+  if(buff){
+    g_CRAMP_Profiler.g_l_calldepthlimit=atol(buff);
+    sprintf(filename,"%ld",g_CRAMP_Profiler.g_l_calldepthlimit);
+    if(strcmp(filename,buff))
+      g_CRAMP_Profiler.g_l_calldepthlimit=0;
+  }
+
   if(getenv("CRAMP_PROFILE_EXCLUSION"))
     g_CRAMP_Profiler.g_exclusion=TRUE;
   if(getenv("CRAMP_PROFILE_INCLUSION"))
@@ -346,10 +354,6 @@ OnProcessStart(void){
     else
       InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
 
-    char *cdeep=getenv("CRAMP_PROFILE_CALLDEPTH");
-    if(cdeep)
-      InterlockedExchange(&g_CRAMP_Profiler.g_l_calldepthlimit,atol(cdeep));
-
     // Initialize critical sections
     if(!InitializeCriticalSectionAndSpinCount(&g_CRAMP_Profiler.g_cs_prof,
                                               4000L))
@@ -360,7 +364,6 @@ OnProcessStart(void){
       break;
     }
 
-#if 0
     // Create a log file size monitoring thread
     buff=getenv("CRAMP_PROFILE_LOGSIZE");
     if(buff){
@@ -370,12 +373,12 @@ OnProcessStart(void){
         g_CRAMP_Profiler.g_l_logsizelimit=0;
     }
     if(g_CRAMP_Profiler.g_l_logsizelimit)
-      if(!CreateTimerQueueTimer(&g_CRAMP_Profiler.g_h_logsizemonTH,
-                                NULL,LogFileSizeMonCB,0,
-                                500,5000,
-                                WT_EXECUTEINTIMERTHREAD))
-        g_CRAMP_Profiler.g_h_logsizemonTH=0;
-#endif
+      g_CRAMP_Profiler.g_h_logsizemonTH=chBEGINTHREADEX(NULL,0,
+                                                        LogFileSizeMonTH,
+                                                        NULL,0,NULL);
+    if(g_CRAMP_Profiler.g_h_logsizemonTH)
+      SetThreadPriority(g_CRAMP_Profiler.g_h_logsizemonTH,
+                        THREAD_PRIORITY_BELOW_NORMAL);
 
     // Set this if all succeeds
     valid=TRUE;
@@ -401,7 +404,7 @@ OnProcessEnd(void){
   g_CRAMP_Profiler.g_fFuncInfo=0;
 
   if(g_CRAMP_Profiler.g_h_logsizemonTH)
-    DeleteTimerQueueTimer(NULL,g_CRAMP_Profiler.g_h_logsizemonTH,NULL);
+    TerminateThread(g_CRAMP_Profiler.g_h_logsizemonTH,0);
   g_CRAMP_Profiler.g_h_logsizemonTH=0;
 
   DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_log);
@@ -410,20 +413,31 @@ OnProcessEnd(void){
 }
 
 //-----------------------------------------------------------------------------
-// LogFileSizeMonCB
+// LogFileSizeMonTH
 //  Get out of thread once the file size exceeds
 //-----------------------------------------------------------------------------
-void CALLBACK
-LogFileSizeMonCB(void *iLogThread,BOOLEAN itcb){
+void
+LogFileSizeMonTH(void *iLogThread){
   if(!g_CRAMP_Profiler.g_fLogFile)
     return;
   struct _stat buf={0};
-  if(!_stat(logfile,&buf))
+  while(1){
+    if(!g_CRAMP_Profiler.g_fLogFile)
+      break;
+
+    if(_stat(logfile,&buf))
+      continue;
+
     if(buf.st_size/MB2BYTE>g_CRAMP_Profiler.g_l_logsizelimit){
+      InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
       InterlockedExchange(&g_CRAMP_Profiler.g_l_stoplogging,1);
       DeleteTimerQueueTimer(NULL,g_CRAMP_Profiler.g_h_logsizemonTH,NULL);
       g_CRAMP_Profiler.g_h_logsizemonTH=0;
+      break;
     }
+
+    Sleep(1000);
+  }
   return;
 }
 
