@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-11-20 11:21:13 dhruva>
+## Time-stamp: <2003-11-21 18:29:28 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : crampstaf.pl
 ## Desc  : PERL script to run testcases on a pool of computers using STAF
@@ -66,8 +66,7 @@ if(exists($ENV{'STAF_PATH'})){
 ##-----------------------------------------------------------------------------
 ## GetDirTree
 ##-----------------------------------------------------------------------------
-sub GetDirTree()
-{
+sub GetDirTree{
     my $dir=@_[0];
     if(! -d $dir){
         return ();
@@ -95,7 +94,7 @@ sub Init{
     $STAF_WL="CRAMP_".$HOST."#".$$;
     $CRAMP_LOGPATH.="/$STAF_WL";
     if(-d $CRAMP_LOGPATH){
-        foreach(reverse &GetDirTree($CRAMP_LOGPATH)){
+        foreach(reverse GetDirTree($CRAMP_LOGPATH)){
             if(-d $_){
                 rmdir $_;
             }elsif(-f $_){
@@ -399,9 +398,119 @@ sub STAFCopyCRAMPLogs{
     return $retval;
 }
 
+##-----------------------------------------------------------------------------
+## GenerateTableEntries
+##  Generates actual table contents
+##-----------------------------------------------------------------------------
+sub GenerateTableEntries{
+    my @out=();
+    my $type="Test Case";
+
+    push(@out,"<BR><TABLE BORDER=1 WIDTH=100%>\n");
+    push(@out,"<TR>\n");
+    push(@out,"<TH>ID</TH>\n");
+    push(@out,"<TH>Type</TH>\n");
+    push(@out,"<TH>PID</TH>\n");
+    push(@out,"<TH>Exit code</TH>\n");
+    push(@out,"<TH>Remarks</TH>\n");
+
+    foreach(@_){
+        my @tcstat=split(/\|/,$_);
+        if("SC" eq $tcstat[2]){
+            $type="Scenario";
+        }elsif("SP" eq $tcstat[2]){
+            $type="Sup process";
+        }
+
+        # Mark error in RED
+        my $font;
+        if($tcstat[-1] && $tcstat[1]){
+            $font="<FONT COLOR=RED>";
+        }
+
+        push(@out,"<TR>\n");
+        push(@out,"<TD>$font $tcstat[0]</TD>\n");
+        push(@out,"<TD>$font $type</TD>\n");
+        push(@out,"<TD>$font $tcstat[1]</TD>\n");
+        push(@out,"<TD>$font $tcstat[-1]</TD>\n");
+        if(0==$tcstat[-1]){
+            push(@out,"<TD>$font OK</TD>\n");
+        }elsif(258==$tcstat[-1]){
+            if($tcstat[1]){
+                push(@out,"<TD>$font Time out</TD>\n");
+            }else{
+                push(@out,"<TD>$font Not executed</TD>\n");
+            }
+        }else{
+            push(@out,"<TD>$font KO</TD>\n");
+        }
+    }
+    push(@out,"</TABLE><BR>\n");
+
+    return @out;
+}
+
+##-----------------------------------------------------------------------------
+## GenerateHTMLSummary
+##  Generates HTML summary for the test runs
+##-----------------------------------------------------------------------------
+sub GenerateHTMLSummary{
+    $CRAMP_LOGPATH="D:/tmp/logs/CRAMP_WOLFDEI#3096";
+    my @loglist=GetDirTree($CRAMP_LOGPATH);
+
+    open(HTMLLOG,">$CRAMP_LOGPATH/result.html")||return -1;
+    print HTMLLOG "<HTML><BODY>\n";
+    print HTMLLOG "<CENTER><HR>\n";
+    print HTMLLOG "<B>CRAMP Auto test results - $HOST<B>\n";
+    print HTMLLOG "<HR></CENTER><BR>\n";
+
+    foreach(@loglist){
+        if(-d $_||!/log$/){
+            next;
+        }
+        my @arr=split(/\//,$_);
+        my $comp=$HOST;
+        if(! -f "$CRAMP_LOGPATH/$arr[-1]"){
+            $comp=$arr[-2];
+        }
+
+        my @loes=();
+        my $scenario='';
+        open(LOGFILE,"<$_")||next;
+        while(<LOGFILE>){
+            chomp();
+            if(!$scenario){
+                $scenario=$_;
+                $scenario=~s/.+\SCENARIO:[\s]+//;
+            }
+            if(/^[\s#]+/){
+                next;
+            }
+            push(@loes,$_);
+        }
+        close(LOGFILE);
+
+        my $sceneURL=$scenario;
+        $sceneURL=~s/\\/\//g;
+        $sceneURL="file:///".$sceneURL;
+        print HTMLLOG "<B>Computer:</B>$comp<BR>\n";
+        print HTMLLOG "<B>Scenario:</B><A HREF=$sceneURL>$scenario</A><BR>\n";
+        print HTMLLOG GenerateTableEntries(@loes);
+    }
+
+    print HTMLLOG "</BODY></HTML>\n";
+    close(HTMLLOG);
+
+    return 0;
+}
+
 ##---------------------------------------------------------------------------##
 ##                          BEGIN ACTUAL EXECUTION                           ##
 ##---------------------------------------------------------------------------##
+$HOST=uc(hostname());
+GenerateHTMLSummary();
+exit 0;
+
 Init()==0||exit $?;
 GetSTAFPool()==0||exit $?;
 my $retval=0;
@@ -421,6 +530,8 @@ if($retval){
 
 if($retval){
     print STDERR "Error copying remote logs\n";
+}else{
+    GenerateHTMLSummary();
 }
 
 exit $retval;
