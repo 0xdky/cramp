@@ -4,28 +4,28 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8496
-   ClientLeft      =   5328
+   ClientHeight    =   8490
+   ClientLeft      =   5325
    ClientTop       =   3060
-   ClientWidth     =   8664
+   ClientWidth     =   8670
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   8496
-   ScaleWidth      =   8664
+   ScaleHeight     =   8490
+   ScaleWidth      =   8670
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
-      Left            =   480
+      Left            =   6120
       TabIndex        =   2
-      Top             =   600
+      Top             =   -7080
       Visible         =   0   'False
       Width           =   7332
       Begin MSComctlLib.ImageList SortIconImageList 
          Left            =   6720
          Top             =   6840
-         _ExtentX        =   804
-         _ExtentY        =   804
+         _ExtentX        =   794
+         _ExtentY        =   794
          BackColor       =   -2147483643
          ImageWidth      =   8
          ImageHeight     =   7
@@ -141,8 +141,8 @@ Begin VB.Form frmMainui
             TabIndex        =   30
             Top             =   720
             Width           =   6612
-            _ExtentX        =   11663
-            _ExtentY        =   5525
+            _ExtentX        =   11668
+            _ExtentY        =   5530
             LabelEdit       =   1
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
@@ -362,9 +362,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   0
-      Left            =   480
+      Left            =   600
       TabIndex        =   1
-      Top             =   7800
+      Top             =   840
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -447,8 +447,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9716
-         _ExtentY        =   4043
+         _ExtentX        =   9710
+         _ExtentY        =   4048
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -466,10 +466,11 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9716
-         _ExtentY        =   6160
+         _ExtentX        =   9710
+         _ExtentY        =   6165
          _Version        =   393217
          HideSelection   =   0   'False
+         LabelEdit       =   1
          Style           =   7
          Appearance      =   1
       End
@@ -480,8 +481,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8172
-      _ExtentX        =   14415
-      _ExtentY        =   14203
+      _ExtentX        =   14420
+      _ExtentY        =   14208
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
