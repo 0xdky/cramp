@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-10 12:55:39 dhruva>
+// Time-stamp: <2003-10-14 11:15:28 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -73,6 +73,7 @@ public:
   void ReleaseListOfTCI(void);
 
   TestCaseInfo *Scenario(void);
+  TestCaseInfo *Remote(void);
 
   BOOLEAN GroupStatus(void);
   // To support group like behaviour for
@@ -80,6 +81,7 @@ public:
   BOOLEAN PseudoGroupStatus(void);
 
   BOOLEAN SubProcStatus(void);
+  BOOLEAN RemoteStatus(void);
 
   BOOLEAN BlockStatus(void);
   void BlockStatus(BOOLEAN iIsBlocked);
@@ -116,6 +118,7 @@ private:
   BOOLEAN b_refer;                  // Should I refer an existing test case
   BOOLEAN b_group;                  // Is this a group
   BOOLEAN b_block;                  // Blocking or non blocking run
+  BOOLEAN b_remote;                 // Is it for remote logging
   BOOLEAN b_subproc;                // Sub process, no execution
   BOOLEAN b_pseudogroup;            // Test case with multi run
 
@@ -128,7 +131,7 @@ private:
 
   TestCaseInfo *p_pgroup;           // Pointer to the group this belongs to
   TestCaseInfo *p_refertc;          // Pointer to reference element
-  TestCaseInfo *p_scenario;         // Head pointer to search based on UID
+
 
   std::list<std::string> l_log;     // Test case Log list
   std::list<TestCaseInfo *> l_tci;  // For groups, test cases are stored here
@@ -138,8 +141,10 @@ private:
   PROCESS_INFORMATION pi_procinfo;  // Test case's process information
   HANDLE h_deltimer;                // Timer to kill proc if time limited
 
-  // For garbage collection:At Scenerio
-  static std::list<TestCaseInfo *> l_gc;
+  // Static declarations
+  static TestCaseInfo *p_scenario;       // Head pointer to search based on UID
+  static TestCaseInfo *p_remote;         // For remote data collection
+  static std::list<TestCaseInfo *> l_gc; // For garbage collection
 
   // Critical sections
   CRITICAL_SECTION cs_log;          // Critical section for logging

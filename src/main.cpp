@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-11 13:52:06 dhruva>
+// Time-stamp: <2003-10-14 11:09:52 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -11,6 +11,8 @@
 #define __MAIN_SRC
 
 #include "cramp.h"
+#include "ipc.h"
+#include "ipcmsg.h"
 #include "engine.h"
 #include "XMLParse.h"
 #include "TestCaseInfo.h"
@@ -67,6 +69,9 @@ WINAPI WinMain(HINSTANCE hinstExe,
   if(!h_job)
     return(ret);
 
+  CRAMPServerMessaging *pSlotMsg=0;
+  CRAMPServerMessaging *pPipeMsg=0;
+
   do{
     // Create an IO completion port to positively identify adding
     // or removal of processes into/from a job
@@ -88,35 +93,38 @@ WINAPI WinMain(HINSTANCE hinstExe,
     if(!g_pScenario)
       break;
 
-    // Create a dummy remote object to store server responses
-    try{
-      g_pRemote=g_pScenario->AddGroup();
-      if(!g_pRemote)
-        break;
-      g_pRemote->TestCaseName("REMOTE LOGS");
-    }
-    catch(CRAMPException excep){
-      break;
-    }
-
     h_arr[1]=CreateMutex(NULL,TRUE,"MEMORY_MUTEX");
     DEBUGCHK(h_arr[1]);
     ReleaseMutex(h_arr[1]);
 
-    // Memory polling thread
-    h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,(PVOID)g_pScenario,0,NULL);
-    DEBUGCHK(h_arr[2]);
+    // Mail slot & pipe server thread
+    try{
+      // Use default ctor
+      pSlotMsg=new CRAMPServerMessaging();
+      pPipeMsg=new CRAMPServerMessaging();
+    }
+    catch(CRAMPException excep){
+      DEBUGCHK(0);
+      break;
+    }
+    pSlotMsg->Server(".");
+    pPipeMsg->Server(".");
 
-    // Mail slot server thread
+    HANDLE h_event=0;
+    h_event=CreateEvent(NULL,TRUE,FALSE,"THREAD_TERMINATE");
+    h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,
+                             (LPVOID)g_pScenario,
+                             0,NULL);
     h_arr[3]=chBEGINTHREADEX(NULL,0,MailSlotServerTH,
-                             (LPVOID)"\\\\.\\mailslot\\cramp_mailslot",
+                             (LPVOID)pSlotMsg,
                              0,NULL);
-
-    // Pipe communication
     h_arr[4]=chBEGINTHREADEX(NULL,0,MultiThreadedPipeServerTH,
-                             (LPVOID)"\\\\.\\pipe\\cramp_pipe",
+                             (LPVOID)pPipeMsg,
                              0,NULL);
+    DEBUGCHK(h_arr[2]);
+    DEBUGCHK(h_arr[3]);
     DEBUGCHK(h_arr[4]);
+    SetEvent(h_event);          // So that threads can resume
 
     sprintf(msg,"MESSAGE|OKAY|SCENARIO|File: %s",scenario);
     g_pScenario->AddLog(msg);
@@ -125,11 +133,18 @@ WINAPI WinMain(HINSTANCE hinstExe,
     else
       g_pScenario->AddLog("MESSAGE|OKAY|SCENARIO|Successful run");
 
+    // Kill the threads
+    DEBUGCHK(ResetEvent(h_event));
+    WaitForSingleObject(h_event,1000);
     // Post msg to terminate job monitoring thread and wait for termination
     PostQueuedCompletionStatus(g_hIOCP,0,COMPKEY_TERMINATE,NULL);
     WaitForMultipleObjects(2,h_arr,TRUE,INFINITE);
-    TerminateThread(h_arr[2],0);
-    TerminateThread(h_arr[3],0);
+
+    // Close the thread handles
+    // CloseHandle(h_arr[2]);
+    // CloseHandle(h_arr[3]);
+    // CloseHandle(h_arr[4]);
+    // h_arr[2]=h_arr[3]=h_arr[4]=0;
 
     // Clean up everything properly
     CloseHandle(g_hIOCP);
@@ -142,10 +157,25 @@ WINAPI WinMain(HINSTANCE hinstExe,
     ret=0;
   }while(0);
 
-  if(h_memtimer)
+  if(pSlotMsg){
+    delete pSlotMsg;
+    pSlotMsg=0;
+  }
+
+  if(pPipeMsg){
+    delete pSlotMsg;
+    pSlotMsg=0;
+  }
+
+  if(h_memtimer){
     CloseHandle(h_memtimer);
-  if(h_job)
+    h_memtimer=0;
+  }
+
+  if(h_job){
     CloseHandle(h_job);
+    h_job=0;
+  }
 
   if(g_pScenario){
     do{

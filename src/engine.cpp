@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-11 13:53:17 dhruva>
+// Time-stamp: <2003-10-14 11:07:05 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -13,8 +13,9 @@
 #define __ENGINE_SRC
 
 #include "cramp.h"
+#include "ipc.h"
+#include "ipcmsg.h"
 #include "engine.h"
-
 #include "TestCaseInfo.h"
 #include "XMLParse.h"
 
@@ -34,29 +35,50 @@
 #include <xercesc/dom/DOMImplementationRegistry.hpp>
 #include <xercesc/framework/LocalFileFormatTarget.hpp>
 
+//--------------------------- FUNCTION PROTOTYPES -----------------------------
+void InitGlobals(void);
+int DumpLogsToXML(char *);
+DWORD WINAPI JobNotifyTH(LPVOID);
+DWORD WINAPI CreateManagedProcesses(LPVOID);
+DWORD WINAPI MemoryPollTH(LPVOID);
+TestCaseInfo *GetTestCaseInfos(const char *);
+BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *,CRAMPMessaging *);
+PROC_INFO *GetHandlesToActiveProcesses(HANDLE);
+//--------------------------- FUNCTION PROTOTYPES -----------------------------
+
+//--------------------------- GLOBAL VARIABLES --------------------------------
+HANDLE g_hIOCP;               // Completion port that receives Job notif
+TestCaseInfo *g_pScenario;    // Pointer to Scenario
+//--------------------------- GLOBAL VARIABLES --------------------------------
+
 //------------------------ IMPLEMENTATION BEGINS ------------------------------
 
 //-----------------------------------------------------------------------------
-// GetLocalHostName
+// CRAMPServerMessaging
 //-----------------------------------------------------------------------------
-std::string
-GetLocalHostName(void){
-  DWORD chBuff=256;
-  TCHAR buff[256];
-  LPTSTR lpszSystemInfo;
-  lpszSystemInfo=buff;
-  DEBUGCHK(GetComputerName(lpszSystemInfo,&chBuff));
-  return(std::string(lpszSystemInfo));
+CRAMPServerMessaging::CRAMPServerMessaging(){
 }
 
 //-----------------------------------------------------------------------------
-// RemoteLog
+// CRAMPServerMessaging
 //-----------------------------------------------------------------------------
-void
-RemoteLog(char *message){
-  if(g_pRemote)
-    g_pRemote->AddLog(message);
-  return;
+CRAMPServerMessaging::CRAMPServerMessaging(const char *iServer,BOOLEAN isPipe)
+  :CRAMPMessaging(iServer,isPipe){
+  }
+
+//-----------------------------------------------------------------------------
+// Process
+//-----------------------------------------------------------------------------
+BOOLEAN
+CRAMPServerMessaging::Process(void){
+  if(!g_pScenario)
+    return(FALSE);
+  TestCaseInfo *prem=0;
+  prem=g_pScenario->Remote();
+  if(!prem)
+    return(FALSE);
+  prem->AddLog(Message());
+  return(TRUE);
 }
 
 //-----------------------------------------------------------------------------
@@ -66,13 +88,7 @@ RemoteLog(char *message){
 void
 InitGlobals(void){
   g_hIOCP=0;
-  g_pRemote=0;
   g_pScenario=0;
-  g_CrampServer[0]='\0';
-  if(getenv("CRAMP_SERVER"))
-    sprintf(g_CrampServer,"%s",getenv("CRAMP_SERVER"));
-  else
-    sprintf(g_CrampServer,"%s",GetLocalHostName().c_str());
   return;
 }
 
@@ -240,12 +256,6 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
     porigtc->ProcessInfo(pi);
     porigtc->AddLog("MESSAGE|OKAY|PROC|Created process");
 
-#ifdef CRAMP_DEBUG
-    // Write to mail slot
-    sprintf(msg,"Created process %s",str.c_str());
-    WriteToMailSlot(msg,g_CrampServer);
-#endif
-
     if(blocked){
       ResumeThread(pi.hThread);
       CloseHandle(pi.hThread);
@@ -292,15 +302,32 @@ DWORD WINAPI
 MemoryPollTH(LPVOID lpParameter){
   if(!lpParameter)
     return(1);
+
+  HANDLE h_event=0;
+  h_event=OpenEvent(EVENT_MODIFY_STATE|SYNCHRONIZE,FALSE,"THREAD_TERMINATE");
+  if(!h_event)
+    return(1);
+  WaitForSingleObject(h_event,INFINITE);
+  CloseHandle(h_event);
+
   BOOLEAN fDone=FALSE;
   TestCaseInfo *pScenario=(TestCaseInfo *)lpParameter;
   HANDLE h_mutex=0;
   h_mutex=OpenMutex(SYNCHRONIZE,TRUE,"MEMORY_MUTEX");
   if(!h_mutex)
     return(1);
+
+  CRAMPServerMessaging *pmsg=0;
+  try{
+    pmsg=new CRAMPServerMessaging("pchiwi7deg",TRUE);
+  }
+  catch(CRAMPException excep){
+    DEBUGCHK(0);
+    return(1);
+  }
   while(1){
     WaitForSingleObject(h_mutex,INFINITE);
-    ActiveProcessMemoryDetails(pScenario);
+    ActiveProcessMemoryDetails(pScenario,pmsg);
     ReleaseMutex(h_mutex);
     Sleep(2000);
   }
@@ -313,7 +340,7 @@ MemoryPollTH(LPVOID lpParameter){
 //  This method actually gets the process's memory information.
 //-----------------------------------------------------------------------------
 BOOLEAN
-ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
+ActiveProcessMemoryDetails(TestCaseInfo *ipScenario,CRAMPMessaging *ioMsg){
   BOOLEAN ret=FALSE;
   DEBUGCHK(ipScenario);
   if(!ipScenario)
@@ -341,7 +368,8 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
 
 #ifdef CRAMP_DEBUG
         // Some large data
-        WriteToPipe(msg,0,g_CrampServer);
+        ioMsg->Message(msg);
+        WriteToPipe(ioMsg);
 #endif
 
       }while(0);
@@ -517,396 +545,3 @@ DumpLogsToXML(char *logfile){
   XMLPlatformUtils::Terminate();
   return(0);
 }
-
-//-----------------------------------------------------------------------------
-// MailSlotServerTH
-//-----------------------------------------------------------------------------
-DWORD WINAPI
-MailSlotServerTH(LPVOID iMailSlotName){
-  if(!iMailSlotName)
-    return(1);
-
-  HANDLE h_mail=0;
-  h_mail=CreateMailslot((char *)iMailSlotName,0,MAILSLOT_WAIT_FOREVER,NULL);
-  DEBUGCHK(!(h_mail==INVALID_HANDLE_VALUE));
-
-  // Mail slot server loop
-  while(1){
-    DWORD cbMessage=0,cMessage=0,cbRead=0;
-    BOOL fResult;
-    LPSTR lpszBuffer;
-    DWORD cAllMessages;
-    HANDLE h_event;
-    OVERLAPPED ov;
-
-    h_event=CreateEvent(NULL,FALSE,FALSE,"CRAMP_MAILSLOT");
-    DEBUGCHK(h_event);
-    ov.Offset=0;
-    ov.OffsetHigh=0;
-    ov.hEvent=h_event;
-    fResult=GetMailslotInfo(h_mail,
-                            (LPDWORD)NULL,
-                            &cbMessage,
-                            &cMessage,
-                            (LPDWORD)NULL);
-    DEBUGCHK(fResult);
-    if(cbMessage==MAILSLOT_NO_MESSAGE)
-      continue;
-    cAllMessages=cMessage;
-
-    // Mail slot loop
-    while(cMessage){
-      lpszBuffer=(LPSTR)GlobalAlloc(GPTR,cbMessage);
-      DEBUGCHK(lpszBuffer);
-      lpszBuffer[0]='\0';
-      fResult=ReadFile(h_mail,
-                       lpszBuffer,
-                       cbMessage,
-                       &cbRead,
-                       &ov);
-      if(fResult)
-        RemoteLog(lpszBuffer);
-
-      GlobalFree((HGLOBAL)lpszBuffer);
-      fResult=GetMailslotInfo(h_mail,
-                              (LPDWORD)NULL,
-                              &cbMessage,
-                              &cMessage,
-                              (LPDWORD)NULL);
-      DEBUGCHK(fResult);
-    }
-  }
-  return(0);
-}
-
-//-----------------------------------------------------------------------------
-// WriteToMailSlot
-//  Does not provide a response, okay just to post messages
-//-----------------------------------------------------------------------------
-BOOLEAN
-WriteToMailSlot(char *msg,char *server){
-  if(!msg||!server)
-    return(FALSE);
-  BOOLEAN ret=FALSE;
-  HANDLE h_file=0;
-  DWORD cbWritten=0;
-  char msname[MAX_PATH];
-  sprintf(msname,"\\\\%s\\mailslot\\cramp_mailslot",server);
-  h_file=CreateFile(msname,
-                    GENERIC_WRITE,
-                    FILE_SHARE_READ,
-                    NULL,
-                    OPEN_EXISTING,
-                    FILE_ATTRIBUTE_NORMAL,
-                    NULL);
-  DEBUGCHK(!(h_file==INVALID_HANDLE_VALUE));
-
-  // Format the message and write
-  TCHAR msgbuff[1024];
-  DWORD msgSz=0;
-  msgSz=sprintf(msgbuff,"%s:%s",GetLocalHostName().c_str(),msg);
-  ret=WriteFile(h_file,msgbuff,msgSz+1,&cbWritten,NULL);
-  DEBUGCHK(ret);
-
-  ret=CloseHandle(h_file);
-  DEBUGCHK(ret);
-  return(ret);
-}
-
-//-----------------------------------------------------------------------------
-// MultiThreadedPipeServerTH
-//  Assigns a new pipe connection for each request, use it to send large
-//  chunks of data.
-//-----------------------------------------------------------------------------
-DWORD
-MultiThreadedPipeServerTH(LPVOID iPipeName){
-  if(!iPipeName)
-    return(0);
-
-  DWORD conn=0;
-  BOOL fConnected;
-  DWORD dwThreadId;
-  HANDLE h_pipe=0,h_pth=0;
-
-  while(1){
-    h_pipe=CreateNamedPipe((char *)iPipeName,
-                           PIPE_ACCESS_DUPLEX,
-                           PIPE_TYPE_MESSAGE|PIPE_READMODE_MESSAGE|PIPE_WAIT,
-                           PIPE_UNLIMITED_INSTANCES,
-                           BUFSIZE,
-                           BUFSIZE,
-                           NMPWAIT_USE_DEFAULT_WAIT,
-                           NULL);
-    DEBUGCHK(!(h_pipe==INVALID_HANDLE_VALUE));
-
-    fConnected=ConnectNamedPipe(h_pipe,NULL)?
-      TRUE:(GetLastError()==ERROR_PIPE_CONNECTED);
-    if(!fConnected){
-      CloseHandle(h_pipe);
-      continue;
-    }
-    HANDLE h_pth=0;
-    h_pth=chBEGINTHREADEX(NULL,0,PipeInstanceTH,(LPVOID)h_pipe,0,NULL);
-    DEBUGCHK(h_pth);
-    CloseHandle(h_pth);
-    conn++;
-  }
-  return(conn);
-}
-
-//-----------------------------------------------------------------------------
-// PipeInstanceTH
-//  A threaded instance of the pipe
-//-----------------------------------------------------------------------------
-VOID
-PipeInstanceTH(LPVOID lpvParam){
-  CHAR chRequest[BUFSIZE];
-  CHAR chReply[BUFSIZE];
-  DWORD cbBytesRead=0,cbReplyBytes=0,cbWritten=0;
-  BOOL fSuccess;
-  HANDLE h_pipe=0;
-
-  h_pipe=(HANDLE)lpvParam;
-  while(1){
-    fSuccess=ReadFile(h_pipe,
-                      chRequest,
-                      BUFSIZE,
-                      &cbBytesRead,
-                      NULL);
-    if(!fSuccess||0==cbBytesRead)
-      break;
-
-    if(!GetAnswerToRequest(chRequest,chReply,&cbReplyBytes))
-      continue;
-    fSuccess=WriteFile(h_pipe,
-                       chReply,
-                       cbReplyBytes,
-                       &cbWritten,
-                       NULL);
-    if(!fSuccess||cbReplyBytes!=cbWritten)
-      break;
-  }
-  FlushFileBuffers(h_pipe);
-  DisconnectNamedPipe(h_pipe);
-  CloseHandle(h_pipe);
-  return;
-}
-
-//-----------------------------------------------------------------------------
-// WriteToPipe
-//  Writing through pipe creates a pipe instance and writes through it.
-//  USE IT ONLY FOR LARGE CHUNKS OF DATA WITH CONFIRMATION
-//-----------------------------------------------------------------------------
-BOOLEAN
-WriteToPipe(char *iMsg,char *oResponse,char *iServer){
-  if(!iMsg||!iServer)
-    return(FALSE);
-
-  HANDLE h_pipe=0;
-  LPVOID lpvMessage;
-  CHAR chReadBuf[BUFSIZE];
-  BOOL fSuccess;
-  DWORD cbRead=0,cbWritten=0,dwMode=0;
-  char pipename[MAX_PATH];
-  sprintf(pipename,"\\\\%s\\pipe\\cramp_pipe",iServer);
-
-  do{
-    h_pipe=CreateFile(pipename,
-                      GENERIC_READ|GENERIC_WRITE,
-                      0,
-                      NULL,
-                      OPEN_EXISTING,
-                      0,
-                      NULL);
-    DEBUGCHK(!(h_pipe==INVALID_HANDLE_VALUE));
-    DEBUGCHK(!(GetLastError()==ERROR_PIPE_BUSY));
-    // Wait for 20 secs for server...
-    if(!WaitNamedPipe(pipename,20000)){
-      CloseHandle(h_pipe);
-      return(FALSE);
-    }
-  }while(0);
-
-  dwMode=PIPE_READMODE_MESSAGE;
-  fSuccess=SetNamedPipeHandleState(h_pipe,
-                                   &dwMode,
-                                   NULL,
-                                   NULL);
-  DEBUGCHK(fSuccess);
-
-  char message[BUFSIZE];
-  DWORD msgSz=0;
-  msgSz=sprintf(message,"%s:%s",GetLocalHostName().c_str(),iMsg);
-
-  fSuccess=TransactNamedPipe(h_pipe,
-                             message,
-                             msgSz+1,
-                             chReadBuf,
-                             BUFSIZE,
-                             &cbRead,
-                             NULL);
-  if(oResponse)
-    strcpy(oResponse,chReadBuf);
-
-  CloseHandle(h_pipe);
-  h_pipe=0;
-
-  return(fSuccess);
-}
-
-//-----------------------------------------------------------------------------
-// GetAnswerToRequest
-//  Only for PIPE communication
-//-----------------------------------------------------------------------------
-BOOLEAN
-GetAnswerToRequest(LPTSTR iRequest,LPTSTR oReply,LPDWORD oSize){
-  strcpy(oReply,"OKAY");
-  *oSize=strlen(oReply)*sizeof(char);
-  RemoteLog(iRequest);
-  return(TRUE);
-}
-
-#if 0
-//-----------------------------------------------------------------------------
-// WinMain
-//-----------------------------------------------------------------------------
-int
-WINAPI WinMain(HINSTANCE hinstExe,
-               HINSTANCE,
-               PSTR pszCmdLine,
-               int nCmdShow){
-  int ret=-1;
-  InitGlobals();
-
-  DEBUGCHK(!getenv("CRAMP_DEBUG"));
-
-  // Get the command line stuff
-  int argcW=0;
-  LPWSTR *argvW=0;
-  argvW=CommandLineToArgvW(GetCommandLineW(),&argcW);
-  if(!argvW)
-    return(ret);
-  if(argcW<2){
-    GlobalFree(argvW);
-    return(ret);
-  }
-
-  // Currently supports only 1 arg
-  char msg[256];
-  char scenario[256];
-  WideCharToMultiByte(CP_ACP,0,argvW[1],-1,
-                      scenario,256,0,0);
-
-  HANDLE h_job=0;
-  HANDLE h_memtimer=0;
-  HANDLE h_arr[5];
-  h_arr[0]=0;                   // Job monitoring thread
-  h_arr[1]=0;                   // MUTEX object to kill memory thread
-  h_arr[2]=0;                   // Memory polling thread
-  h_arr[3]=0;                   // Mail slot communication thread
-  h_arr[4]=0;                   // Pipe communication server thread
-  h_arr[5]=0;                   // Last must be 0
-
-  h_job=CreateJobObject(NULL,JOB_NAME);
-  if(!h_job)
-    return(ret);
-
-  do{
-    // Create an IO completion port to positively identify adding
-    // or removal of processes into/from a job
-    g_hIOCP=CreateIoCompletionPort(INVALID_HANDLE_VALUE,NULL,0,0);
-
-    // Start the thread to monitor the job notifications
-    h_arr[0]=chBEGINTHREADEX(NULL,0,JobNotifyTH,NULL,0,NULL);
-
-    JOBOBJECT_ASSOCIATE_COMPLETION_PORT joacp;
-    joacp.CompletionKey=(void *)COMPKEY_JOBOBJECT;
-    joacp.CompletionPort=g_hIOCP;
-    SetInformationJobObject(h_job,
-                            JobObjectAssociateCompletionPortInformation,
-                            &joacp,
-                            sizeof(joacp));
-
-    // Parse the XML file and populate the list
-    g_pScenario=GetTestCaseInfos(scenario);
-    if(!g_pScenario)
-      break;
-
-    // Create a dummy remote object to store server responses
-    try{
-      g_pRemote=g_pScenario->AddGroup();
-      if(!g_pRemote)
-        break;
-      g_pRemote->TestCaseName("REMOTE LOGS");
-    }
-    catch(CRAMPException excep){
-      break;
-    }
-
-    h_arr[1]=CreateMutex(NULL,TRUE,"MEMORY_MUTEX");
-    DEBUGCHK(h_arr[1]);
-    ReleaseMutex(h_arr[1]);
-
-    // Memory polling thread
-    h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,(PVOID)g_pScenario,0,NULL);
-    DEBUGCHK(h_arr[2]);
-
-    // Mail slot server thread
-    h_arr[3]=chBEGINTHREADEX(NULL,0,MailSlotServerTH,
-                             (LPVOID)"\\\\.\\mailslot\\cramp_mailslot",
-                             0,NULL);
-
-    // Pipe communication
-    h_arr[4]=chBEGINTHREADEX(NULL,0,MultiThreadedPipeServerTH,
-                             (LPVOID)"\\\\.\\pipe\\cramp_pipe",
-                             0,NULL);
-    DEBUGCHK(h_arr[4]);
-
-    sprintf(msg,"MESSAGE|OKAY|SCENARIO|File: %s",scenario);
-    g_pScenario->AddLog(msg);
-    if(!CreateManagedProcesses(g_pScenario))
-      g_pScenario->AddLog("MESSAGE|ERROR|SCENARIO|Unsuccessful run");
-    else
-      g_pScenario->AddLog("MESSAGE|OKAY|SCENARIO|Successful run");
-
-    // Post msg to terminate job monitoring thread and wait for termination
-    PostQueuedCompletionStatus(g_hIOCP,0,COMPKEY_TERMINATE,NULL);
-    WaitForMultipleObjects(2,h_arr,TRUE,INFINITE);
-    TerminateThread(h_arr[2],0);
-    TerminateThread(h_arr[3],0);
-
-    // Clean up everything properly
-    CloseHandle(g_hIOCP);
-    for(SIZE_T xx=0;h_arr[xx];xx++){
-      CloseHandle(h_arr[xx]);
-      h_arr[xx]=0;
-    }
-
-    // Return OKAY
-    ret=0;
-  }while(0);
-
-  if(h_memtimer)
-    CloseHandle(h_memtimer);
-  if(h_job)
-    CloseHandle(h_job);
-
-  if(g_pScenario){
-    do{
-      ofstream logfile("C:\\tmp\\cramp.log",ios::out,filebuf::sh_none);
-      if(!logfile.is_open())
-        break;
-      g_pScenario->DumpLog(logfile);
-      logfile.close();
-      DumpLogsToXML("C:\\tmp\\cramp.xml");
-    }while(0);
-    TestCaseInfo::DeleteScenario(g_pScenario);
-  }
-
-  g_pScenario=0;
-  GlobalFree(argvW);
-
-  InitGlobals();
-  return(ret);
-}
-#endif

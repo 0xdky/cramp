@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-10 14:02:34 dhruva>
+// Time-stamp: <2003-10-14 11:19:01 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -25,6 +25,8 @@
 
 // Initialize static
 ListOfTestCaseInfo TestCaseInfo::l_gc;
+TestCaseInfo *TestCaseInfo::p_remote=0;
+TestCaseInfo *TestCaseInfo::p_scenario=0;
 
 //-----------------------------------------------------------------------------
 // ApplyDelete
@@ -50,6 +52,7 @@ TestCaseInfo::Init(void){
   b_refer=FALSE;
   b_block=TRUE;
   b_group=FALSE;
+  b_remote=FALSE;
   b_subproc=FALSE;
   b_pseudogroup=FALSE;
 
@@ -58,7 +61,6 @@ TestCaseInfo::Init(void){
 
   p_pgroup=0;
   p_refertc=0;
-  p_scenario=0;
 
   u_uid=0;
   u_numruns=1;
@@ -113,7 +115,6 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   b_group=iGroup;
   b_subproc=iSubProc;
   p_pgroup=ipParentGroup;
-  p_scenario=(p_pgroup)?p_pgroup->Scenario():this;
 
   // Very important phase... Setting UID, establish links
   if(b_uid){
@@ -133,7 +134,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
     }
   }
 
-  // Adding group/testcase to group. Scenerio does not have parent!
+  // Adding group/testcase to group. Scenario does not have parent!
   // Add this at end or you will find it and create a CYCLIC link!!
   if(p_pgroup){
     try{
@@ -228,15 +229,18 @@ TestCaseInfo
   }
   ReleaseMutex(h_mutex);
 
-  TestCaseInfo *pScenario=0;
   try{
-    pScenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
+    TestCaseInfo::p_scenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
+    DEBUGCHK(TestCaseInfo::p_scenario);
+    TestCaseInfo::p_remote=TestCaseInfo::p_scenario->AddGroup("REMOTE");
+    DEBUGCHK(TestCaseInfo::p_remote);
+    TestCaseInfo::p_remote->b_remote=TRUE;
+    TestCaseInfo::p_remote->TestCaseName("REMOTE");
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
   }
-
-  return(pScenario);
+  return(TestCaseInfo::p_scenario);
 }
 
 //-----------------------------------------------------------------------------
@@ -353,6 +357,14 @@ TestCaseInfo::BlockStatus(BOOLEAN iIsBlocked){
 BOOLEAN
 TestCaseInfo::SubProcStatus(void){
   return(b_subproc);
+}
+
+//-----------------------------------------------------------------------------
+// RemoteStatus
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::RemoteStatus(void){
+  return(b_remote);
 }
 
 //-----------------------------------------------------------------------------
@@ -556,7 +568,15 @@ TestCaseInfo::ReleaseListOfTCI(void){
 //-----------------------------------------------------------------------------
 TestCaseInfo
 *TestCaseInfo::Scenario(void){
-  return(p_scenario);
+  return(TestCaseInfo::p_scenario);
+}
+
+//-----------------------------------------------------------------------------
+// Remote
+//-----------------------------------------------------------------------------
+TestCaseInfo
+*TestCaseInfo::Remote(void){
+  return(TestCaseInfo::p_remote);
 }
 
 //-----------------------------------------------------------------------------
@@ -719,7 +739,10 @@ TestCaseInfo::DumpLogToDOM(DOMNode *ipDomNode){
   // Create the element
   if(GroupStatus()){
     if(GetParentGroup())
-      XMLString::transcode("GROUP",xmlstr,255);
+      if(RemoteStatus())
+        XMLString::transcode("REMOTE",xmlstr,255);
+      else
+        XMLString::transcode("GROUP",xmlstr,255);
     else
       XMLString::transcode("SCENARIO",xmlstr,255);
   }else

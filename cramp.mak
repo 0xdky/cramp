@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-11 13:37:09 dhruva>
+## Time-stamp: <2003-10-14 11:09:25 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -67,7 +67,7 @@ P_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
 
 # Add new files here
 COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
-      $(OBJDIR)/XMLParse.obj
+      $(OBJDIR)/XMLParse.obj $(OBJDIR)/ipc.obj $(OBJDIR)/ipcmsg.obj
 POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj
 OBJS=$(COBJS) $(POBJS) $(XOBJS)
 
@@ -94,6 +94,12 @@ engine: dirs $(COBJS)
 $(OBJDIR)/main.obj: $(SRCDIR)/main.cpp
     @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/main.cpp \
              /Fo$(OBJDIR)/main.obj
+$(OBJDIR)/ipc.obj: $(SRCDIR)/ipc.cpp
+    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/ipc.cpp \
+             /Fo$(OBJDIR)/ipc.obj
+$(OBJDIR)/ipcmsg.obj: $(SRCDIR)/ipcmsg.cpp
+    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/ipcmsg.cpp \
+             /Fo$(OBJDIR)/ipcmsg.obj
 $(OBJDIR)/engine.obj: $(SRCDIR)/engine.cpp
     @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/engine.cpp \
              /Fo$(OBJDIR)/engine.obj
@@ -105,11 +111,15 @@ $(OBJDIR)/XMLParse.obj: $(SRCDIR)/XMLParse.cpp
              /Fo$(OBJDIR)/XMLParse.obj
 
 $(SRCDIR)/main.cpp: $(SRCDIR)/engine.h
+$(SRCDIR)/ipc.cpp: $(SRCDIR)/ipc.h
+$(SRCDIR)/ipcmsg.cpp: $(SRCDIR)/ipcmsg.h
 $(SRCDIR)/engine.cpp: $(SRCDIR)/engine.h
 $(SRCDIR)/TestCaseInfo.cpp: $(SRCDIR)/TestCaseInfo.h
 $(SRCDIR)/XMLParse.cpp: $(SRCDIR)/XMLParse.h
 
 $(SRCDIR)/cramp.h:
+$(SRCDIR)/ipc.h: $(DEPS)
+$(SRCDIR)/ipcmsg.h: $(DEPS)
 $(SRCDIR)/engine.h: $(DEPS)
 $(SRCDIR)/TestCaseInfo.h: $(DEPS)
 $(SRCDIR)/XMLParse.h: $(DEPS)
