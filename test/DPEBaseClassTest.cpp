@@ -55,9 +55,9 @@ myClass::InvokeTestCase()
 
     // Get project by name 'Temperature Sensor AF20'
     IEP_BaseDataObject *pProjectByName = NULL; 
-    HRESULT hRes = GetProject( "Temperature Sensor AF20", 
+    HRESULT hRes = GetProject( "Temperaturfühler AF20-Montage", 
 				&pProjectByName );
-    if( !PrintSuccess( hRes, "Retrieved project Temperature Sensor AF20" ))
+    if( !PrintSuccess( hRes, "Retrieved project Temperaturfühler AF20-Montage" ))
     {
 	return( hRes ); 
     }
