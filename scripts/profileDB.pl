@@ -1,9 +1,10 @@
 #!perl
-## Time-stamp: <2003-10-27 10:12:49 dhruva>
+## Time-stamp: <2003-10-27 10:57:25 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
 ## Usage : perl profileDB.pl PID DUMP|QUERY THREADS|TID SORT|RAW COUNT
+##         Results are writte to query.psf
 ## Desc  : Call SetDBFilters on all DB handles
 ##-----------------------------------------------------------------------------
 ## mm-dd-yyyy  History                                                      tri
@@ -22,18 +23,23 @@
 use DB_File;
 use BerkeleyDB;
 
+my $g_pid;
 my $f_logdb;
 my $f_logtxt;
 my $f_logfin;
-my $g_pid;
+my $f_queryout;
+my $cramplogdir=".";
 
 ##-----------------------------------------------------------------------------
 ## WriteResults
 ##-----------------------------------------------------------------------------
 sub WriteResults{
+    open(QUERYOUT,">$f_queryout")
+        || die("Cannot open \"$f_queryout\" for write");
     foreach(@_){
-        print "$_\n";
+        print QUERYOUT "$_\n";
     }
+    close(QUERYOUT);
     return 0;
 }
 
@@ -42,21 +48,34 @@ sub WriteResults{
 ##-----------------------------------------------------------------------------
 sub ProcessArgs{
     chomp(@ARGV);
+    if($ENV{'CRAMP_LOGPATH'}){
+        $cramplogdir=$ENV{'CRAMP_LOGPATH'};
+        $cramplogdir=~tr/\\/\//;
+        $cramplogdir=~s/\/+$//g;
+        $cramplogdir=~s/\/{2,}/\//g;
+        if(! -d $cramplogdir){
+            print STDERR "Error: Invalid \"$cramplogdir\" log path";
+            return 1;
+        }
+    }
 
     if($#ARGV<1){
-        print "Error: Insufficient argument";
+        print STDERR "Error: Insufficient argument";
         return 1;
     }
 
     $g_pid=$ARGV[0];
-    $f_logdb="cramp#$g_pid.db";
+    $f_logdb="$cramplogdir/cramp#$g_pid.db";
 
     if("DUMP" eq $ARGV[1]){
         UpdateDB();
         return 0;
     }elsif("QUERY" eq $ARGV[1]){
+        $f_queryout="$cramplogdir/query.psf";
+        unlink $f_queryout;
+
         if(! -f $f_logdb){
-            print(STDERR "Error: DB file for \"$g_pid\" PID not found");
+            print STDERR "Error: DB file for \"$g_pid\" PID not found";
             return 1;
         }
 
@@ -74,7 +93,7 @@ sub ProcessArgs{
             }
         }
         if(!$key){
-            print "Error: Thread ID not found";
+            print STDERR "Error: Thread ID not found";
             return 1;
         }
 
@@ -87,7 +106,7 @@ sub ProcessArgs{
         AppendFuncInfoToLogs(@values);
         return WriteResults(@values);
     }else{
-        print "Error: Unknown command";
+        print STDERR "Error: Unknown command";
         return 1;
     }
     return 0;
@@ -113,10 +132,11 @@ sub SetDBFilters{
 ## UpdateDB
 ##-----------------------------------------------------------------------------
 sub UpdateDB{
-    $f_logtxt="cramp_profile#$g_pid.log";
-    $f_logfin="cramp_funcinfo#$g_pid.log";
+    $f_logtxt="$cramplogdir/cramp_profile#$g_pid.log";
+    $f_logfin="$cramplogdir/cramp_funcinfo#$g_pid.log";
+
     if(!(-f $f_logtxt && -f $f_logfin)){
-        print(STDERR "Error: Log files for \"$g_pid\" PID not found");
+        print STDERR "Error: Log files for \"$g_pid\" PID not found";
         exit 1;
     }
 
@@ -131,17 +151,17 @@ sub UpdateDB{
         if($loginfo[9]>$dbinfo[9]){
             print "Updating Berkeley DB from logs\n";
             if(AddRawLogs()){
-                print "Error: Failed in adding raw logs to DB";
+                print STDERR "Error: Failed in adding raw logs to DB";
                 exit 1;
             }elsif(AddTickSortedData()){
-                print "Error: Failed in adding sorted logs to DB";
+                print STDERR "Error: Failed in adding sorted logs to DB";
                 exit 1;
             }
         }
         if($funinfo[9]>$dbinfo[9]){
             print "Updating function information in Berkeley DB from logs\n";
             if(AddFunctionInformation()){
-                print "Error: Failed in adding function information to DB";
+                print STDERR "Error: Failed in adding function info to DB";
                 exit 1;
             }
         }
@@ -166,12 +186,14 @@ sub AppendFuncInfoToLogs{
         return 1;
     }
 
+    my $deffin="Module|Function";
     foreach(@_){
         my @info=split(/\|/,$_);
         my $fin;
-        if($db->db_get($info[-5],$fin)==0){
-            $_=~s/($info[-5])/$fin|$1/;
+        if($db->db_get($info[-5],$fin)!=0){
+            $fin="Unknown Module|Unknown Function";
         }
+        $_=~s/($info[-5])/$fin|$1/;
     }
     undef $db;
 
@@ -477,11 +499,11 @@ sub AddFunctionInformation{
 ##-----------------------------------------------------------------------------
 sub DumpLogsToDB{
     if(AddRawLogs()){
-        print "Error: Failed in adding raw logs to DB";
+        print STDERR "Error: Failed in adding raw logs to DB";
     }elsif(AddTickSortedData()){
-        print "Error: Failed in adding sorted logs to DB";
+        print STDERR "Error: Failed in adding sorted logs to DB";
     }elsif(AddFunctionInformation()){
-        print "Error: Failed in adding function information to DB";
+        print STDERR "Error: Failed in adding function information to DB";
     }
     return;
 }
