@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-01-27 16:23:24 dky>
+// Time-stamp: <2004-01-28 10:42:18 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -25,12 +25,6 @@
 // The only permitted GLOBAL for the profiler library
 Global_CRAMP_Profiler g_CRAMP_Profiler;
 
-// File static
-static char logpath[256]=".";
-static char logfile[256];
-static long IsInitialised=0;
-static std::hash_map<unsigned int,BOOLEAN> h_FilteredModAddr;
-
 void OnProcessStart(void);
 void OnProcessEnd(void);
 BOOL WriteFuncInfo(unsigned int,unsigned long);
@@ -55,7 +49,9 @@ extern "C" __declspec(dllexport)
 
   FILE *f_stat=0;
   char filename[MAX_PATH];
-  sprintf(filename,"%s/cramp_stat#%d.log",logpath,g_CRAMP_Profiler.g_pid);
+  sprintf(filename,"%s/cramp_stat#%d.log",
+          g_CRAMP_Profiler.logpath,
+          g_CRAMP_Profiler.g_pid);
   f_stat=fopen(filename,"wc");
   DEBUGCHK(f_stat);
 
@@ -161,8 +157,9 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
 
     // Faster Module level filtering
     std::hash_map<unsigned int,BOOLEAN>::iterator iter;
-    iter=h_FilteredModAddr.find((unsigned int)mbi.AllocationBase);
-    if(iter!=h_FilteredModAddr.end())
+    iter=g_CRAMP_Profiler.h_FilteredModAddr.find(
+      (unsigned int)mbi.AllocationBase);
+    if(iter!=g_CRAMP_Profiler.h_FilteredModAddr.end())
       return(!(*iter).second);
 
     GetModuleFileName((HMODULE)mbi.AllocationBase,
@@ -224,7 +221,8 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
         if(!(cmp=strcmp(lmodl,(*iter).c_str()))||
            strstr(lfunc,(*iter).c_str())){
           if(!cmp)
-            h_FilteredModAddr[(unsigned int)mbi.AllocationBase]=ret;
+            g_CRAMP_Profiler.h_FilteredModAddr[
+              (unsigned int)mbi.AllocationBase]=ret;
           ret=!ret;
           break;
         }
@@ -250,12 +248,14 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
 void
 OnProcessStart(void){
   long dest=1;
-  InterlockedCompareExchange(&dest,0,IsInitialised);
+  InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
   if(!dest)
     return;
 
   char filename[256];
 
+  strcpy(g_CRAMP_Profiler.logpath,".");
+  g_CRAMP_Profiler.IsInitialised=0;
   g_CRAMP_Profiler.g_exclusion=TRUE;
   g_CRAMP_Profiler.g_fLogFile=0;
   g_CRAMP_Profiler.g_fFuncInfo=0;
@@ -272,7 +272,7 @@ OnProcessStart(void){
   g_CRAMP_Profiler.g_pid=GetCurrentProcessId();
 
   if(getenv("CRAMP_LOGPATH"))
-    sprintf(logpath,"%s",getenv("CRAMP_LOGPATH"));
+    sprintf(g_CRAMP_Profiler.logpath,"%s",getenv("CRAMP_LOGPATH"));
 
   // Get maximum call limit (ensure it is a number)
   char *buff=getenv("CRAMP_PROFILE_MAXCALLLIMIT");
@@ -291,14 +291,12 @@ OnProcessStart(void){
       g_CRAMP_Profiler.g_l_calldepthlimit=0;
   }
 
-  if(getenv("CRAMP_PROFILE_EXCLUSION"))
-    g_CRAMP_Profiler.g_exclusion=TRUE;
   if(getenv("CRAMP_PROFILE_INCLUSION"))
     g_CRAMP_Profiler.g_exclusion=FALSE;
 
   // Build the filter list
   do{
-    sprintf(filename,"%s/cramp_profile.flt",logpath);
+    sprintf(filename,"%s/cramp_profile.flt",g_CRAMP_Profiler.logpath);
     fstream f_flt;
     f_flt.open(filename,ios::in|ios::nocreate);
     if(!(f_flt.rdbuf())->is_open())
@@ -313,19 +311,19 @@ OnProcessStart(void){
   }while(0);
 
   do{
-    sprintf(logfile,"%s/cramp_profile#%d.log",
-            logpath,
+    sprintf(filename,"%s/cramp_profile#%d.log",
+            g_CRAMP_Profiler.logpath,
             g_CRAMP_Profiler.g_pid);
 
     // If only STAT is required
     if(!getenv("CRAMP_PROFILE_STAT")){
-      g_CRAMP_Profiler.g_fLogFile=fopen(logfile,"wc");
+      g_CRAMP_Profiler.g_fLogFile=fopen(filename,"wc");
       if(!g_CRAMP_Profiler.g_fLogFile)
         break;
     }
 
     sprintf(filename,"%s/cramp_funcinfo#%d.log",
-            logpath,
+            g_CRAMP_Profiler.logpath,
             g_CRAMP_Profiler.g_pid);
     g_CRAMP_Profiler.g_fFuncInfo=fopen(filename,"wc");
     if(!g_CRAMP_Profiler.g_fFuncInfo)
@@ -372,8 +370,41 @@ OnProcessStart(void){
                         THREAD_PRIORITY_BELOW_NORMAL);
 
     // Set this if all succeeds
-    InterlockedExchange(&IsInitialised,1);
+    InterlockedExchange(&g_CRAMP_Profiler.IsInitialised,1);
   }while(0);
+
+  return;
+}
+
+//-----------------------------------------------------------------------------
+// CleanEmptyLogs
+//-----------------------------------------------------------------------------
+void
+CleanEmptyLogs(void){
+  struct _stat buf;
+  static char filename[256];
+
+  memset(&buf,0,sizeof(struct _stat));
+  sprintf(filename,"%s/cramp_profile#%d.log",
+          g_CRAMP_Profiler.logpath,
+          g_CRAMP_Profiler.g_pid);
+
+  // Return if stat fail or non-zero
+  if(_stat(filename,&buf)||buf.st_size)
+    return;
+
+  // Delete empty logs
+  _unlink(filename);
+
+  sprintf(filename,"%s/cramp_stat#%d.log",
+          g_CRAMP_Profiler.logpath,
+          g_CRAMP_Profiler.g_pid);
+  _unlink(filename);
+
+  sprintf(filename,"%s/cramp_funcinfo#%d.log",
+          g_CRAMP_Profiler.logpath,
+          g_CRAMP_Profiler.g_pid);
+  _unlink(filename);
 
   return;
 }
@@ -384,7 +415,7 @@ OnProcessStart(void){
 void
 OnProcessEnd(void){
   long dest=1;
-  InterlockedCompareExchange(&dest,0,IsInitialised);
+  InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
   if(dest)
     return;
 
@@ -414,6 +445,8 @@ OnProcessEnd(void){
   DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_log);
   DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
+  CleanEmptyLogs();
+
   return;
 }
 
@@ -426,11 +459,17 @@ LogFileSizeMonTH(void *iLogThread){
   if(!g_CRAMP_Profiler.g_fLogFile)
     return;
   struct _stat buf={0};
+  char filename[256];
+
+  sprintf(filename,"%s/cramp_profile#%d.log",
+          g_CRAMP_Profiler.logpath,
+          g_CRAMP_Profiler.g_pid);
+
   while(1){
     if(!g_CRAMP_Profiler.g_fLogFile)
       break;
 
-    if(_stat(logfile,&buf))
+    if(_stat(filename,&buf))
       continue;
 
     if(buf.st_size/MB2BYTE>g_CRAMP_Profiler.g_l_logsizelimit){
@@ -538,14 +577,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
     case DLL_PROCESS_ATTACH:
       OnProcessStart();
     case DLL_THREAD_ATTACH:
-      InterlockedCompareExchange(&dest,0,IsInitialised);
+      InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
       if(!dest)
         CallMonitor::threadAttach(new CallMonLOG());
       break;
     case DLL_PROCESS_DETACH:
       OnProcessEnd();
     case DLL_THREAD_DETACH:
-      InterlockedCompareExchange(&dest,0,IsInitialised);
+      InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
       if(!dest){
         CallMonitor::threadDetach();
         if(g_CRAMP_Profiler.g_fLogFile)

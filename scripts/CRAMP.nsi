@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2004-01-23 14:35:23 dky>
+;; Time-stamp: <2004-01-28 10:22:29 dky>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -153,7 +153,6 @@ CreateLink:
 RegEntry:
   WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_LOGSIZE" 500
   WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_CALLDEPTH" 0
-  WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_EXCLUSION" 1
   WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_MAXCALLLIMIT" 0
 
   pop $R0
@@ -284,7 +283,6 @@ Section Uninstall
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE"
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_LOGSIZE"
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_CALLDEPTH"
-  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_EXCLUSION"
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_MAXCALLLIMIT"
   DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
                  "STAF Server"

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-09 11:39:52 dhruva>
+// Time-stamp: <2004-01-28 10:15:17 dky>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -37,10 +37,13 @@ typedef struct{
 }FuncInfo;
 
 typedef struct{
+  char logpath[256];
   BOOLEAN g_exclusion;
 
   FILE *g_fLogFile;
   FILE *g_fFuncInfo;
+
+  long IsInitialised;
 
   unsigned int g_pid;
   long g_l_profile;
@@ -52,6 +55,7 @@ typedef struct{
   std::queue<std::string> g_LogQueue;
   std::list<std::string> g_FilterList;
   std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
+  std::hash_map<unsigned int,BOOLEAN> h_FilteredModAddr;
 
   HANDLE g_h_mailslot;
   HANDLE g_h_mailslotTH;
