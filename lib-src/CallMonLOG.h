@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 17:13:36 dhruva>
+// Time-stamp: <2003-10-23 10:20:09 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -12,7 +12,6 @@
 
 #include "cramp.h"
 #include "CallMon.h"
-#include "ProfileLimit.h"
 
 class CallMonLOG : public CallMonitor{
 public:
@@ -21,11 +20,5 @@ public:
 
   void logEntry(CallInfo &ci);
   void logExit(CallInfo &ci,bool normalRet);
-
-  static ProfileLimit *GetProfileLimit(void){
-    ProfileLimit *ppl=(ProfileLimit *)TlsGetValue(tlsProfLimitSlot);
-    return(ppl);
-  };
 private:
-  static DWORD tlsProfLimitSlot;
 };

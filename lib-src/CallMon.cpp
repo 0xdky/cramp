@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-21 15:32:27 dhruva>
+// Time-stamp: <2003-10-23 12:18:04 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -21,6 +21,8 @@
 #include "CallMonLOG.h"
 #include "ProfileLimit.h"
 
+#include <hash_map>
+
 using namespace std;
 
 typedef CallMonitor::ADDR ADDR;
@@ -32,8 +34,9 @@ static const unsigned OFFSET_CALL_BYTES=5;
 
 // To toggle profiling
 extern long g_l_profile;
+extern long g_l_calldepthlimit;
 extern CRITICAL_SECTION g_cs_prof;
-extern DB *g_pdb_funcinfo;
+extern std::hash_map<unsigned int,SIZE_T> g_hFuncCalls;
 
 // To minimize calls to system methods
 typedef struct{
@@ -127,6 +130,8 @@ extern "C" __declspec(dllexport) __declspec(naked)
   // Instrumented code
   do{
     long dest=0;
+
+    // Profiling is disabled
     InterlockedCompareExchange(&dest,1,g_l_profile);
     if(dest)
       break;
@@ -198,7 +203,11 @@ void CallMonitor::queryTickFreq(TICKS *t)
 // use, copy, modify, distribute, and sell this source code as
 // long as this copyright notice appears in all source files.
 
-// Utility functions
+
+//-----------------------------------------------------------------------------
+// indent
+//   Utility functions
+//-----------------------------------------------------------------------------
 void indent(int level)
 {
   for(int i=0;i<level;i++) putchar('\t');
@@ -209,67 +218,101 @@ void indent(int level)
 //
 DWORD CallMonitor::tlsSlot=0xFFFFFFFF;
 
+//-----------------------------------------------------------------------------
+// CallMonitor
+//-----------------------------------------------------------------------------
 CallMonitor::CallMonitor(){
   queryTicks(&threadStartTime);
 }
 
+//-----------------------------------------------------------------------------
+// ~CallMonitor
+//-----------------------------------------------------------------------------
 CallMonitor::~CallMonitor(){
 }
 
-void CallMonitor::threadAttach(CallMonitor *newObj){
+//-----------------------------------------------------------------------------
+// threadAttach
+//-----------------------------------------------------------------------------
+void
+CallMonitor::threadAttach(CallMonitor *newObj){
   if (tlsSlot==0xFFFFFFFF) tlsSlot = TlsAlloc();
   TlsSetValue(tlsSlot,newObj);
 }
 
-void CallMonitor::threadDetach(){
+//-----------------------------------------------------------------------------
+// threadDetach
+//-----------------------------------------------------------------------------
+void
+CallMonitor::threadDetach(){
   delete &threadObj();
 }
 
+//-----------------------------------------------------------------------------
+// threadObj
+//-----------------------------------------------------------------------------
 CallMonitor &CallMonitor::threadObj(){
   CallMonitor *self = (CallMonitor *)
     TlsGetValue(tlsSlot);
   return *self;
 }
 
+//-----------------------------------------------------------------------------
+// threadPtr
+//-----------------------------------------------------------------------------
 CallMonitor *CallMonitor::threadPtr(){
   CallMonitor *self=(CallMonitor *)TlsGetValue(tlsSlot);
   return(self);
 }
 
-// Performs standard entry processing
-void CallMonitor::enterProcedure(ADDR parentFramePtr,
-                                 ADDR funcAddr,
-                                 ADDR *retAddrPtr,
-                                 const TICKS &entryTime){
+//-----------------------------------------------------------------------------
+// enterProcedure
+//   Performs standard entry processing
+//-----------------------------------------------------------------------------
+void
+CallMonitor::enterProcedure(ADDR parentFramePtr,
+                            ADDR funcAddr,
+                            ADDR *retAddrPtr,
+                            const TICKS &entryTime){
+  // Max call depth has reached
+  long deep=callInfoStack.size();
+  InterlockedCompareExchange(&deep,0,g_l_calldepthlimit);
+  if(!deep)
+    return;
 
   BOOLEAN ret=FALSE;
   callInfoStack.push_back(CallInfo());
   CallInfo &ci=callInfoStack.back();
   ci.funcAddr=funcAddr;
+
+  std::hash_map<ADDR,SIZE_T>::iterator iter;
   EnterCriticalSection(&g_cs_prof);
-  ret=getFuncInfo(ci.funcAddr,ci.modl,ci.func);
+  iter=g_hFuncCalls.find(funcAddr);
+  if(iter==g_hFuncCalls.end())
+    g_hFuncCalls[funcAddr]=1;
+  else
+    (*iter).second++;
   LeaveCriticalSection(&g_cs_prof);
-  if(!ret){
-    callInfoStack.pop_back();
-    return;
-  }
 
   ci.startTime=0;
   ci.parentFrame=parentFramePtr;
   ci.origRetAddr=*retAddrPtr;
   ci.entryTime=entryTime;
   logEntry(ci);
-  callInfoStack.push_back(ci);
 
   *retAddrPtr=(ADDR)_pexitThunk; // Redirect eventual return to local thunk
   queryTicks(&ci.startTime);    // Track approx. start time
   return;
 }
 
-// Performs standard exit processing
-void CallMonitor::exitProcedure(ADDR parentFramePtr,
-                                ADDR *retAddrPtr,
-                                const TICKS &endTime){
+//-----------------------------------------------------------------------------
+// exitProcedure
+//   Performs standard exit processing
+//-----------------------------------------------------------------------------
+void
+CallMonitor::exitProcedure(ADDR parentFramePtr,
+                           ADDR *retAddrPtr,
+                           const TICKS &endTime){
   // Pops shadow stack until finding a call record
   // that matches the current stack layout.
   bool inSync=false;
@@ -288,8 +331,12 @@ void CallMonitor::exitProcedure(ADDR parentFramePtr,
   }
 }
 
-// Default entry logging procedure
-void CallMonitor::logEntry(CallInfo &ci){
+//-----------------------------------------------------------------------------
+// logEntry
+//   Default entry logging procedure
+//-----------------------------------------------------------------------------
+void
+CallMonitor::logEntry(CallInfo &ci){
   indent(callInfoStack.size()-1);
   string module,name;
   getFuncInfo(ci.funcAddr,module,name);
@@ -297,8 +344,12 @@ void CallMonitor::logEntry(CallInfo &ci){
          name.c_str(),ci.funcAddr);
 }
 
-// Default exit logging procedure
-void CallMonitor::logExit(CallInfo &ci,bool normalRet){
+//-----------------------------------------------------------------------------
+// logExit
+//   Default exit logging procedure
+//-----------------------------------------------------------------------------
+void
+CallMonitor::logExit(CallInfo &ci,bool normalRet){
   indent(callInfoStack.size()-1);
   if (!normalRet) printf("exception ");
   TICKS ticksPerSecond;
@@ -308,7 +359,11 @@ void CallMonitor::logExit(CallInfo &ci,bool normalRet){
          (ci.endTime-ci.startTime));
 }
 
-void DumpLastError(){
+//-----------------------------------------------------------------------------
+// DumpLastError
+//-----------------------------------------------------------------------------
+void
+DumpLastError(){
   LPVOID lpMsgBuf;
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                 FORMAT_MESSAGE_FROM_SYSTEM |
@@ -321,37 +376,13 @@ void DumpLastError(){
   LocalFree( lpMsgBuf );
 }
 
-BOOLEAN
+//-----------------------------------------------------------------------------
+// getFuncInfo
+//-----------------------------------------------------------------------------
+void
 CallMonitor::getFuncInfo(ADDR addr,
                          string &module,
                          string &funcName){
-  DBT key,data;
-  memset(&key,0,sizeof(key));
-  memset(&data,0,sizeof(data));
-  key.size=sizeof(ADDR);
-  key.data=&addr;
-  data.flags=DB_DBT_MALLOC;
-
-  // Get from BDB HASH
-  do{
-    if(!g_pdb_funcinfo)
-      break;
-    if(!g_pdb_funcinfo->get(g_pdb_funcinfo,NULL,&key,&data,0)){
-      FuncInfo *pfi=(FuncInfo *)data.data;
-      // Method filtered
-      if(!pfi->_profile){
-        return(FALSE);
-      }
-      pfi->_calls++;
-      module=pfi->_modname;
-      funcName=pfi->_funcname;
-      data.size=sizeof(*pfi);
-      data.data=pfi;
-      DEBUGCHK(!g_pdb_funcinfo->put(g_pdb_funcinfo,NULL,&key,&data,0));
-      return(TRUE);
-    }
-  }while(0);
-
   SymInitialize(GetCurrentProcess(),NULL,FALSE);
   TCHAR moduleName[MAX_PATH];
   TCHAR modShortNameBuf[MAX_PATH];
@@ -410,20 +441,5 @@ CallMonitor::getFuncInfo(ADDR addr,
   SymCleanup(h_proc);
   module = modShortNameBuf;
   funcName = undName;
-
-  // Cache the information
-  // Add it to BDB HASH
-  if(g_pdb_funcinfo){
-    FuncInfo fin;
-    fin._calls=1;
-    fin._profile=TRUE;
-    strcpy(fin._modname,modShortNameBuf);
-    strcpy(fin._funcname,undName);
-    data.size=sizeof(fin);
-    data.data=&fin;
-    DEBUGCHK(!g_pdb_funcinfo->put(g_pdb_funcinfo,NULL,&key,&data,
-                                  DB_NOOVERWRITE));
-  }
-  return(TRUE);
+  return;
 }
-//End of file

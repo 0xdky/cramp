@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 09:56:38 dhruva>
+// Time-stamp: <2003-10-23 12:14:03 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -20,4 +20,5 @@
 #ifndef __CALLMON_SRC
 extern "C" void CRAMP_EnableProfile(void);
 extern "C" void CRAMP_DisableProfile(void);
+extern "C" void CRAMP_SetCallDepthLimit(long);
 #endif

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-21 14:18:17 dhruva>
+// Time-stamp: <2003-10-23 12:07:55 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: The CallMonitor class definition
@@ -66,9 +66,9 @@ public:
                      const TICKS &endTime);
 
   // Retrieves module and function name from address
-  // If return is false, no profiling/logging
-  static BOOLEAN getFuncInfo(ADDR addr,std::string &moduleName,
-                             std::string &funcName);
+  static void getFuncInfo(ADDR addr,
+                          std::string &moduleName,
+                          std::string &funcName);
 
   // Wrappers for system-dependent timing functions
 
@@ -98,8 +98,6 @@ protected:
     TICKS entryTime;  // Time function was called
     TICKS startTime;  // Time function started
     TICKS endTime;    // Time function returned
-    std::string modl; // Module name
-    std::string func; // Function name
   };
   typedef std::vector<CallInfo> CallInfoStack;
 

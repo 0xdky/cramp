@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-21 14:00:34 dhruva>
+// Time-stamp: <2003-10-23 10:18:35 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -17,6 +17,7 @@
 // Windows definitions
 #include <Windows.h>
 #include <string>
+#include <process.h>
 
 // Add Berkeley database headers
 #include "db.h"
@@ -34,6 +35,17 @@
 #ifdef _X86_
 #define DebugBreak() _asm { int 3 }
 #endif
+
+typedef unsigned (__stdcall *PTHREAD_START) (void *);
+#define chBEGINTHREADEX(psa, cbStack, pfnStartAddr,         \
+                        pvParam, fdwCreate, pdwThreadId)    \
+  ((HANDLE)_beginthreadex(                                  \
+    (void *)        (psa),                                  \
+    (unsigned)      (cbStack),                              \
+    (PTHREAD_START) (pfnStartAddr),                         \
+    (void *)        (pvParam),                              \
+    (unsigned)      (fdwCreate),                            \
+    (unsigned *)    (pdwThreadId)))
 
 #ifndef DEBUGCHK
 #define DEBUGCHK(expr) if(!expr) DebugBreak()
