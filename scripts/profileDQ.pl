@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-28 18:51:30 dky>
+## Time-stamp: <2004-02-28 19:07:50 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -19,6 +19,7 @@
 ## 01-02-2004  Mod  Reduced variables                                       dky
 ## 02-22-2004  Mod  Proper call stack results by re-ordering                dky
 ## 02-25-2004  Bug  Implemented call stack using correct algo           sjm/dky
+## 02-28-2004  Mod  Added filtering during dumping                          dky
 ##-----------------------------------------------------------------------------
 ## Log file syntax:
 ##  Thread ID|Function address|Depth|Raw Ticks|Time in Ns|Ticks
@@ -982,6 +983,8 @@ sub MakeFilterString{
 
   if (scalar(keys %filterhash)) {
     $g_filterstring=join('|',keys %filterhash);
+    $g_filterstring=~s/\|{2,}/\|/g;
+    $g_filterstring=~s/(^\|)|(\|$)//g;
   } else {
     return 1;
   }
