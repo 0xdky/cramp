@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-17 14:05:41 dhruva>
+## Time-stamp: <2003-10-17 14:25:33 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profsort.pl
 ## Desc  : PERL script to sort the raw profile output.
@@ -43,9 +43,11 @@ if($#ARGV>=0){
 
 die("Log File \"$f_logfile\" not found...") unless(-f $f_logfile);
 open(LOGIN,"<$f_logfile") || die("Could not open \"$f_logfile\" for read");
+binmode(LOGIN);
 
 my $f_logsumm=$f_logfile.".summ";
 open(LOGSUMM,">$f_logsumm") || die("Could not open \"$f_logsumm\" for write");
+binmode(LOGSUMM);
 
 my @arr_arr=();
 my @hsh_summ;
@@ -78,6 +80,7 @@ if($#ARGV==0){
 
 my $f_logsort=$f_logfile.".sort";
 open(LOGSORT,">$f_logsort") || die("Could not open \"$f_logsort\" for write");
+binmode(LOGSORT);
 
 print("Sorting log file...\n");
 @arr_arr=sort sorter @arr_arr;
