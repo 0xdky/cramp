@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-05 19:55:03 dhruva>
+## Time-stamp: <2004-01-06 15:31:34 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -102,13 +102,15 @@ sub SetDBFilters{
 ##  For use in sort, use $a and $b instead of $_[0] and $_[1]
 ##-----------------------------------------------------------------------------
 sub TickCompare{
-  $g_tie_RAW[$_[0]]=~/([0-9]+)$/;
-  my $k1=$1;
-  $g_tie_RAW[$_[1]]=~/([0-9]+)$/;
+  my $k1=$_[0];
+  my $k2=$_[1];
 
-  if ($k1 < $1) {
+  $k1=~s/^([0-9]+)\|//g;
+  $k2=~s/^([0-9]+)\|//g;
+
+  if ($k1 < $k2) {
     return 1;
-  } elsif ($k1 > $1) {
+  } elsif ($k1 > $k2) {
     return -1;
   }
   return 0;
@@ -323,13 +325,13 @@ sub DumpLogsToDB{
 
   if ($table=~/TICK/) {
     PrintTime("Entering Tick");
-    AddTickSortedData();
+    AddTickSortedData($f_logtxt);
   } elsif ($table=~/ADDR/) {
     PrintTime("Entering Addr");
     AddAddrSortedData();
   } elsif ($table=~/ALL/) {
     PrintTime("Entering Tick");
-    AddTickSortedData();
+    AddTickSortedData($f_logtxt);
     PrintTime("Entering Addr");
     AddAddrSortedData();
   }
@@ -713,36 +715,27 @@ sub AddTickSortedData{
     return 1;
   }
 
+  my $key;
+  my %h_tid;
   my $count=0;
   $db->truncate($count);
 
-  foreach (GetThreadIDs()) {
-    my $tid=$_;
-    $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
-                  -Filename    => $f_logdb,
-                  -Subname     => "RAW#$tid",
-                  -Flags       => DB_RDONLY)
-      || last;
-    if (!defined($g_db_RAW)) {
-      last;
+  open(LOGTXT,$_[0]) || die("Cannot open \"$_[0]\" for read");
+  while (<LOGTXT>) {
+    chomp();
+    /^([0-9]+)/;
+    $key=$1;
+    if (exists($h_tid{$key})) {
+      $h_tid{$key}+=1;
+    } else {
+      $h_tid{$key}=0;
     }
-    if (SetDBFilters($g_db_RAW)) {
-      last;
-    }
-
-    my $key;
-    foreach (0..$#g_tie_RAW) {
-      $key=$tid;
-      $db->db_put($key,$_);
-    }
-
-    undef $g_db_RAW;
-    untie @g_tie_RAW;
-  } continue {
-    undef $g_db_RAW;
-    untie @g_tie_RAW;
+    $count=$h_tid{$key};
+    /([0-9]+)$/;
+    $count.="|$1";
+    $db->db_put($key,$count);
   }
-
+  close(LOGTXT);
   undef $db;
 
   return 0;
@@ -811,6 +804,7 @@ sub GetTickSortedValues{
   undef $db;
 
   if ($#results>=0) {
+    map(s/\|([0-9]+)$//g,@results);
     @results=GetRawValuesFromIDs($_[0],0,@results);
   }
 
