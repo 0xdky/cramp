@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-31 11:06:47 dhruva>
+## Time-stamp: <2003-10-31 11:43:39 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -290,6 +290,7 @@ sub AppendFuncInfoToLogs{
 sub GetProfileStat{
     open(STAT,"<$f_logstat") || return -1;
 
+    AddFunctionInformation();
     my $db;
     $db=new BerkeleyDB::Hash
         -Filename    => $f_logdb,
