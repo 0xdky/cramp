@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2004-01-23 14:29:54 dky>
+;; Time-stamp: <2004-01-23 14:35:23 dky>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -132,6 +132,7 @@ Section "CRAMP Profiler" SEC02
 
   SetOutPath "$INSTDIR\src"
   File "..\src\DPEBaseClass.cpp"
+  File "..\test\DPEBaseClassTest.cpp"
 
   SetOutPath "$INSTDIR\docs"
   File "..\docs\CRAMP.ppt"
