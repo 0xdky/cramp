@@ -3,13 +3,13 @@ Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8490
+   ClientHeight    =   8496
    ClientLeft      =   5340
-   ClientTop       =   3075
-   ClientWidth     =   8670
+   ClientTop       =   3072
+   ClientWidth     =   8676
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8490
-   ScaleWidth      =   8670
+   ScaleHeight     =   8496
+   ScaleWidth      =   8676
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
@@ -21,8 +21,8 @@ Begin VB.Form frmMainui
       Begin MSComctlLib.ImageList SortIconImageList 
          Left            =   6720
          Top             =   6840
-         _ExtentX        =   794
-         _ExtentY        =   794
+         _ExtentX        =   804
+         _ExtentY        =   804
          BackColor       =   -2147483643
          ImageWidth      =   8
          ImageHeight     =   7
@@ -138,8 +138,8 @@ Begin VB.Form frmMainui
             TabIndex        =   30
             Top             =   720
             Width           =   6612
-            _ExtentX        =   11668
-            _ExtentY        =   5530
+            _ExtentX        =   11663
+            _ExtentY        =   5525
             LabelEdit       =   1
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
@@ -446,8 +446,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   4048
+         _ExtentX        =   9716
+         _ExtentY        =   4043
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -465,8 +465,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9710
-         _ExtentY        =   6165
+         _ExtentX        =   9716
+         _ExtentY        =   6160
          _Version        =   393217
          HideSelection   =   0   'False
          LabelEdit       =   1
@@ -480,8 +480,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8172
-      _ExtentX        =   14420
-      _ExtentY        =   14208
+      _ExtentX        =   14415
+      _ExtentY        =   14203
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -1196,6 +1196,8 @@ SetValueInListView
 HideShowNextPre
 'show hide col
 ShowHideCol
+'add-remove ADDR
+AddRemAddrInSTACB
 manuCurrSetting.Checked = False
 Screen.MousePointer = vbDefault
 End Sub
@@ -1246,6 +1248,8 @@ Private Sub runCommand_Click()
   If gobjDic.Count > 0 Then
     gobjDic.removeAll
   End If
+  'add-remove ADDR
+  AddRemAddrInSTACB
   frmMainui.totalLabel.Caption = gobjDic.Count
   Screen.MousePointer = vbDefault
 End Sub

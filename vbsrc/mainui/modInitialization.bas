@@ -21,8 +21,8 @@ Public Sub SetSTACombo()
   frmMainui.staCombo.AddItem (strSTA)
   strSTA = "THREADS"
   frmMainui.staCombo.AddItem (strSTA)
-  strSTA = "ADDR"
-  frmMainui.staCombo.AddItem (strSTA)
+  'strSTA = "ADDR"
+  'frmMainui.staCombo.AddItem (strSTA)
 
   frmMainui.staCombo.ListIndex = 0
 End Sub

@@ -1190,6 +1190,8 @@ Public Sub CreateDictionary()
     gDicCountUpper = 0
     frmMainui.maxLabel.Caption = gDicCountUpper
     frmMainui.totalLabel.Caption = gobjDic.Count
+    'add-remove ADDR
+    AddRemAddrInSTACB
   End If
   
   I = 0
@@ -1334,6 +1336,39 @@ Public Function ChkForDigit(key As Integer) As Integer
   If key = 8 Then tKeyAscii = 8
   ChkForDigit = tKeyAscii
 End Function
+'***********************************************************
+' add-remove ADDR from STA combo box
+'***********************************************************
+Public Sub AddRemAddrInSTACB()
+  Dim ss As Integer
+  Dim Value As String
+  Dim found As Boolean
+  
+  ss = 0
+  Value = "ADDR"
+  found = True
+    
+  If frmMainui.queryLV.ListItems.Count = 0 Then
+    For ss = 0 To frmMainui.staCombo.ListCount - 1
+      If frmMainui.staCombo.list(ss) = Value Then
+        frmMainui.staCombo.RemoveItem (ss)
+        frmMainui.staCombo.ListIndex = frmMainui.staCombo.ListCount - 1
+        Exit For
+      End If
+    Next ss
+  Else
+    For ss = 0 To frmMainui.staCombo.ListCount - 1
+      If frmMainui.staCombo.list(ss) = Value Then
+        found = True
+        Exit For
+      Else
+        found = False
+      End If
+    Next ss
+    If found = False Then frmMainui.staCombo.AddItem (Value)
+  End If
+  frmMainui.Refresh
+End Sub
 '***********************************************************
 ' cleaning up globals
 '***********************************************************
