@@ -49,6 +49,9 @@ Source: "D:\tmp\CRAMP-Package\Support\*"; DestDir: "{app}\bin"; Flags: ignorever
 ; CRAMP docs
 Source: "D:\WRKSPS\cvs\cramp\docs\*.ppt"; DestDir: "{app}\docs"; Flags: ignoreversion
 
+; Xerces
+Source: "D:\Applications\xerces\bin\xerces-c_2_3_0.dll"; DestDir: "{app}\bin"; Components: STAF; Flags: ignoreversion
+
 ; STAF files
 Source: "D:\Applications\AutoTest\STAF\bin\*"; DestDir: "{app}\TOOLS\STAF\bin"; Components: STAF; Flags: ignoreversion recursesubdirs
 
@@ -84,5 +87,5 @@ Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environmen
 [Run]
 ; NOTE: The following entry contains an English phrase ("Launch").
 ; You are free to translate it into another language if required.
-Filename: "{app}\docs\CRAMP.ppt"; Description: "Launch CRAMP docs"; Flags: shellexec nowait postinstall skipifsilent
+Filename: "{app}\docs\CRAMP.ppt"; Description: "Launch CRAMP docs"; Flags: shellexec runmaximized nowait postinstall skipifsilent
 Filename: "{app}\bin\CRAMP.exe"; Description: "Launch CRAMP"; Flags: nowait postinstall skipifsilent
