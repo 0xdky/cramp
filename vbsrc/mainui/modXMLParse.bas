@@ -1,31 +1,5 @@
 Attribute VB_Name = "modXMLParse"
-'************************************************************
-'
-'************************************************************
-Public Sub SaveFunction(strFileName As String)
-    Dim xmlDoc As DOMDocument30
-    Set xmlDoc = New DOMDocument30
-    Dim elementNode, newElementNode As IXMLDOMElement
-    Dim RootElementNode As IXMLDOMElement
-    Dim TNode As Node
-    
-    'On Error GoTo ErrorHandler
-    
-    Set TNode = frmMainui.tvwNodes.Nodes(1).root
-    Set elementNode = xmlDoc.createElement("Scenario")
-    
-    elementNode.setAttribute "Id", TNode.Key
-    
-    WriteAttributes elementNode, otScenario, TNode.Key
-    
-    Set RootElementNode = xmlDoc.appendChild(elementNode)
-    
-    WriteChildrenToXMLFile TNode, RootElementNode
-    
-    xmlDoc.Save (strFileName)
-    
-    
-End Sub
+
 
 Public Sub WriteAttributes(ByVal elementNode As IXMLDOMElement, _
                            tblType As ObjectType, _
@@ -48,7 +22,7 @@ Public Sub WriteAttributes(ByVal elementNode As IXMLDOMElement, _
     For ii = 0 To rst.Fields.Count - 1
         
         elementNode.setAttribute rst.Fields.Item(ii).Name, _
-                                rst.Fields.Item(ii).value
+                                rst.Fields.Item(ii).Value
         
     Next ii
     
@@ -150,14 +124,14 @@ Public Sub WriteXMLNodeIntoDB(ByVal nodeElement As IXMLDOMElement)
     Select Case tblType
         Case otScenario
             For ii = 0 To gScenarioAttCounter - 1
-                rst.Fields(ScenarioAttribute(ii, 0)).value = _
+                rst.Fields(ScenarioAttribute(ii, 0)).Value = _
                                     ScenarioAttribute(ii, 1)
                 
             Next ii
         
         Case otGroup
             For ii = 0 To gGroupAttCounter - 1
-                rst.Fields(GroupAttributes(ii, 0)).value = _
+                rst.Fields(GroupAttributes(ii, 0)).Value = _
                                     GroupAttributes(ii, 1)
                 
                 
@@ -165,7 +139,7 @@ Public Sub WriteXMLNodeIntoDB(ByVal nodeElement As IXMLDOMElement)
         
         Case otTestcase
             For ii = 0 To gTestcaseAttCounter - 1
-                rst.Fields(TestcaseAttributes(ii, 0)).value = _
+                rst.Fields(TestcaseAttributes(ii, 0)).Value = _
                                     TestcaseAttributes(ii, 1)
                 
                 
@@ -179,7 +153,7 @@ Public Sub WriteXMLNodeIntoDB(ByVal nodeElement As IXMLDOMElement)
         ChkVal = CheckAttribute(tblType, _
                         nodeElement.Attributes.Item(ii).nodeName)
         If ChkVal Then
-            rst.Fields(nodeElement.Attributes.Item(ii).nodeName).value = _
+            rst.Fields(nodeElement.Attributes.Item(ii).nodeName).Value = _
                 nodeElement.Attributes.Item(ii).nodeValue
         End If
     Next ii
@@ -250,14 +224,14 @@ Public Sub CreateTreeViewAndDB(ByVal nodeElement As IXMLDOMElement, _
     Dim sKey As String
     Dim childNode As IXMLDOMElement
     Dim tvwNode As Node
-    Dim index As Integer
+    Dim Index As Integer
         
     If nodeElement Is Nothing Then
         Exit Sub
     End If
     
-    For index = 0 To nodeElement.childNodes.length - 1
-        Set childNode = nodeElement.childNodes.Item(index)
+    For Index = 0 To nodeElement.childNodes.length - 1
+        Set childNode = nodeElement.childNodes.Item(Index)
         sName = childNode.getAttribute("Name")
         sKey = childNode.getAttribute("Id")
                 
@@ -271,7 +245,7 @@ Public Sub CreateTreeViewAndDB(ByVal nodeElement As IXMLDOMElement, _
         
         CreateTreeViewAndDB childNode, tvwNode
         
-    Next index
+    Next Index
     
 End Sub
 

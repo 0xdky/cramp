@@ -2,10 +2,11 @@ VERSION 5.00
 Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
+   BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
    ClientHeight    =   8220
-   ClientLeft      =   5340
-   ClientTop       =   3075
+   ClientLeft      =   5325
+   ClientTop       =   3060
    ClientWidth     =   8655
    LinkTopic       =   "Form1"
    ScaleHeight     =   8220
@@ -76,7 +77,7 @@ Begin VB.Form frmMainui
          Width           =   1215
       End
       Begin VB.CommandButton cmdRun 
-         Caption         =   "Run"
+         Caption         =   "&Run"
          Height          =   495
          Left            =   6000
          TabIndex        =   8
@@ -84,7 +85,7 @@ Begin VB.Form frmMainui
          Width           =   1215
       End
       Begin VB.CommandButton cmdDelete 
-         Caption         =   "Delete"
+         Caption         =   "&Delete"
          Height          =   495
          Left            =   6000
          TabIndex        =   7
@@ -92,7 +93,7 @@ Begin VB.Form frmMainui
          Width           =   1215
       End
       Begin VB.CommandButton cmdAddTc 
-         Caption         =   "Add Testcase"
+         Caption         =   "Add &Testcase"
          Height          =   495
          Left            =   6000
          TabIndex        =   6
@@ -100,7 +101,7 @@ Begin VB.Form frmMainui
          Width           =   1215
       End
       Begin VB.CommandButton cmdAddGroup 
-         Caption         =   "Add Group"
+         Caption         =   "Add &Group"
          Height          =   495
          Left            =   6000
          TabIndex        =   5
@@ -178,13 +179,43 @@ Begin VB.Form frmMainui
          Caption         =   "&Open"
          Shortcut        =   ^O
       End
+      Begin VB.Menu mnuSpace 
+         Caption         =   "-"
+      End
       Begin VB.Menu mnuSave 
          Caption         =   "&Save"
          Shortcut        =   ^S
       End
       Begin VB.Menu mnuSaveAs 
-         Caption         =   "&SaveAs.."
+         Caption         =   "Save &As.."
          Shortcut        =   ^A
+      End
+      Begin VB.Menu mnuSpace2 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuMRU 
+         Caption         =   ""
+         Index           =   0
+         Visible         =   0   'False
+      End
+      Begin VB.Menu mnuMRU 
+         Caption         =   ""
+         Index           =   1
+         Visible         =   0   'False
+      End
+      Begin VB.Menu mnuMRU 
+         Caption         =   ""
+         Index           =   2
+         Visible         =   0   'False
+      End
+      Begin VB.Menu mnuMRU 
+         Caption         =   ""
+         Index           =   3
+         Visible         =   0   'False
+      End
+      Begin VB.Menu mnuSpace3 
+         Caption         =   "-"
+         Visible         =   0   'False
       End
       Begin VB.Menu mnuExit 
          Caption         =   "E&xit"
@@ -219,11 +250,15 @@ End Sub
 
 Private Sub cmdAddGroup_Click()
     
+    WriteIntoDB
+    
     AddNodeInTreeView tvwNodes.SelectedItem, otGroup
     
 End Sub
 
 Private Sub cmdAddTc_Click()
+    
+    WriteIntoDB
     
     AddNodeInTreeView tvwNodes.SelectedItem, otTestcase
     
@@ -232,10 +267,11 @@ End Sub
 
 Private Sub cmdBrowse_Click()
     Dim ExecPath As String
-    
+    dlgSelect.Flags = cdlOFNNoChangeDir
     dlgSelect.Filter = "EXE Files (*.exe)|*.exe"
     dlgSelect.ShowOpen
     ExecPath = dlgSelect.FileName
+    
     If ExecPath <> "" Then
         lvwAttributes.SelectedItem.SubItems(1) = ExecPath
     End If
@@ -303,16 +339,26 @@ End Sub
 Private Sub Form_Load()
     
     CleanAndRestart
-    
+    InitialiseMRUFileList
     CreateDatabase
         
     AddNodeInTreeView , otScenario
     
-    'ReadAttributes
+    RenameFormWindow
     
 End Sub
 
 
+
+Private Sub Form_Unload(Cancel As Integer)
+    WriteIntoDB
+        
+    CheckSaveStatus
+    
+    SaveIntoMRUFile
+    
+    End
+End Sub
 
 Private Sub lvwAttributes_Click()
     Dim CellWidth As Double
@@ -344,7 +390,7 @@ Private Sub lvwAttributes_Click()
     If Selection = "ExecPath" Then
         cmdBrowse.Move PX + CellWidth - 300, PY
         cmdBrowse.Visible = True
-        SelectedIndex = lvwAttributes.SelectedItem.index
+        SelectedIndex = lvwAttributes.SelectedItem.Index
         
         Exit Sub
     End If
@@ -357,7 +403,7 @@ Private Sub lvwAttributes_Click()
             cboTrueFalse.Visible = True
             cboTrueFalse.Text = Selection
             cboTrueFalse.SetFocus
-            SelectedIndex = lvwAttributes.SelectedItem.index
+            SelectedIndex = lvwAttributes.SelectedItem.Index
             Exit Sub
             
     End Select
@@ -370,12 +416,12 @@ Private Sub lvwAttributes_Click()
     txtInput.Visible = True
     'txtInput.SelText = Selection
     txtInput.SetFocus
-    SelectedIndex = lvwAttributes.SelectedItem.index
+    SelectedIndex = lvwAttributes.SelectedItem.Index
         
 End Sub
 
 Private Sub lvwAttributes_LostFocus()
-    'MsgBox "Lost Focus"
+    
     If cboTrueFalse.Visible Or _
        txtInput.Visible Then
        
@@ -391,8 +437,7 @@ End Sub
 
 
 Private Sub mnuExit_Click()
-    Unload Me
-    End
+    Form_Unload 0
 End Sub
 
 Private Sub mnuFile_Click()
@@ -405,7 +450,31 @@ Private Sub mnuHelp_Click()
     WriteIntoDB
 End Sub
 
+Private Sub mnuMRU_Click(Index As Integer)
+    
+    CheckSaveStatus
+    
+    Dim sScenarioName As String
+    sScenarioName = gMRUList(0, Index)
+    
+    CleanAndRestart
+    
+    CreateDatabase
+
+    gCurScenarioName = sScenarioName
+    gCurFileName = sScenarioName
+    mnuSave.Enabled = True
+    LoadScenario gCurFileName
+    cmdRun.Enabled = True
+    RenameFormWindow
+    UpdateMRUFileList gCurFileName
+    gSaveFlag = False
+    
+End Sub
+
 Private Sub mnuNew_Click()
+    
+    CheckSaveStatus
     
     CleanAndRestart
     
@@ -416,34 +485,39 @@ Private Sub mnuNew_Click()
 End Sub
 
 Private Sub mnuOpen_Click()
-    
-    CleanAndRestart
-    
-    CreateDatabase
-    
     Dim strFileName As String
+    
+    CheckSaveStatus
+    
     dlgSelect.Filter = "XML Files (*.xml)|*.xml"
-    If Not gCurFileName = "" Then
-        dlgSelect.FileName = gCurFileName
-    Else
-        dlgSelect.FileName = ""
-    End If
+    dlgSelect.FileName = ""
     dlgSelect.ShowOpen
     'Set the global file name
-    strFileName = dlgSelect.FileName
-    gCurFileName = strFileName
-    mnuSave.Enabled = True
-    LoadScenario strFileName
-    cmdRun.Enabled = True
+    If dlgSelect.FileName <> "" Then
+        CleanAndRestart
     
+        CreateDatabase
+    
+        gCurScenarioName = Left(dlgSelect.FileTitle, _
+                                (Len(dlgSelect.FileTitle) - 4))
+        strFileName = dlgSelect.FileName
+        gCurFileName = strFileName
+        mnuSave.Enabled = True
+        LoadScenario strFileName
+        cmdRun.Enabled = True
+        RenameFormWindow
+        UpdateMRUFileList strFileName
+        gSaveFlag = False
+    End If
 End Sub
 
 Private Sub mnuSave_Click()
+        
     SaveFunction gCurFileName
 End Sub
 
 Private Sub mnuSaveAs_Click()
-    
+    dlgSelect.Flags = cdlOFNOverwritePrompt
     dlgSelect.Filter = "XML Files (*.xml)|*.xml"
     If Not gCurFileName = "" Then
         dlgSelect.FileName = gCurFileName
@@ -451,12 +525,17 @@ Private Sub mnuSaveAs_Click()
         dlgSelect.FileName = ""
     End If
     dlgSelect.ShowSave
-    'Set the global file name
-    gCurFileName = dlgSelect.FileName
-    If Not gCurFileName = "" Then
-        SaveFunction gCurFileName
-        mnuSave.Enabled = True
-        cmdRun.Enabled = True
+    
+    If dlgSelect.FileTitle <> "" Then
+        gCurScenarioName = Left(dlgSelect.FileTitle, _
+                                (Len(dlgSelect.FileTitle) - 4))
+        gCurFileName = dlgSelect.FileName
+        If Not gCurFileName = "" Then
+            SaveFunction gCurFileName
+            mnuSave.Enabled = True
+            cmdRun.Enabled = True
+        End If
+        RenameFormWindow
     End If
 End Sub
 
@@ -467,11 +546,11 @@ Private Sub tspMainUI_Click()
         fraMainUI(ii).Visible = False
     Next ii
     
-    fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
-    fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
-    frmMainui.Caption = "CRAMP - " & _
-            fraMainUI(tspMainUI.SelectedItem.index - 1).Caption
-                
+    fraMainUI(tspMainUI.SelectedItem.Index - 1).Visible = True
+    fraMainUI(tspMainUI.SelectedItem.Index - 1).Move 600, 840
+    'frmMainui.Caption = "CRAMP - " & _
+            'fraMainUI(tspMainUI.SelectedItem.index - 1).Caption
+    RenameFormWindow
 End Sub
 
 Private Sub tvwNodes_NodeClick(ByVal Node As MSComctlLib.Node)
@@ -487,6 +566,8 @@ Private Sub tvwNodes_NodeClick(ByVal Node As MSComctlLib.Node)
     RefreshData
     
     SetActionButtons
+    
+    gSaveFlag = True
     
 End Sub
 

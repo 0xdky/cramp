@@ -30,9 +30,9 @@ ErrorHandler:
 End Sub
 
 '************************************************************
-'
+' Deprecated sub routine
 '************************************************************
-Private Sub CreateTablesInDB()
+Private Sub CreateTablesInDBOld()
     
     InitialiseTableAttributes
     
@@ -51,6 +51,7 @@ Private Sub CreateTablesInDB()
         tblGroup.Columns.Append GroupAttributes(ii, 0), adVarWChar, 40
     Next ii
     
+    
     tblTestcase.Name = LCase("TestcaseTable")
     For ii = 0 To gTestcaseAttCounter - 1
         If TestcaseAttributes(ii, 0) = "ExecPath" Then
@@ -60,6 +61,74 @@ Private Sub CreateTablesInDB()
         End If
     Next ii
     
+    'Append table to DB
+    ADOXcatalog.Tables.Append tblScenario
+    ADOXcatalog.Tables.Append tblGroup
+    ADOXcatalog.Tables.Append tblTestcase
+    
+End Sub
+
+Private Sub CreateTablesInDB()
+    Dim tblScenario As New ADOX.Table
+    Dim tblGroup As New ADOX.Table
+    Dim tblTestcase As New ADOX.Table
+    Dim ii As Integer
+    
+    Dim sFileName As String
+    Dim sTableAttribute As String
+    Dim sProperty As String
+    Dim sValue As String
+    Dim sValType As String
+    Dim eType As DataTypeEnum
+    
+    gScenarioAttCounter = 0
+    gGroupAttCounter = 0
+    gTestcaseAttCounter = 0
+    
+    tblScenario.Name = LCase("ScenarioTable")
+    tblGroup.Name = LCase("GroupTable")
+    tblTestcase.Name = LCase("TestcaseTable")
+    
+    sFileName = App.Path & "\Attributes.txt"
+    Open sFileName For Input As #1
+    Do Until EOF(1)
+        Input #1, sTableAttribute, sProperty, sValue, sValType
+        eType = adVarWChar
+        Select Case sValType
+            Case "Text"
+                eType = adVarWChar
+            Case "Number"
+                eType = adDouble
+            Case "Integer"
+                eType = adInteger
+            Case "Boolean"
+                eType = adBoolean
+        End Select
+        
+        Select Case sTableAttribute
+            Case "Scenario"
+                ScenarioAttribute(gScenarioAttCounter, 0) = sProperty
+                ScenarioAttribute(gScenarioAttCounter, 1) = sValue
+                tblScenario.Columns.Append sProperty, eType, 40
+                gScenarioAttCounter = gScenarioAttCounter + 1
+            Case "Group"
+                GroupAttributes(gGroupAttCounter, 0) = sProperty
+                GroupAttributes(gGroupAttCounter, 1) = sValue
+                tblGroup.Columns.Append sProperty, eType, 40
+                gGroupAttCounter = gGroupAttCounter + 1
+            Case "Testcase"
+                TestcaseAttributes(gTestcaseAttCounter, 0) = sProperty
+                TestcaseAttributes(gTestcaseAttCounter, 1) = sValue
+                If sProperty = "ExecPath" Then
+                    tblTestcase.Columns.Append sProperty, eType, 200
+                Else
+                    tblTestcase.Columns.Append sProperty, eType, 40
+                End If
+                gTestcaseAttCounter = gTestcaseAttCounter + 1
+        End Select
+    Loop
+    
+    Close #1
     'Append table to DB
     ADOXcatalog.Tables.Append tblScenario
     ADOXcatalog.Tables.Append tblGroup
@@ -163,8 +232,7 @@ Public Sub ShowProperties(tblType As ObjectType)
         
         Case otGroup
             For ii = 0 To gGroupAttCounter - 1
-                If GroupAttributes(ii, 0) <> "Id" And _
-                    GroupAttributes(ii, 0) <> "ParentKey" Then
+                If GroupAttributes(ii, 0) <> "Id" Then
                 Set itmX = frmMainui.lvwAttributes.ListItems.Add(, , _
                                         GroupAttributes(ii, 0))
                 itmX.SubItems(1) = GroupAttributes(ii, 1)
@@ -174,8 +242,7 @@ Public Sub ShowProperties(tblType As ObjectType)
         
         Case otTestcase
             For ii = 0 To gTestcaseAttCounter - 1
-                If TestcaseAttributes(ii, 0) <> "Id" And _
-                    TestcaseAttributes(ii, 0) <> "ParentKey" Then
+                If TestcaseAttributes(ii, 0) <> "Id" Then
                 Set itmX = frmMainui.lvwAttributes.ListItems.Add(, , _
                                         TestcaseAttributes(ii, 0))
                 itmX.SubItems(1) = TestcaseAttributes(ii, 1)
@@ -192,69 +259,36 @@ Public Sub ShowProperties(tblType As ObjectType)
     
 End Sub
 
-'************************************************************
-'
-'************************************************************
+'*****************************************************************
+'Deprecated subroutine
+'*****************************************************************
 Private Function InitialiseTableAttributes()
+    Dim sFileName As String
+    Dim sTableAttribute As String
+    Dim sProperty As String
+    Dim sValue As String
+    Dim sValType As String
     
-    'Scenario table
-    ScenarioAttribute(0, 0) = "Id"
-    ScenarioAttribute(0, 1) = "s001"
-    ScenarioAttribute(1, 0) = "Name"
-    ScenarioAttribute(1, 1) = "Scenario"
-    ScenarioAttribute(2, 0) = "Block"
-    ScenarioAttribute(2, 1) = "TRUE"
-    ScenarioAttribute(3, 0) = "MaxRunTime"
-    ScenarioAttribute(3, 1) = "0"
-    ScenarioAttribute(4, 0) = "MonInterval"
-    ScenarioAttribute(4, 1) = "2000"
-    ScenarioAttribute(5, 0) = "Release"
-    ScenarioAttribute(5, 1) = "E5R13SP2"
-    
-    gScenarioAttCounter = 6
-    
-    'Group table
-    GroupAttributes(0, 0) = "Id"
-    GroupAttributes(0, 1) = "g001"
-    GroupAttributes(1, 0) = "Name"
-    GroupAttributes(1, 1) = "Group"
-    GroupAttributes(2, 0) = "Block"
-    GroupAttributes(2, 1) = "FALSE"
-    GroupAttributes(3, 0) = "IdRef"
-    GroupAttributes(3, 1) = ""
-    GroupAttributes(4, 0) = "MaxRunTime"
-    GroupAttributes(4, 1) = "0"
-    GroupAttributes(5, 0) = "ReInitializeData"
-    GroupAttributes(5, 1) = "FALSE"
-    GroupAttributes(6, 0) = "StopOnFirstFailure"
-    GroupAttributes(6, 1) = "TRUE"
-    GroupAttributes(7, 0) = "ParentKey"
-    GroupAttributes(7, 1) = ""
-                           
-    gGroupAttCounter = 8
-    
-    'Testcases table
-    TestcaseAttributes(0, 0) = "Id"
-    TestcaseAttributes(0, 1) = "t001"
-    TestcaseAttributes(1, 0) = "Name"
-    TestcaseAttributes(1, 1) = "Testcase"
-    TestcaseAttributes(2, 0) = "Block"
-    TestcaseAttributes(2, 1) = "FALSE"
-    TestcaseAttributes(3, 0) = "ExecPath"
-    TestcaseAttributes(3, 1) = ""
-    TestcaseAttributes(4, 0) = "IdRef"
-    TestcaseAttributes(4, 1) = ""
-    TestcaseAttributes(5, 0) = "MaxRunTime"
-    TestcaseAttributes(5, 1) = "0"
-    TestcaseAttributes(6, 0) = "NumRuns"
-    TestcaseAttributes(6, 1) = "1"
-    TestcaseAttributes(7, 0) = "SubProc"
-    TestcaseAttributes(7, 1) = "FALSE"
-    TestcaseAttributes(8, 0) = "ParentKey"
-    TestcaseAttributes(8, 1) = ""
-    
-    gTestcaseAttCounter = 9
-    
+    sFileName = App.Path & "\Attributes.txt"
+    Open sFileName For Input As #1
+    Do Until EOF(1)
+        Input #1, sTableAttribute, sProperty, sValue, sValType
+        
+        Select Case sTableAttribute
+            Case "Scenario"
+                ScenarioAttribute(gScenarioAttCounter, 0) = sProperty
+                ScenarioAttribute(gScenarioAttCounter, 1) = sValue
+                gScenarioAttCounter = gScenarioAttCounter + 1
+            Case "Group"
+                GroupAttributes(gGroupAttCounter, 0) = sProperty
+                GroupAttributes(gGroupAttCounter, 1) = sValue
+                gGroupAttCounter = gGroupAttCounter + 1
+            Case "Testcase"
+                TestcaseAttributes(gTestcaseAttCounter, 0) = sProperty
+                TestcaseAttributes(gTestcaseAttCounter, 1) = sValue
+                gTestcaseAttCounter = gTestcaseAttCounter + 1
+        End Select
+    Loop
 End Function
 
 Public Function ReturnTableName(tblType As ObjectType) As String
@@ -297,10 +331,10 @@ Public Sub WriteIntoDB()
     'rst.MoveFirst
     
     While Not rst.EOF
-        If rst.Fields("Id").value = selectedNode.Key Then
+        If rst.Fields("Id").Value = selectedNode.Key Then
             'Recordset exists, modify it
             For ii = 1 To frmMainui.lvwAttributes.ListItems.Count
-                rst.Fields(frmMainui.lvwAttributes.ListItems(ii).Text).value = _
+                rst.Fields(frmMainui.lvwAttributes.ListItems(ii).Text).Value = _
                         frmMainui.lvwAttributes.ListItems(ii).SubItems(1)
             Next ii
             rst.Update
@@ -318,17 +352,11 @@ Public Sub WriteIntoDB()
     rst.AddNew
     
     For ii = 1 To frmMainui.lvwAttributes.ListItems.Count
-        rst.Fields(frmMainui.lvwAttributes.ListItems(ii).Text).value = _
+        rst.Fields(frmMainui.lvwAttributes.ListItems(ii).Text).Value = _
                 frmMainui.lvwAttributes.ListItems(ii).SubItems(1)
     Next ii
     
-    rst.Fields("Id").value = selectedNode.Key
-    Select Case tblType
-        Case otScenario
-            
-        Case otGroup, otTestcase
-            rst.Fields("ParentKey").value = selectedNode.Parent.Text
-    End Select
+    rst.Fields("Id").Value = selectedNode.Key
     
     rst.Update
     rst.Close
@@ -360,16 +388,15 @@ Public Sub RefreshData()
         cnn, adOpenForwardOnly, adLockReadOnly
     
     Do
-        If rst.Fields("Id").value = selectedNode.Key Then
+        If rst.Fields("Id").Value = selectedNode.Key Then
             'Clear the lstTable first
             frmMainui.lvwAttributes.ListItems.Clear
     
             For ii = 0 To rst.Fields.Count - 1
-                If rst.Fields.Item(ii).Name <> "Id" And _
-                    rst.Fields.Item(ii).Name <> "ParentKey" Then
+                If rst.Fields.Item(ii).Name <> "Id" Then
                 Set itmX = frmMainui.lvwAttributes.ListItems.Add(, , _
                                     rst.Fields.Item(ii).Name)
-                itmX.SubItems(1) = rst.Fields.Item(ii).value
+                itmX.SubItems(1) = rst.Fields.Item(ii).Value
                 End If
                 
             Next ii
