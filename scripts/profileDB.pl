@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-27 15:56:58 dhruva>
+## Time-stamp: <2003-10-27 17:29:04 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -33,6 +33,46 @@ my $f_logtxt;
 my $f_logfin;
 my $f_queryout;
 my $cramplogdir=".";
+
+##-----------------------------------------------------------------------------
+## SetDBFilters
+##  Install DBM Filters to make NULL terminated strings
+##-----------------------------------------------------------------------------
+sub SetDBFilters{
+    if(!defined($_[0])){
+        warn("SetDBFilters: Undefined DB handle");
+        return 1;
+    }
+    $_[0]->filter_fetch_key  ( sub { s/\0$//    } ) ;
+    $_[0]->filter_store_key  ( sub { $_ .= "\0" } ) ;
+    $_[0]->filter_fetch_value( sub { s/\0$//    } ) ;
+    $_[0]->filter_store_value( sub { $_ .= "\0" } ) ;
+    return 0;
+}
+
+##-----------------------------------------------------------------------------
+## TickCompare
+##-----------------------------------------------------------------------------
+sub TickCompare{
+    my @l1=split(/\|/,$_[0]);
+    my @l2=split(/\|/,$_[1]);
+
+    my $k1=$l1[-1];
+    my $k2=$l2[-1];
+
+    $k1=~s/\0$//;
+    $k2=~s/\0$//;
+
+    $k1=sprintf("%d",$k1);
+    $k2=sprintf("%d",$k2);
+
+    if($k1 < $k2){
+        return 1;
+    }elsif($k1 > $k2){
+        return -1;
+    }
+    return 0;
+}
 
 ##-----------------------------------------------------------------------------
 ## WriteResults
@@ -126,22 +166,6 @@ sub ProcessArgs{
         print STDERR "Error: Unknown command";
         return 1;
     }
-    return 0;
-}
-
-##-----------------------------------------------------------------------------
-## SetDBFilters
-##  Install DBM Filters to make NULL terminated strings
-##-----------------------------------------------------------------------------
-sub SetDBFilters{
-    if(!defined($_[0])){
-        warn("SetDBFilters: Undefined DB handle");
-        return 1;
-    }
-    $_[0]->filter_fetch_key  ( sub { s/\0$//    } ) ;
-    $_[0]->filter_store_key  ( sub { $_ .= "\0" } ) ;
-    $_[0]->filter_fetch_value( sub { s/\0$//    } ) ;
-    $_[0]->filter_store_value( sub { $_ .= "\0" } ) ;
     return 0;
 }
 
@@ -387,37 +411,6 @@ sub GetFunctionCalls{
     undef $db;
 
     return @results;
-}
-
-##-----------------------------------------------------------------------------
-## TickCompare
-##-----------------------------------------------------------------------------
-sub TickCompare{
-    my ($key1,$key2)=@_;
-    my @l1=split(/\|/,$key1);
-    my @l2=split(/\|/,$key2);
-    if($l1[-1] lt $l2[-1]){
-        return 1;
-    }elsif($l1[-1] gt $l2[-1]){
-        return -1;
-    }
-    return 0;
-}
-
-##-----------------------------------------------------------------------------
-## DepthCompare
-##  Higher depth has lower precedence
-##-----------------------------------------------------------------------------
-sub DepthCompare{
-    my ($key1,$key2)=@_;
-    my @l1=split(/\|/,$key1);
-    my @l2=split(/\|/,$key2);
-    if($l1[-4] lt $l2[-4]){
-        return 1;
-    }elsif($l1[-4] gt $l2[-4]){
-        return -1;
-    }
-    return 0;
 }
 
 ##-----------------------------------------------------------------------------
