@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-07 14:33:35 pmistry>
+// Time-stamp: <2003-10-08 11:13:19 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -90,15 +90,22 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
       ReferStatus(TRUE);
       Reference(ptc);
     }
-  }else if(p_pgroup){
-    u_uid=AUTO_UNIQUE_BASE+Scenario()->l_gc.size();
   }
 
   // Adding group/testcase to group. Scenerio does not have parent!
   // Add this at end or you will find it and create a CYCLIC link!!
   if(p_pgroup){
-    p_pgroup->l_tci.push_back(this);
-    p_scenario->l_gc.push_back(this);
+    try{
+      ListOfTestCaseInfo lgc=GetListOfGC();
+      p_pgroup->l_tci.push_back(this);
+      lgc.push_back(this);
+      if(!u_uid)
+        u_uid=AUTO_UNIQUE_BASE+lgc.size();
+      ReleaseListOfGC();
+    }
+    catch(CRAMPException excep){
+      throw(excep);
+    }
   }
 }
 
@@ -151,6 +158,25 @@ TestCaseInfo::hashstring(const char *s){
 TestCaseInfo
 *TestCaseInfo::CreateScenario(const char *iUniqueID,
                               BOOLEAN iBlock){
+  HANDLE h_mutex=0;
+  h_mutex=OpenMutex(SYNCHRONIZE,TRUE,GC_MUTEX);
+  if(h_mutex){
+    CloseHandle(h_mutex);
+    CRAMPException excep;
+    excep._error=ERROR_ALREADY_EXISTS;
+    excep._message="ERROR: Another CRAMP process running currently!";
+    SetLastError(excep._error);
+    throw(excep);
+  }
+
+  if(!CreateMutex(NULL,FALSE,GC_MUTEX)){
+    CRAMPException excep;
+    excep._error=ERROR_INVALID_HANDLE;
+    excep._message="ERROR: Unable to create MUTEX object!";
+    SetLastError(excep._error);
+    throw(excep);
+  }
+
   TestCaseInfo *pScenario=0;
   try{
     pScenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
@@ -158,6 +184,7 @@ TestCaseInfo
   catch(CRAMPException excep){
     DEBUGCHK(0);
   }
+
   return(pScenario);
 }
 
@@ -168,9 +195,16 @@ BOOLEAN
 TestCaseInfo::DeleteScenario(TestCaseInfo *ipScenario){
   if(!ipScenario||!ipScenario->GroupStatus()||ipScenario->GetParentGroup())
     return(FALSE);
-  ListOfTestCaseInfo::iterator start=ipScenario->l_gc.begin();
-  ListOfTestCaseInfo::iterator end=ipScenario->l_gc.end();
-  std::for_each(start,end,ApplyDelete);
+  try{
+    ListOfTestCaseInfo lgc=ipScenario->GetListOfGC();
+    ListOfTestCaseInfo::iterator start=lgc.begin();
+    ListOfTestCaseInfo::iterator end=lgc.end();
+    std::for_each(start,end,ApplyDelete);
+    ipScenario->ReleaseListOfGC();
+  }
+  catch(CRAMPException excep){
+    // Do nothing now!
+  }
   ::delete ipScenario;
   ipScenario=0;
   return(TRUE);
@@ -405,6 +439,45 @@ TestCaseInfo::ProcessInfo(PROCESS_INFORMATION iProcInfo){
 }
 
 //-----------------------------------------------------------------------------
+// GetListOfGC
+//-----------------------------------------------------------------------------
+ListOfTestCaseInfo
+&TestCaseInfo::GetListOfGC(void){
+  DEBUGCHK(Scenario());
+  HANDLE h_mutex=0;
+  h_mutex=OpenMutex(SYNCHRONIZE,TRUE,GC_MUTEX);
+  if(!h_mutex){
+    CRAMPException excep;
+    excep._error=ERROR_INVALID_HANDLE;
+    excep._message="ERROR: Cannot find l_gc mutex object";
+    SetLastError(excep._error);
+    throw(excep);
+  }
+  WaitForSingleObject(h_mutex,INFINITE);
+  CloseHandle(h_mutex);
+  return(Scenario()->l_gc);
+}
+
+//-----------------------------------------------------------------------------
+// ReleaseListOfGC
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::ReleaseListOfGC(void){
+  HANDLE h_mutex=0;
+  h_mutex=OpenMutex(SYNCHRONIZE,TRUE,GC_MUTEX);
+  if(!h_mutex){
+    CRAMPException excep;
+    excep._error=ERROR_INVALID_HANDLE;
+    excep._message="ERROR: Cannot find l_gc mutex object for release";
+    SetLastError(excep._error);
+    throw(excep);
+  }
+  CloseHandle(h_mutex);
+  ReleaseMutex(h_mutex);
+  return;
+}
+
+//-----------------------------------------------------------------------------
 // GetListOfTCI
 //-----------------------------------------------------------------------------
 ListOfTestCaseInfo
@@ -449,20 +522,29 @@ TestCaseInfo
     return(0);
 
   TestCaseInfo *ptc=0;
-  if(!pscenario->l_gc.size())
-    return(ptc);
-  ListOfTestCaseInfo::iterator iter=pscenario->l_gc.begin();
-  for(;iter!=pscenario->l_gc.end();iter++){
-    TestCaseInfo *pttc=(*iter);
-    if(!pttc)
-      continue;
-    if(pttc->UniqueID()==iuid){
-      if(pttc->ReferStatus())
-        ptc=pttc->Reference();
-      else
-        ptc=pttc;
-      break;
-    }
+  try{
+    ListOfTestCaseInfo lgc=GetListOfGC();
+    do{
+      if(!lgc.size())
+        break;
+      ListOfTestCaseInfo::iterator iter=pscenario->l_gc.begin();
+      for(;iter!=pscenario->l_gc.end();iter++){
+        TestCaseInfo *pttc=(*iter);
+        if(!pttc)
+          continue;
+        if(pttc->UniqueID()==iuid){
+          if(pttc->ReferStatus())
+            ptc=pttc->Reference();
+          else
+            ptc=pttc;
+          break;
+        }
+      }
+    }while(0);
+    ReleaseListOfGC();
+  }
+  catch(CRAMPException excep){
+    DEBUGCHK(ptc);
   }
   return(ptc);
 }

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-07 14:35:50 pmistry>
+// Time-stamp: <2003-10-08 10:59:37 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -180,7 +180,11 @@ XMLParse::ParseXMLFile(void){
 
     // SCENARIO
     DOMNode *rootnode=rootElem;
-    ScanXMLFile(rootnode,SCENARIO);
+    if(!ScanXMLFile(rootnode,SCENARIO)){
+      if(_pRoot)
+        TestCaseInfo::DeleteScenario(_pRoot);
+      break;
+    }
     ret=true;
   }while(0);
 
@@ -193,20 +197,21 @@ XMLParse::ParseXMLFile(void){
 //-----------------------------------------------------------------------------
 // ScanXMLFile
 //-----------------------------------------------------------------------------
-void
+bool
 XMLParse::ScanXMLFile(DOMNode *parentchnode,int type){
   // SCENARIO
   if(SCENARIO==type)
-    ScanForAttributes(parentchnode,SCENARIO);
+    if(!ScanForAttributes(parentchnode,SCENARIO))
+      return(false);
 
   // Get all nodes
   DOMNodeList *childlist=parentchnode->getChildNodes();
   if(!childlist)
-    return;
+    return(false);
 
   int childsize=childlist->getLength();
   if(!childsize)
-    return;
+    return(false);
 
   char  *textName="#text";
   char  *groupName="GROUP";
@@ -219,44 +224,48 @@ XMLParse::ScanXMLFile(DOMNode *parentchnode,int type){
     if(!parentchnode)
       continue;
 
-    char *parentchname=XMLString::transcode(parentchnode->getNodeName());
+    char *parentchname=0;
+    parentchname=XMLString::transcode(parentchnode->getNodeName());
 
-    // #text
+    // #TEXT
     if(!stricmp(parentchname,textName))
       continue;
 
     // GROUP
     if(!stricmp(parentchname,groupName)){
-      ScanForAttributes(parentchnode,GROUP);
-      ScanXMLFile(parentchnode,GROUP);
+      if(!ScanForAttributes(parentchnode,GROUP))
+        return(false);
+      if(!ScanXMLFile(parentchnode,GROUP))
+        return(false);
     }else if(!stricmp(parentchname,testcaseName)){
       // TESTCASE
-      ScanForAttributes(parentchnode,TESTCASE);
+      if(!ScanForAttributes(parentchnode,TESTCASE))
+        return(false);
     }
     XMLString::release(&parentchname);
   }
-  return;
+  return(true);
 }
 
 //-----------------------------------------------------------------------------
 // ScanForAttributes
 //-----------------------------------------------------------------------------
-void
+bool
 XMLParse::ScanForAttributes(DOMNode *rootnode,
                             int type){
   if(!rootnode)
-    return;
+    return(false);
 
   int SecSize=0;
   DOMNamedNodeMap *pSceAttlist=0;
 
   pSceAttlist=rootnode->getAttributes();
   if(!pSceAttlist)
-    return;
+    return(false);
 
   SecSize=pSceAttlist->getLength();
   if(!SecSize)
-    return;
+    return(false);
 
   std::list<MyElement> myelement;
   TestCaseInfo *pChild=0;
@@ -295,10 +304,15 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
   switch(type){
     case SCENARIO:
       // Create scenario group
-      pChild=TestCaseInfo::CreateScenario(pIDval);
-      _pRoot=pChild;
-      _pCurrentParent=_pRoot;
-      created=true;
+      try{
+        pChild=TestCaseInfo::CreateScenario(pIDval);
+        _pRoot=pChild;
+        _pCurrentParent=_pRoot;
+        created=true;
+      }
+      catch(CRAMPException excep){
+        return(false);
+      }
       break;
     case GROUP:
       // Create group
@@ -321,6 +335,7 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
 
   DEBUGCHK(pChild);
 
+  bool ret=false;
   do{
     if(!pChild)
       break;
@@ -370,9 +385,10 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
     }
     pChild=0;
     myelement.clear();
+    ret=true;
   }while(0);
 
-  return;
+  return(ret);
 }
 
 //-----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-07 14:30:32 pmistry>
+// Time-stamp: <2003-10-08 10:40:42 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -19,6 +19,7 @@
 
 // User defined Unique ID's cannot be greater than this
 #define AUTO_UNIQUE_BASE 55555
+#define GC_MUTEX "GC_LIST_MUTEX"
 
 //----------------------- GENERIC STRUCTS AND TYPEDEFS-------------------------
 // For getting active processes
@@ -39,6 +40,7 @@ public:
   ~TestCaseInfo();
 
   // To create a new scenario
+  // Can throw CRAMPException on error
   static TestCaseInfo *CreateScenario(const char *iUniqueID=0,
                                       BOOLEAN iBlock=TRUE);
 
@@ -54,6 +56,14 @@ public:
 
   TestCaseInfo *GetParentGroup(void);
   std::list<TestCaseInfo *> &GetListOfTCI(void);
+
+  // Use this to ensure thread safety
+  // Call ReleaseListOfGC() after using the list
+  // Can throw CRAMPException on error
+  std::list<TestCaseInfo *> &GetListOfGC(void);
+  // Call this to release the MUTEX object
+  // Can throw CRAMPException on error
+  void ReleaseListOfGC(void);
 
   TestCaseInfo *Scenario(void);
 
@@ -112,7 +122,6 @@ private:
   std::string s_pname;              // Process name
   PROCESS_INFORMATION pi_procinfo;  // Test case's process information
 
-  // Timer data
   HANDLE h_deltimer;                // Timer to kill proc if time limited
 
 private:

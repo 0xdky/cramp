@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-07 14:01:53 pmistry>
+// Time-stamp: <2003-10-08 10:56:35 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.h
 // Desc : Header file for scenario file parsing
@@ -18,18 +18,17 @@
 XERCES_CPP_NAMESPACE_USE
 
 class XMLParse{
-public :
-  XMLParse( const char * iXMLFileName );
+public:
+  XMLParse(const char *iXMLFileName);
   virtual ~XMLParse();
 
   bool ParseXMLFile(void);
   TestCaseInfo *GetScenario(void);
-
 private :
   const char      *_pXMLFileName;
   TestCaseInfo    *_pRoot;
   TestCaseInfo    *_pCurrentParent;
 
-  void ScanXMLFile( DOMNode * parentchnode, int type );
-  void ScanForAttributes(DOMNode *rootnode, int type );
+  bool ScanXMLFile(DOMNode *parentchnode,int type);
+  bool ScanForAttributes(DOMNode *rootnode,int type);
 };
