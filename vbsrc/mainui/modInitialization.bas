@@ -121,6 +121,9 @@ Public Sub GetEnvironmentVariable()
     frmMainui.queryText.Enabled = True
   End If
   
+  'get computer name
+  GetLocalComputerName
+
 End Sub
 
 '***********************************************************

@@ -248,6 +248,10 @@ Private Declare Function FindClose Lib "kernel32.dll" (ByVal hFindFile As Long) 
 
 Private Declare Function GetCursorPos Lib "user32" (lpPoint As POINTCORD) As Long
 
+Private Declare Function GetComputerNameEx Lib "kernel32" Alias "GetComputerNameExA" _
+                         (ByVal lpCompName As COMPUTER_NAME_FORMAT, ByVal lpBuffer As String, _
+                          nSize As Long) As Long
+
 Private Const MAX_PATH = 260
 
 Private Type FILETIME
@@ -308,6 +312,18 @@ Private Type HDITEM
    iImage   As Long
    iOrder   As Long
 End Type
+
+Private Enum COMPUTER_NAME_FORMAT
+  ComputerNameNetBIOS
+  ComputerNameDnsHostname
+  ComputerNameDnsDomain
+  ComputerNameDnsFullyQualified
+  ComputerNamePhysicalNetBIOS
+  ComputerNamePhysicalDnsHostname
+  ComputerNamePhysicalDnsDomain
+  ComputerNamePhysicalDnsFullyQualified
+  ComputerNameMax
+End Enum
 
 Public Function SetValueEx(ByVal hKey As Long, sValueName As String, _
 lType As Long, vValue As Variant) As Long
@@ -717,4 +733,22 @@ Public Function ChkDuplicateValueInArray(processidArray() As String, tmpStr As S
       End If
   Next
 End Function
+
+'***********************************************************
+' get the local computer name
+'***********************************************************
+Public Sub GetLocalComputerName()
+    Dim pc_name As String
+    pc_name = String(50, Chr(0))
+    
+    GetComputerNameEx ComputerNamePhysicalDnsFullyQualified, pc_name, 50
+    StripNulls pc_name
+    pc_name = Trim(pc_name)
+    'MsgBox pc_name
+    
+    If pc_name <> "" Then
+      frmMainui.compnameText.Text = pc_name
+    End If
+    
+End Sub
 
