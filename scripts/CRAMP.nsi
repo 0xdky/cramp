@@ -79,10 +79,11 @@ Section "CRAMP Engine" SEC01
   CreateShortCut "$SMPROGRAMS\CRAMP\docs\CRAMP.lnk" "$INSTDIR\docs\CRAMP.ppt"
 
   CreateShortCut "$DESKTOP\CRAMP.lnk" "$INSTDIR\bin\CRAMP.exe"
-  
+
+  WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
+                    "CRAMP_PATH" $INSTDIR
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                     "CRAMP_LOGPATH" $TEMP
-
 SectionEnd
 
 Section "CRAMP Profiler" SEC02
@@ -108,7 +109,6 @@ Section "CRAMP Profiler" SEC02
               "CRAMP_PROFILE_MAXCALLLIMIT" 0
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                     "CRAMP_LOGPATH" $TEMP
-
 SectionEnd
 
 Section "STAF" SEC03
@@ -122,7 +122,6 @@ Section "STAF" SEC03
 
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                     "STAF_PATH" "$INSTDIR\TOOLS\STAF"
-
 SectionEnd
 
 Section "PERL" SEC04
@@ -140,7 +139,6 @@ Section -AdditionalIcons
 
   CreateShortCut "$SMPROGRAMS\CRAMP\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
   CreateShortCut "$SMPROGRAMS\CRAMP\Uninstall.lnk" "$INSTDIR\uninst.exe"
-
 SectionEnd
 
 Section -Post
@@ -153,6 +151,8 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
+  
+  SetRebootFlag true
 SectionEnd
 
 ; Section descriptions
@@ -184,6 +184,8 @@ Section Uninstall
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                  "STAF_PATH"
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
+                 "CRAMP_PATH"
+  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                  "CRAMP_LOGPATH"
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                  "CRAMP_DEBUG"
@@ -202,4 +204,5 @@ Section Uninstall
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 
   SetAutoClose true
+  SetRebootFlag true
 SectionEnd
