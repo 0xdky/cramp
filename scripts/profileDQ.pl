@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-23 14:31:33 dky>
+## Time-stamp: <2004-02-23 16:13:38 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -301,20 +301,18 @@ sub ProcessArgs{
         }
       } elsif ($ARGV[3]=~/RAW/) {
         $min=$ARGV[4]-1;
+        if ($min < 0) {
+          $min=0;
+        }
+
         $max=-1;
         if ($#ARGV>=5) {
           $max=$ARGV[5]-1;
         }
 
-        my @idx;
-        if ($max<$min) {
-          @idx=();
-        } elsif ($min>=0 && $max>=0) {
-          if ($min==$max) {
-            @idx=($min);
-          } else {
-            @idx=($min..$max);
-          }
+        my @idx=();
+        if ($min>=0 && $max>=0) {
+          @idx=($min..($min+$max));
         }
         foreach (@tidlist) {
           push(@values,GetRawValuesFromIDs($_,$min,@idx));
