@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 12:07:55 dhruva>
+// Time-stamp: <2003-10-25 13:42:18 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: The CallMonitor class definition
@@ -41,6 +41,12 @@ void RDTSC(DWORD &low,long &high)
   low = L; high = H;
 }
 #endif
+
+// Basic structure for function call hash value
+typedef struct{
+  SIZE_T _calls;
+  BOOLEAN _pending;
+}FuncInfo;
 
 class CallMonitor
 {

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 16:58:39 dhruva>
+// Time-stamp: <2003-10-25 13:51:47 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -27,7 +27,7 @@ long g_l_stoplogging=0;
 long g_l_calldepthlimit=10;
 
 std::queue<std::string> g_LogQueue;
-std::hash_map<unsigned int,SIZE_T> g_hFuncCalls;
+std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
 
 CRITICAL_SECTION g_cs_log;
 CRITICAL_SECTION g_cs_prof;
@@ -41,19 +41,24 @@ void CALLBACK FlushLogCB(void *,BOOLEAN);
 
 BOOL OnProcessStart(void);
 BOOL OnProcessEnd(void);
+void FlushLogQueue(void);
 
 //-----------------------------------------------------------------------------
 // CRAMP_DumpFunctionInfo
 //-----------------------------------------------------------------------------
 extern "C" __declspec(dllexport)
   void CRAMP_DumpFunctionInfo(void){
+  // Usually this iscalled to collect all logs
+  // Hence, flush all logs before getting logs
+  FlushLogQueue();
+
   FILE *fFuncInfo=0;
   char filename[256];
   sprintf(filename,"%s/cramp_funcinfo#%d.log",
           logpath,
           GetCurrentProcessId());
 
-  fFuncInfo=fopen(filename,"wc");
+  fFuncInfo=fopen(filename,"ac");
   if(!fFuncInfo)
     return;
 
@@ -76,8 +81,13 @@ extern "C" __declspec(dllexport)
     EnterCriticalSection(&g_cs_prof);
 
     std::queue<std::string> q_funcinfo;
-    std::hash_map<unsigned int,SIZE_T>::iterator iter=g_hFuncCalls.begin();
+    std::hash_map<unsigned int,FuncInfo>::iterator iter=g_hFuncCalls.begin();
     for(;iter!=g_hFuncCalls.end();iter++){
+      // Ensure, you do not revisit between calls
+      if(!(*iter).second._pending)
+        continue;
+      (*iter).second._pending=FALSE;
+
       unsigned int addr=(*iter).first;
       VirtualQuery((void *)addr,&mbi,sizeof(mbi));
       GetModuleFileName((HMODULE)mbi.AllocationBase,
@@ -236,6 +246,23 @@ extern "C" __declspec(dllexport)
 }
 
 //-----------------------------------------------------------------------------
+// FlushLogQueue
+//-----------------------------------------------------------------------------
+inline void
+FlushLogQueue(void){
+  if(!g_fLogFile)
+    return;
+  EnterCriticalSection(&g_cs_log);
+  while(!g_LogQueue.empty()){
+    fprintf(g_fLogFile,"%s\n",g_LogQueue.front().c_str());
+    g_LogQueue.pop();
+  }
+  LeaveCriticalSection(&g_cs_log);
+  fflush(g_fLogFile);
+  return;
+}
+
+//-----------------------------------------------------------------------------
 // OnProcessStart
 //-----------------------------------------------------------------------------
 BOOL
@@ -281,8 +308,8 @@ OnProcessStart(void){
       DeleteCriticalSection(&g_cs_prof);
       break;
     }
-    // This is not a critical thread
-    SetThreadPriority(h_logthread,THREAD_PRIORITY_BELOW_NORMAL);
+    // This is not a critical thread, when logs are 0
+    SetThreadPriority(h_logthread,THREAD_PRIORITY_LOWEST);
 
     // Set this if all succeeds
     valid=TRUE;
@@ -297,15 +324,7 @@ OnProcessStart(void){
 BOOL
 OnProcessEnd(void){
   InterlockedExchange(&g_l_stoplogging,1);
-
-  // Mop up the left over logs
-  while(!g_LogQueue.empty()){
-    EnterCriticalSection(&g_cs_log);
-    fprintf(g_fLogFile,"%s\n",g_LogQueue.front().c_str());
-    g_LogQueue.pop();
-    LeaveCriticalSection(&g_cs_log);
-  }
-
+  FlushLogQueue();
   CRAMP_DumpFunctionInfo();
   DeleteCriticalSection(&g_cs_log);
   DeleteCriticalSection(&g_cs_prof);
@@ -316,10 +335,21 @@ OnProcessEnd(void){
 // FlushLogCB
 //-----------------------------------------------------------------------------
 void CALLBACK
-FlushLogCB(void *flog,BOOLEAN itcb){
+FlushLogCB(void *iLogThread,BOOLEAN itcb){
   if(!g_fLogFile)
     return;
   fflush(g_fLogFile);
+  if(!iLogThread)
+    return;
+
+  // Dynamic modification of thread priority
+  // depending on log queue size
+  HANDLE h_logth=iLogThread;
+  if(g_LogQueue.size()>(2*CRAMP_LOG_BUFFER_LIMIT))
+    SetThreadPriority(h_logth,THREAD_PRIORITY_HIGHEST);
+  else if(g_LogQueue.size()<CRAMP_LOG_BUFFER_LIMIT)
+    SetThreadPriority(h_logth,THREAD_PRIORITY_BELOW_NORMAL);
+
   return;
 }
 
@@ -333,7 +363,8 @@ DumpLogsTH(void){
 
   long dest=0;
   HANDLE h_time=0;
-  if(!CreateTimerQueueTimer(&h_time,NULL,FlushLogCB,NULL,
+  HANDLE h_cth=GetCurrentThread();
+  if(!CreateTimerQueueTimer(&h_time,NULL,FlushLogCB,h_cth,
                             500,500,
                             WT_EXECUTEINIOTHREAD))
     h_time=0;

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 12:43:04 dhruva>
+// Time-stamp: <2003-10-25 13:49:09 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -36,15 +36,7 @@ static const unsigned OFFSET_CALL_BYTES=5;
 extern long g_l_profile;
 extern long g_l_calldepthlimit;
 extern CRITICAL_SECTION g_cs_prof;
-extern std::hash_map<unsigned int,SIZE_T> g_hFuncCalls;
-
-// To minimize calls to system methods
-typedef struct{
-  SIZE_T _calls;
-  BOOLEAN _profile;
-  char _modname[256];
-  char _funcname[512];
-}FuncInfo;
+extern std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
 
 // Start of MSVC-specific code
 
@@ -203,14 +195,14 @@ void CallMonitor::queryTickFreq(TICKS *t)
 // use, copy, modify, distribute, and sell this source code as
 // long as this copyright notice appears in all source files.
 
-
 //-----------------------------------------------------------------------------
 // indent
 //   Utility functions
 //-----------------------------------------------------------------------------
-void indent(int level)
-{
-  for(int i=0;i<level;i++) putchar('\t');
+void indent(int level){
+  for(int i=0;i<level;i++)
+    putchar('\t');
+  return;
 }
 
 //
@@ -246,6 +238,7 @@ CallMonitor::threadAttach(CallMonitor *newObj){
 void
 CallMonitor::threadDetach(){
   delete &threadObj();
+  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -254,7 +247,7 @@ CallMonitor::threadDetach(){
 CallMonitor &CallMonitor::threadObj(){
   CallMonitor *self = (CallMonitor *)
     TlsGetValue(tlsSlot);
-  return *self;
+  return(*self);
 }
 
 //-----------------------------------------------------------------------------
@@ -287,13 +280,15 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
   CallInfo &ci=callInfoStack.back();
   ci.funcAddr=funcAddr;
 
-  std::hash_map<ADDR,SIZE_T>::iterator iter;
+  std::hash_map<ADDR,FuncInfo>::iterator iter;
   EnterCriticalSection(&g_cs_prof);
   iter=g_hFuncCalls.find(funcAddr);
-  if(iter==g_hFuncCalls.end())
-    g_hFuncCalls[funcAddr]=1;
-  else
-    (*iter).second++;
+  if(iter==g_hFuncCalls.end()){
+    FuncInfo fi={1,TRUE};
+    g_hFuncCalls[funcAddr]=fi;
+  }else{
+    (*iter).second._calls++;
+  }
   LeaveCriticalSection(&g_cs_prof);
 
   ci.startTime=0;
@@ -317,7 +312,6 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
                            const TICKS &endTime){
   // Pops shadow stack until finding a call record
   // that matches the current stack layout.
-  bool inSync=false;
   while(1){
     // Retrieve original call record
     CallInfo &ci=callInfoStack.back();
@@ -331,6 +325,7 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
     logExit(ci,false);          // Record exceptional exit
     callInfoStack.pop_back();
   }
+  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -344,6 +339,7 @@ CallMonitor::logEntry(CallInfo &ci){
   getFuncInfo(ci.funcAddr,module,name);
   printf("%s!%s (%08X)\n",module.c_str(),
          name.c_str(),ci.funcAddr);
+  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -359,6 +355,7 @@ CallMonitor::logExit(CallInfo &ci,bool normalRet){
   printf("exit %08X, elapsed time=%I64d ms (%I64d ticks)\n",ci.funcAddr,
          (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
          (ci.endTime-ci.startTime));
+  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -375,7 +372,8 @@ DumpLastError(){
                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
                 (LPTSTR) &lpMsgBuf,    0,    NULL );
   OutputDebugString((LPCTSTR)lpMsgBuf);
-  LocalFree( lpMsgBuf );
+  LocalFree(lpMsgBuf);
+  return;
 }
 
 //-----------------------------------------------------------------------------
