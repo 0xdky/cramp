@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-09 16:45:57 dhruva>
+// Time-stamp: <2003-10-09 17:02:11 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -679,6 +679,27 @@ TestCaseInfo::AddLog(std::string ilog){
 }
 
 //-----------------------------------------------------------------------------
+// DumpLog
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::DumpLog(ofstream &ifout){
+  if(!ifout.is_open())
+    return(FALSE);
+
+  EnterCriticalSection(&cs_log);
+  std::list<std::string>::iterator liter=l_log.begin();
+  for(;liter!=l_log.end();liter++)
+    ifout << (*liter).c_str() << endl;
+  LeaveCriticalSection(&cs_log);
+
+  ListOfTestCaseInfo::iterator iter=l_tci.begin();
+  for(;iter!=l_tci.end();iter++)
+    (*iter)->DumpLog(ifout);
+
+  return(TRUE);
+}
+
+//-----------------------------------------------------------------------------
 // DumpLogToDOM
 //-----------------------------------------------------------------------------
 BOOLEAN
@@ -695,7 +716,13 @@ TestCaseInfo::DumpLogToDOM(DOMNode *ipDomNode){
   pDomDoc=ipDomNode->getOwnerDocument();
 
   // Create the element
-  XMLString::transcode("TESTCASE",xmlstr,255);
+  if(GroupStatus()){
+    if(GetParentGroup())
+      XMLString::transcode("GROUP",xmlstr,255);
+    else
+      XMLString::transcode("SCENARIO",xmlstr,255);
+  }else
+    XMLString::transcode("TESTCASE",xmlstr,255);
   pDomElem=pDomDoc->createElement(xmlstr);
   ipDomNode->appendChild(pDomElem);
 
@@ -714,33 +741,15 @@ TestCaseInfo::DumpLogToDOM(DOMNode *ipDomNode){
     XMLString::transcode("LOG",xmlstr,255);
     pDomChildElem=pDomDoc->createElement(xmlstr);
     pDomElem->appendChild(pDomChildElem);
+    XMLString::transcode((*liter).c_str(),xmlstr,255);
+    pDomText=pDomDoc->createTextNode(xmlstr);
+    pDomChildElem->appendChild(pDomText);
   }
   LeaveCriticalSection(&cs_log);
 
   ListOfTestCaseInfo::iterator iter=l_tci.begin();
   for(;iter!=l_tci.end();iter++)
     (*iter)->DumpLogToDOM(pDomElem);
-
-  return(TRUE);
-}
-
-//-----------------------------------------------------------------------------
-// DumpLog
-//-----------------------------------------------------------------------------
-BOOLEAN
-TestCaseInfo::DumpLog(ofstream &ifout){
-  if(!ifout.is_open())
-    return(FALSE);
-
-  EnterCriticalSection(&cs_log);
-  std::list<std::string>::iterator liter=l_log.begin();
-  for(;liter!=l_log.end();liter++)
-    ifout << (*liter).c_str() << endl;
-  LeaveCriticalSection(&cs_log);
-
-  ListOfTestCaseInfo::iterator iter=l_tci.begin();
-  for(;iter!=l_tci.end();iter++)
-    (*iter)->DumpLog(ifout);
 
   return(TRUE);
 }

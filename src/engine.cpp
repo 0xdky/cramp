@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-09 16:11:37 dhruva>
+// Time-stamp: <2003-10-09 17:11:33 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -201,7 +201,7 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
                       &si,
                       &pi)){
       dwret=0;
-      ptc->AddLog("MESSAGE|ERROR|PROCESS|Could not create process");
+      ptc->AddLog("MESSAGE|ERROR|PROC|Could not create process");
       continue;
     }
 
@@ -221,7 +221,7 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
 
     // Set some process information
     porigtc->ProcessInfo(pi);
-    ptc->AddLog("MESSAGE|OKAY|PROCESS|Created process");
+    ptc->AddLog("MESSAGE|OKAY|PROC|Created process");
 
     if(blocked){
       ResumeThread(pi.hThread);
@@ -350,6 +350,7 @@ JobNotifyTH(PVOID){
     TestCaseInfo *ptc=0;
 
     if(CompKey==COMPKEY_JOBOBJECT){
+      char msg[256];
       switch(dwBytesXferred){
         case JOB_OBJECT_MSG_NEW_PROCESS:
           ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
@@ -393,7 +394,6 @@ JobNotifyTH(PVOID){
               pctc=ptc->AddTestCase(0,FALSE,TRUE);
               DEBUGCHK(pctc);
               pctc->ProcessInfo(pin);
-              char msg[256];
               pctc->TestCaseName("Sub Process");
               pctc->TestCaseExec(ppe.szExeFile);
               sprintf(msg,"MESSAGE|OKAY|SUBPROC|Added:%s",ppe.szExeFile);
@@ -402,16 +402,24 @@ JobNotifyTH(PVOID){
             catch(CRAMPException excep){
             }
           }while(0);
-          // fprintf(g_LogFile,"%d:Process added\n",(SIZE_T)po);
           break;
         case JOB_OBJECT_MSG_EXIT_PROCESS:
           ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
-          // fprintf(g_LogFile,"%d:Process terminated\n",(SIZE_T)po);
+          {
+            DWORD ec=0;
+            GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
+            sprintf(msg,"MESSAGE|OKAY|PROC|Terminated:%d",ec);
+            ptc->AddLog(msg);
+          }
           break;
         case JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS:
           ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
-          // fprintf(g_LogFile,"%d:Process abnormally terminated\n",
-          //         (SIZE_T)po);
+          {
+            DWORD ec=0;
+            GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
+            sprintf(msg,"MESSAGE|ERROR|PROC|Terminated:%d",ec);
+            ptc->AddLog(msg);
+          }
           break;
         case JOB_OBJECT_MSG_END_OF_JOB_TIME:
         case JOB_OBJECT_TERMINATE_AT_END_OF_JOB:
