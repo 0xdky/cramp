@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-02 18:18:25 dhruva>
+// Time-stamp: <2003-10-07 12:57:44 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -7,6 +7,7 @@
 // mm-dd-yyyy  History                                                      tri
 // 09-23-2003  Cre                                                          pie
 //-----------------------------------------------------------------------------
+#include "cramp.h"
 #include "TestCaseInfo.h"
 #include "XMLParse.h"
 
