@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-07 10:57:46 dhruva>
+// Time-stamp: <2003-11-14 17:41:14 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -17,10 +17,12 @@
 #include <list>
 #include <string>
 
-// Could use CS instead of mutex
-#define GC_MUTEX "GC_LIST_MUTEX"
-
 //----------------------- GENERIC STRUCTS AND TYPEDEFS-------------------------
+#define CRAMP_TC_BLOCK    1<<0
+#define CRAMP_TC_GROUP    1<<1
+#define CRAMP_TC_MONPROC  1<<2
+#define CRAMP_TC_SUBPROC  1<<3
+
 // For getting active processes
 typedef struct{
   SIZE_T u_pid;
@@ -161,9 +163,7 @@ private:
   // Throws an exception of type CRAMPException on error
   TestCaseInfo(TestCaseInfo *ipParent,
                const char *iUniqueID=0,
-               BOOLEAN iGroup=FALSE,
-               BOOLEAN iBlock=TRUE,
-               BOOLEAN iSubProc=FALSE);
+               unsigned int iFlag=CRAMP_TC_BLOCK);
 
   // Internal methods
   inline void Init(void);

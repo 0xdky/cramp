@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-07 11:06:15 dhruva>
+// Time-stamp: <2003-11-14 18:09:00 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -75,9 +75,7 @@ TestCaseInfo::TestCaseInfo(){
 //-----------------------------------------------------------------------------
 TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
                            const char *iUniqueID,
-                           BOOLEAN iGroup,
-                           BOOLEAN iBlock,
-                           BOOLEAN iSubProc){
+                           unsigned int iFlags){
   Init();
 
   // Spin count may be used if on multi-processor
@@ -106,9 +104,9 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
     }
   }
 
-  b_block=iBlock;
-  b_group=iGroup;
-  b_subproc=iSubProc;
+  b_block=!!(iFlags&CRAMP_TC_BLOCK);
+  b_group=!!(iFlags&CRAMP_TC_GROUP);
+  b_subproc=!!(iFlags&CRAMP_TC_SUBPROC);
   p_pgroup=ipParentGroup;
 
   // Adding group/testcase to group. Scenario does not have parent!
@@ -125,7 +123,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
       // log processing and do not set b_uid as this is generated!
       if(!b_uid){
         char uidstr[32];
-        if(iSubProc)
+        if(b_subproc)
           sprintf(uidstr,"%s_sp#%d",p_pgroup->s_uid.c_str(),sztci);
         else
           sprintf(uidstr,"%s_??#%d",p_pgroup->s_uid.c_str(),sztci);
@@ -222,38 +220,30 @@ TestCaseInfo::SetIDREF(const char *iIDREF){
 TestCaseInfo
 *TestCaseInfo::CreateScenario(const char *iUniqueID,
                               BOOLEAN iBlock){
-  HANDLE h_mutex=0;
-  h_mutex=OpenMutex(SYNCHRONIZE,TRUE,GC_MUTEX);
-  if(h_mutex){
-    CloseHandle(h_mutex);
-    CRAMPException excep;
-    excep._error=ERROR_ALREADY_EXISTS;
-    excep._message="ERROR: Another CRAMP process running currently!";
-    SetLastError(excep._error);
-    throw(excep);
-  }
+  unsigned int iFlags=CRAMP_TC_GROUP;
+  if(iBlock)
+    iFlags|=CRAMP_TC_BLOCK;
 
-  h_mutex=CreateMutex(NULL,TRUE,GC_MUTEX);
-  if(!h_mutex){
+  if(!InitializeCriticalSectionAndSpinCount(&g_CRAMP_Engine.g_cs_gc,4000L)){
     CRAMPException excep;
-    excep._error=ERROR_INVALID_HANDLE;
-    excep._message="ERROR: Unable to create MUTEX object!";
-    SetLastError(excep._error);
+    excep._message="ERROR: Unable to initialize GC critical section";
+    excep._error=GetLastError();
     throw(excep);
   }
-  ReleaseMutex(h_mutex);
 
   try{
-    TestCaseInfo::p_scenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
+    TestCaseInfo::p_scenario=new TestCaseInfo(0,iUniqueID,iFlags);
     DEBUGCHK(TestCaseInfo::p_scenario);
     TestCaseInfo::p_remote=TestCaseInfo::p_scenario->AddGroup("REMOTE");
     DEBUGCHK(TestCaseInfo::p_remote);
     TestCaseInfo::p_remote->b_remote=TRUE;
     TestCaseInfo::p_remote->TestCaseName("REMOTE");
+
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
   }
+
   return(TestCaseInfo::p_scenario);
 }
 
@@ -282,6 +272,8 @@ TestCaseInfo::DeleteScenario(TestCaseInfo *ipScenario){
     fclose(g_CRAMP_Engine.g_fLogFile);
   g_CRAMP_Engine.g_fLogFile=0;
   LeaveCriticalSection(&g_CRAMP_Engine.g_cs_log);
+
+  DeleteCriticalSection(&g_CRAMP_Engine.g_cs_gc);
   DeleteCriticalSection(&g_CRAMP_Engine.g_cs_log);
 
   return(TRUE);
@@ -295,9 +287,14 @@ TestCaseInfo
                         BOOLEAN iBlock){
   if(!GroupStatus()&&!PseudoGroupStatus())
     return(0);
+
   TestCaseInfo *pTCG=0;
+  unsigned int iFlags=CRAMP_TC_GROUP;
+  if(iBlock)
+    iFlags|=CRAMP_TC_BLOCK;
+
   try{
-    pTCG=new TestCaseInfo(this,iUniqueID,TRUE,iBlock,FALSE);
+    pTCG=new TestCaseInfo(this,iUniqueID,iFlags);
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
@@ -314,9 +311,16 @@ TestCaseInfo
                            BOOLEAN iSubProc){
   if(!iSubProc&&!GroupStatus()&&!PseudoGroupStatus())
     return(0);
+
   TestCaseInfo *pTC=0;
+  unsigned int iFlags=0;
+  if(iBlock)
+    iFlags|=CRAMP_TC_BLOCK;
+  if(iSubProc)
+    iFlags|=CRAMP_TC_SUBPROC;
+
   try{
-    pTC=new TestCaseInfo(this,iUniqueID,FALSE,iBlock,iSubProc);
+    pTC=new TestCaseInfo(this,iUniqueID,iFlags);
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
@@ -563,17 +567,7 @@ TestCaseInfo::ProcessInfo(PROCESS_INFORMATION iProcInfo){
 //-----------------------------------------------------------------------------
 ListOfTestCaseInfo
 &TestCaseInfo::BlockListOfGC(void){
-  HANDLE h_mutex=0;
-  h_mutex=OpenMutex(SYNCHRONIZE,TRUE,GC_MUTEX);
-  if(!h_mutex){
-    CRAMPException excep;
-    excep._error=ERROR_INVALID_HANDLE;
-    excep._message="ERROR: Cannot find l_gc mutex object";
-    SetLastError(excep._error);
-    throw(excep);
-  }
-  WaitForSingleObject(h_mutex,INFINITE);
-  CloseHandle(h_mutex);
+  EnterCriticalSection(&g_CRAMP_Engine.g_cs_gc);
   return(l_gc);
 }
 
@@ -582,17 +576,7 @@ ListOfTestCaseInfo
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::ReleaseListOfGC(void){
-  HANDLE h_mutex=0;
-  h_mutex=OpenMutex(SYNCHRONIZE,TRUE,GC_MUTEX);
-  if(!h_mutex){
-    CRAMPException excep;
-    excep._error=ERROR_INVALID_HANDLE;
-    excep._message="ERROR: Cannot find l_gc mutex object for release";
-    SetLastError(excep._error);
-    throw(excep);
-  }
-  DEBUGCHK(ReleaseMutex(h_mutex));
-  CloseHandle(h_mutex);
+  LeaveCriticalSection(&g_CRAMP_Engine.g_cs_gc);
   return;
 }
 
@@ -746,7 +730,10 @@ TestCaseInfo::AddLog(std::string ilog){
     return;
 
   EnterCriticalSection(&g_CRAMP_Engine.g_cs_log);
-  fprintf(g_CRAMP_Engine.g_fLogFile,"%s|%s\n",s_uid.c_str(),ilog.c_str());
+  if('#'==ilog[0])
+    fprintf(g_CRAMP_Engine.g_fLogFile,"%s\n",ilog.c_str());
+  else
+    fprintf(g_CRAMP_Engine.g_fLogFile,"%s|%s\n",s_uid.c_str(),ilog.c_str());
   LeaveCriticalSection(&g_CRAMP_Engine.g_cs_log);
 
   return;

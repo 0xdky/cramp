@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-07 11:00:05 dhruva>
+// Time-stamp: <2003-11-14 18:18:32 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -7,7 +7,7 @@
 //         processes. Add a callback on the job to notify when a process
 //         is added to the job. A timer to monitor the processes in the job.
 // TODO  :
-//        o If the sub proc is too fast, sometimes it does not get registered
+//         o Logging syntax
 //-----------------------------------------------------------------------------
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
@@ -273,7 +273,7 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
                       &si,
                       &pi)){
       dwret=0;
-      ptc->AddLog("MESSAGE|KO|PROC|Could not create process");
+      porigtc->AddLog("TP|KO|-1|-1");
       continue;
     }
 
@@ -287,13 +287,12 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
     if(!ret){
       TerminateProcess(pi.hProcess,1);
       dwret=0;
-      porigtc->AddLog("MESSAGE|KO|JOB|Could not attach process to job");
+      porigtc->AddLog("TP|KO|-2|-2");
       continue;
     }
 
     // Set some process information
     porigtc->ProcessInfo(pi);
-    porigtc->AddLog("MESSAGE|OK|PROC|Created process");
 
     if(blocked){
       ResumeThread(pi.hThread);
@@ -305,16 +304,13 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
       if(WAIT_OBJECT_0==dwret||!dwret){
         dwret=1;
       }else if(WAIT_TIMEOUT==dwret){
-        porigtc->AddLog("MESSAGE|KO|PROC|Exceeded time limit");
         TerminateProcess(pi.hProcess,dwret);
         dwret=1;
       }else if(WAIT_ABANDONED==dwret){
-        sprintf(msg,"MESSAGE|KO|PROC|Wait abandoned:%ld",dwret);
-        porigtc->AddLog(msg);
+        TerminateProcess(pi.hProcess,dwret);
         dwret=0;
       }else if(WAIT_FAILED==dwret){
-        sprintf(msg,"MESSAGE|KO|PROC|Wait failed:%ld",GetLastError());
-        porigtc->AddLog(msg);
+        TerminateProcess(pi.hProcess,dwret);
         dwret=0;
       }
     }else{
@@ -343,7 +339,6 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
       maxwait=INFINITE;
     dwret=WaitForMultipleObjects(psz+numgroups,ptharr,TRUE,maxwait);
     if(WAIT_TIMEOUT==dwret){
-      pTopTC->AddLog("MESSAGE|KO|PROC|Exceeded time limit");
       for(int yy=0;yy<psz;yy++)
         TerminateProcess(ptharr[yy],dwret);
       for(int zz=0;zz<numgroups;zz++)
@@ -439,32 +434,6 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario,CRAMPMessaging *ioMsg){
   for(;iter!=lgc.end();iter++){
     TestCaseInfo *ptc=(*iter);
     GetTestCaseMemoryDetails(h_snapshot,ptc);
-
-#if 0
-    PROCESS_MEMORY_COUNTERS pmc={0};
-    PROCESS_INFORMATION pin=ptc->ProcessInfo();
-    if(!pin.hProcess)
-      continue;
-    DWORD pstat=0;
-    GetExitCodeProcess(pin.hProcess,&pstat);
-    if(STILL_ACTIVE!=pstat)
-      continue;
-    do{
-      if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc)))
-        break;;
-      // Actual RAM pmc.WorkingSetSize;
-      char msg[256];
-      sprintf(msg,"LOG|MEMORY|RAM|%ld",pmc.WorkingSetSize);
-      ptc->AddLog(msg);
-
-#ifdef CRAMP_DEBUG
-      // Some large data
-      ioMsg->Message(msg);
-      WriteToMailSlot(ioMsg);
-#endif
-
-    }while(0);
-#endif
   }
   CloseHandle(h_snapshot);
   ret=TRUE;
@@ -540,8 +509,6 @@ JobNotifyTH(LPVOID){
               pctc->ProcessInfo(pin);
               pctc->TestCaseName("Sub Process");
               pctc->TestCaseExec(ppe.szExeFile);
-              sprintf(msg,"MESSAGE|OK|SUBPROC|Added:%s",ppe.szExeFile);
-              ptc->AddLog(msg);
             }
             catch(CRAMPException excep){
             }
@@ -554,10 +521,16 @@ JobNotifyTH(LPVOID){
           {
             DWORD ec=0;
             GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
-            if(ec)
-              sprintf(msg,"MESSAGE|KO|PROC|Terminated:%d",ec);
+            if(ptc->SubProcStatus())
+              if(ec)
+                sprintf(msg,"SP|-1|%d",ec);
+              else
+                sprintf(msg,"SP|0|%d",ec);
             else
-              sprintf(msg,"MESSAGE|OK|PROC|Terminated:%d",ec);
+              if(ec)
+                sprintf(msg,"TP|-1|%d",ec);
+              else
+                sprintf(msg,"TP|0|%d",ec);
             ptc->AddLog(msg);
           }
           break;
@@ -568,7 +541,10 @@ JobNotifyTH(LPVOID){
           {
             DWORD ec=0;
             GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
-            sprintf(msg,"MESSAGE|KO|PROC|Terminated:%d",ec);
+            if(ptc->SubProcStatus())
+              sprintf(msg,"SP|-2|%d",ec);
+            else
+              sprintf(msg,"TP|-2|%d",ec);
             ptc->AddLog(msg);
           }
           break;
@@ -679,17 +655,26 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
   for(;ret;ret=Process32Next(h_snapshot,&ppe)){
     if(pin.dwProcessId!=ppe.th32ProcessID)
       continue;
+
+#if 0
+    // Disable detailed memory information logging
     sprintf(msg,"LOG|MEMORY|PROC|SUMMARY|Count %d,Threads %d",
             ppe.cntUsage,ppe.cntThreads);
     ipTestCase->AddLog(msg);
+#endif
+
     // Add process's RAM, later PDH
     do{
       if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc)))
         break;
       // Actual RAM pmc.WorkingSetSize;
-      sprintf(msg,"LOG|MEMORY|PROC|RAM|%ld",pmc.WorkingSetSize);
+      sprintf(msg,"# %s RAM: %ld bytes",ipTestCase->GetUID().c_str(),
+              pmc.WorkingSetSize);
       ipTestCase->AddLog(msg);
     }while(0);
+
+    // Disable detailed memory information logging
+    return(TRUE);
 
     // Get a module snap shot... this could be cached in the test case
     HANDLE h_snapmod=0;

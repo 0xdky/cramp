@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 18:00:23 dhruva>
+// Time-stamp: <2003-11-14 18:01:27 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -36,23 +36,30 @@ WINAPI WinMain(HINSTANCE hinstExe,
                HINSTANCE,
                PSTR pszCmdLine,
                int nCmdShow){
-  int ret=-1;
-  InitGlobals();
-
   DEBUGCHK(!getenv("CRAMP_DEBUG"));
+
+  int ret=-1;
+  int crampret=0;
+  HANDLE h_job=0;
+
+  // Ensure only 1 instance of CRAMPEngine is running
+  h_job=OpenJobObject(JOB_OBJECT_QUERY,FALSE,JOB_NAME);
+  if(h_job)
+    return(-1);
+
+  InitGlobals();
 
   char logdir[256]=".";
   char logfile[256];
   if(getenv("CRAMP_LOGPATH"))
     strcpy(logdir,getenv("CRAMP_LOGPATH"));
-  sprintf(logfile,"%s/cramp.log",logdir);
-  g_CRAMP_Engine.g_fLogFile=fopen(logfile,"w+");
+  sprintf(logfile,"%s/cramp_scenario#%d.log",logdir,GetCurrentProcessId());
+  g_CRAMP_Engine.g_fLogFile=fopen(logfile,"w");
   if(!g_CRAMP_Engine.g_fLogFile)
     return(ret);
 
   if(!InitializeCriticalSectionAndSpinCount(&g_CRAMP_Engine.g_cs_log,
                                             4000L)){
-    fprintf(g_CRAMP_Engine.g_fLogFile,"Error in CRITICAL SECTION init!\n");
     fclose(g_CRAMP_Engine.g_fLogFile);
     return(ret);
   }
@@ -76,7 +83,6 @@ WINAPI WinMain(HINSTANCE hinstExe,
                       scenario,256,0,0);
   GetFullPathName(scenario,256,scenario,&buff);
 
-  HANDLE h_job=0;
   HANDLE h_memtimer=0;
   HANDLE h_arr[5];
   h_arr[0]=0;                   // Job monitoring thread
@@ -112,6 +118,8 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
     // Parse the XML file and populate the list
     g_CRAMP_Engine.g_pScenario=GetTestCaseInfos(scenario);
+    sprintf(msg,"# Running SCENARIO: %s",scenario);
+    g_CRAMP_Engine.g_pScenario->AddLog(msg);
     if(!g_CRAMP_Engine.g_pScenario)
       break;
 
@@ -151,10 +159,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
     SetEvent(h_event);          // So that threads can resume
 
-    sprintf(msg,"MESSAGE|OK|SCENARIO|File: %s",scenario);
-    g_CRAMP_Engine.g_pScenario->AddLog(msg);
     ret=CreateManagedProcesses(g_CRAMP_Engine.g_pScenario);
-
 
     // Kill the threads
     DEBUGCHK(ResetEvent(h_event));
@@ -165,11 +170,10 @@ WINAPI WinMain(HINSTANCE hinstExe,
     TerminateThread(h_arr[3],0);
 
     if(ret)
-      g_CRAMP_Engine.g_pScenario->AddLog(
-        "MESSAGE|OK|SCENARIO|Successful run");
+      sprintf(msg,"SC|OK|%d|%d",crampret,!ret);
     else
-      g_CRAMP_Engine.g_pScenario->AddLog(
-        "MESSAGE|KO|SCENARIO|Unsuccessful run");
+      sprintf(msg,"SC|KO|%d|%d",crampret,!ret);
+    g_CRAMP_Engine.g_pScenario->AddLog(msg);
 
     // Clean up everything properly
     CloseHandle(g_CRAMP_Engine.g_hIOCP);
