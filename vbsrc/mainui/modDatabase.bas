@@ -59,7 +59,7 @@ Private Sub CreateTablesInDB()
     
 On Local Error Resume Next
     
-    sFileName = App.Path & "\..\res\Attributes.txt"
+    sFileName = gCRAMPPath & "\res\Attributes.txt"
     
     If Not FileExists(sFileName) Then
         MsgBox "File " & sFileName & " does not exist", vbExclamation

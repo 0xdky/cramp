@@ -1,6 +1,7 @@
 Attribute VB_Name = "modGlobal"
 Option Explicit
 Public ADOXcatalog As New ADOX.Catalog
+Public gTEMPDir As String
 Public gCRAMPPath As String
 Public gIdCounter As Long
 Public gIdList(1000) As String
@@ -257,27 +258,36 @@ Public Sub InitialiseListView()
     
     
 End Sub
-
+ 
 Public Sub SetGlobalVariables()
-    Dim CurDirectory As String
-    Dim TmpDir As String
+    Dim retVal As Long
 
     gCRAMPPath = Environ("CRAMP_PATH")
     If (0 = Len(gCRAMPPath)) Then
         gCRAMPPath = App.Path & "\..\"
+    Else
+        While ("\" = Right$(gCRAMPPath, 1) Or "/" = Right$(gCRAMPPath, 1))
+            gCRAMPPath = Left$(gCRAMPPath, Len(gCRAMPPath) - 1)
+        Wend
     End If
 
-    TmpDir = Environ("CRAMP_LOGPATH")
-    If (0 = Len(TmpDir)) Then
-        TmpDir = gCRAMPPath & "\tmp"
-        MkDir TmpDir
+    gTEMPDir = Space$(256)
+    retVal = GetTempPath(Len(gTEMPDir), gTEMPDir)
+    If (0 = retVal) Then
+        gTEMPDir = gCRAMPPath & "\tmp"
+        MkDir gTEMPDir
+    Else
+        gTEMPDir = Left$(gTEMPDir, retVal)
+        While ("\" = Right$(gTEMPDir, 1) Or "/" = Right$(gTEMPDir, 1))
+            gTEMPDir = Left$(gTEMPDir, Len(gTEMPDir) - 1)
+        Wend
     End If
     
-    gDatabaseName = TmpDir & "\CRAMPDB.mdb"
+    gDatabaseName = gTEMPDir & "\CRAMPDB.mdb"
     
     frmMainui.mnuSave.Enabled = False
     frmMainui.cmdRun.Enabled = False
-    gCurFileName = App.Path & "\Scenario1.xml"
+    gCurFileName = gTEMPDir & "\Scenario1.xml"
     gCurScenarioName = "Scenario1"
     gSaveFlag = True
     
@@ -306,7 +316,6 @@ Public Sub DeleteNode(ByVal selectedNode As Node)
     
     'First clear the children names from global lists
     ClearNodeNamesFromGlobalLists selectedNode
-    
     
     Set parentNode = selectedNode.Parent
     frmMainui.tvwNodes.Nodes.Remove (selectedNode.Key)
@@ -394,7 +403,7 @@ Public Sub InitialiseMRUFileList()
         Next jj
     Next ii
     
-    sFileName = App.Path & "\..\res\MostRecentFiles.txt"
+    sFileName = gCRAMPPath & "\res\MostRecentFiles.txt"
     
     If Not FileExists(sFileName) Then
         Exit Sub
@@ -457,7 +466,7 @@ End Sub
 Public Sub SaveIntoMRUFile()
     Dim sFileName As String
     Dim ii As Integer
-    sFileName = App.Path & "\res\MostRecentFiles.txt"
+    sFileName = gCRAMPPath & "\res\MostRecentFiles.txt"
     
     If Not FileExists(sFileName) Then
         Exit Sub

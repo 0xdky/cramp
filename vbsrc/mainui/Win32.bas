@@ -29,6 +29,11 @@ Public Type STARTUPINFO
    hStdError As Long
 End Type
 
+Public Declare Function GetTempPath Lib "kernel32.dll" _
+   Alias "GetTempPathA" _
+   (ByVal nBufferLength As Long, _
+   ByVal lpBuffer As String) As Long
+
 Public Declare Function CreateProcess Lib "kernel32" _
    Alias "CreateProcessA" _
    (ByVal lpApplicationName As String, _
