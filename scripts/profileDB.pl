@@ -1,14 +1,14 @@
 #!perl
-## Time-stamp: <2003-10-31 14:12:56 dhruva>
+## Time-stamp: <2003-10-31 15:10:43 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
 ## Usage : perl profileDB.pl ARGS
 ## ARGS  : PID DUMP [ALL|RAW|TICK|ADDR]|
-##             QUERY [STAT|THREADS|TID|ADDR]
-##                                 RAW|TICK|Function address
-##                                 LIMIT (-1 for count info only)
-##             APPEND (the last argument for QUERY)
+##         PID QUERY STAT [APPEND]
+##         PID QUERY THREADS [APPEND]
+##         PID QUERY thread_id|ALL RAW|TICK limit [APPEND]
+##         PID QUERY ADDR function_address limit (-1 for count only) [APPEND]
 ## Output: Results are written or appended to query.psf
 ## Desc  : Call SetDBFilters on all DB handles
 ##-----------------------------------------------------------------------------
@@ -39,6 +39,24 @@ my $f_logstat;
 my $f_queryout;
 my $g_append=0;
 my $cramplogdir=".";
+
+my $progname=$0;
+$progname=~s,.*/,,;
+
+##-----------------------------------------------------------------------------
+## usage
+##-----------------------------------------------------------------------------
+sub usage{
+    print"Usage : perl $progname ARGS
+ARGS  : PID DUMP [ALL|RAW|TICK|ADDR]|
+        PID QUERY STAT [APPEND]
+        PID QUERY THREADS [APPEND]
+        PID QUERY thread_id|ALL RAW|TICK limit [APPEND]
+        PID QUERY ADDR function_address limit (-1 for count only) [APPEND]
+Output: Results are written or appended to query.psf
+";
+    return 0;
+}
 
 ##-----------------------------------------------------------------------------
 ## SetDBFilters
@@ -124,6 +142,13 @@ sub ProcessArgs{
     if($#ARGV<1){
         print STDERR "Error: Insufficient argument\n";
         return 1;
+    }
+
+    foreach(@ARGV){
+        if(/HELP/){
+            usage();
+            return 0;
+        }
     }
 
     if($ARGV[-1]=~/APPEND/){
