@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-01-07 10:34:08 dhruva>
+// Time-stamp: <2004-01-23 10:45:00 dky>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -316,8 +316,7 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
       CallInfo &prev=callInfoStack.back();
       TICKS leave=0;
       CallMonitor::queryTicks(&leave);
-      leave=leave-entryTime;
-      prev.ProfilingTicks+=leave;
+      prev.ProfilingTicks+=leave-entryTime;
     }
     return;
   }
@@ -348,36 +347,46 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
                            const TICKS &endTime){
   // Pops shadow stack until finding a call record
   // that matches the current stack layout.
-  TICKS rchildtick=0;
+  TICKS elapsedtick=0;
   TICKS childprofiletick=0;
   while(1){
     // Retrieve original call record
     CallInfo &ci=callInfoStack.back();
     ci.endTime=endTime;
     *retAddrPtr=ci.origRetAddr;
+
+    childprofiletick=ci.ProfilingTicks+(ci.startTime-ci.entryTime);
+    elapsedtick=ci.endTime-ci.startTime-ci.ProfilingTicks;
+
+    // Record NORMAL function exit
     if(ci.parentFrame==parentFramePtr){
-      logExit(ci,true);         // Record normal exit
-      childprofiletick=ci.ProfilingTicks+(ci.startTime-ci.entryTime);
-      rchildtick=ci.endTime-ci.startTime;
+      logExit(ci,true);
       callInfoStack.pop_back();
-      if(callInfoStack.empty())
-        return;
       break;
     }
-    logExit(ci,false);          // Record exceptional exit
-    childprofiletick+=ci.ProfilingTicks+(ci.startTime-ci.entryTime);
-    rchildtick+=(ci.endTime-ci.startTime);
+
+    // Record EXCEPTIONAL function exit
+    logExit(ci,false);
     callInfoStack.pop_back();
+
+    // Update the Raw Child ticks
+    if(callInfoStack.empty())
+      return;
+    CallInfo &prev=callInfoStack.back();
+    prev.RawChildTicks+=elapsedtick;
+    TICKS leave=0;
+    CallMonitor::queryTicks(&leave);
+    prev.ProfilingTicks+=leave-endTime+childprofiletick;
   }
+
+  // Update the Raw Child ticks
   if(callInfoStack.empty())
     return;
-
   CallInfo &prev=callInfoStack.back();
-  prev.RawChildTicks+=rchildtick;
+  prev.RawChildTicks+=elapsedtick;
   TICKS leave=0;
   CallMonitor::queryTicks(&leave);
-  leave=leave-endTime;
-  prev.ProfilingTicks+=leave+childprofiletick;
+  prev.ProfilingTicks+=leave-endTime+childprofiletick;
 
   return;
 }
