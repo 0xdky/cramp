@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 16:03:39 dhruva>
+// Time-stamp: <2003-11-03 16:48:50 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -149,7 +149,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
     SetEvent(h_event);          // So that threads can resume
 
-    sprintf(msg,"MESSAGE|OKAY|SCENARIO|File: %s",scenario);
+    sprintf(msg,"MESSAGE|OK|SCENARIO|File: %s",scenario);
     g_CRAMP_Engine.g_pScenario->AddLog(msg);
     ret=CreateManagedProcesses(g_CRAMP_Engine.g_pScenario);
 
@@ -164,10 +164,10 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
     if(ret)
       g_CRAMP_Engine.g_pScenario->AddLog(
-        "MESSAGE|OKAY|SCENARIO|Successful run");
+        "MESSAGE|OK|SCENARIO|Successful run");
     else
       g_CRAMP_Engine.g_pScenario->AddLog(
-        "MESSAGE|ERROR|SCENARIO|Unsuccessful run");
+        "MESSAGE|KO|SCENARIO|Unsuccessful run");
 
     // Clean up everything properly
     CloseHandle(g_CRAMP_Engine.g_hIOCP);

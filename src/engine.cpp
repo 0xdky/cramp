@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 16:13:45 dhruva>
+// Time-stamp: <2003-11-03 16:47:46 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -274,7 +274,7 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
                       &si,
                       &pi)){
       dwret=0;
-      ptc->AddLog("MESSAGE|ERROR|PROC|Could not create process");
+      ptc->AddLog("MESSAGE|KO|PROC|Could not create process");
       continue;
     }
 
@@ -288,13 +288,13 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
     if(!ret){
       TerminateProcess(pi.hProcess,1);
       dwret=0;
-      porigtc->AddLog("MESSAGE|ERROR|JOB|Could not attach process to job");
+      porigtc->AddLog("MESSAGE|KO|JOB|Could not attach process to job");
       continue;
     }
 
     // Set some process information
     porigtc->ProcessInfo(pi);
-    porigtc->AddLog("MESSAGE|OKAY|PROC|Created process");
+    porigtc->AddLog("MESSAGE|OK|PROC|Created process");
 
     if(blocked){
       ResumeThread(pi.hThread);
@@ -306,15 +306,15 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
       if(WAIT_OBJECT_0==dwret||!dwret){
         dwret=1;
       }else if(WAIT_TIMEOUT==dwret){
-        porigtc->AddLog("MESSAGE|ERROR|PROC|Exceeded time limit");
+        porigtc->AddLog("MESSAGE|KO|PROC|Exceeded time limit");
         TerminateProcess(pi.hProcess,dwret);
         dwret=1;
       }else if(WAIT_ABANDONED==dwret){
-        sprintf(msg,"MESSAGE|ERROR|PROC|Wait abandoned:%ld",dwret);
+        sprintf(msg,"MESSAGE|KO|PROC|Wait abandoned:%ld",dwret);
         porigtc->AddLog(msg);
         dwret=0;
       }else if(WAIT_FAILED==dwret){
-        sprintf(msg,"MESSAGE|ERROR|PROC|Wait failed:%ld",GetLastError());
+        sprintf(msg,"MESSAGE|KO|PROC|Wait failed:%ld",GetLastError());
         porigtc->AddLog(msg);
         dwret=0;
       }
@@ -344,7 +344,7 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
       maxwait=INFINITE;
     dwret=WaitForMultipleObjects(psz+numgroups,ptharr,TRUE,maxwait);
     if(WAIT_TIMEOUT==dwret){
-      pTopTC->AddLog("MESSAGE|ERROR|PROC|Exceeded time limit");
+      pTopTC->AddLog("MESSAGE|KO|PROC|Exceeded time limit");
       for(int yy=0;yy<psz;yy++)
         TerminateProcess(ptharr[yy],dwret);
       for(int zz=0;zz<numgroups;zz++)
@@ -541,7 +541,7 @@ JobNotifyTH(LPVOID){
               pctc->ProcessInfo(pin);
               pctc->TestCaseName("Sub Process");
               pctc->TestCaseExec(ppe.szExeFile);
-              sprintf(msg,"MESSAGE|OKAY|SUBPROC|Added:%s",ppe.szExeFile);
+              sprintf(msg,"MESSAGE|OK|SUBPROC|Added:%s",ppe.szExeFile);
               ptc->AddLog(msg);
             }
             catch(CRAMPException excep){
@@ -555,7 +555,10 @@ JobNotifyTH(LPVOID){
           {
             DWORD ec=0;
             GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
-            sprintf(msg,"MESSAGE|OKAY|PROC|Terminated:%d",ec);
+            if(ec)
+              sprintf(msg,"MESSAGE|KO|PROC|Terminated:%d",ec);
+            else
+              sprintf(msg,"MESSAGE|OK|PROC|Terminated:%d",ec);
             ptc->AddLog(msg);
           }
           break;
@@ -566,7 +569,7 @@ JobNotifyTH(LPVOID){
           {
             DWORD ec=0;
             GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
-            sprintf(msg,"MESSAGE|ERROR|PROC|Terminated:%d",ec);
+            sprintf(msg,"MESSAGE|KO|PROC|Terminated:%d",ec);
             ptc->AddLog(msg);
           }
           break;
