@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:25:59 dhruva>
+// Time-stamp: <2003-10-16 11:22:07 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -9,8 +9,10 @@
 //-----------------------------------------------------------------------------
 #define __CALLMONLOG_SRC
 
-#include <Windows.h>
 #include "CallMonLOG.h"
+
+// To make it thread safe... Do not know when to delete!
+CRITICAL_SECTION CallMonLOG::cs_log;
 
 inline void offset(int level){
   for(int i=0;i<level;i++) putchar('\t');
@@ -20,12 +22,37 @@ inline void offset(int level){
 // CallMonLOG
 //-----------------------------------------------------------------------------
 CallMonLOG::CallMonLOG(){
+  f_logfile=0;
+  char logfile[MAX_PATH];
+  sprintf(logfile,"%s/cramp_profile#%d.log",
+          getenv("CRAMP_LOGPATH"),
+          GetCurrentProcessId());
+  if(InitializeCriticalSectionAndSpinCount(&cs_log,4000L)){
+    f_logfile=fopen(logfile,"a");
+  }
+  if(!f_logfile)
+    f_logfile=stdout;
+}
+
+//-----------------------------------------------------------------------------
+// CallMonLOG
+//-----------------------------------------------------------------------------
+CallMonLOG::CallMonLOG(const char *iLogFileName){
+  f_logfile=0;
+  if(InitializeCriticalSectionAndSpinCount(&cs_log,4000L)){
+    f_logfile=fopen(iLogFileName,"a");
+  }
+  if(!f_logfile)
+    f_logfile=stdout;
 }
 
 //-----------------------------------------------------------------------------
 // ~CallMonLOG
 //-----------------------------------------------------------------------------
 CallMonLOG::~CallMonLOG(){
+  if(f_logfile)
+    fclose(f_logfile);
+  f_logfile=0;
 }
 
 //-----------------------------------------------------------------------------
@@ -59,19 +86,18 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
 
   queryTickFreq(&ticksPerSecond);
   getFuncInfo(ci.funcAddr,module,name);
-  // ThreadID|Module|Func|FuncAddr|Rettype|TimeMS|Ticks
-  printf("%d|%s|%s|%08X|%s|%I64d|%I64d\n",
-         GetCurrentThreadId(),
-         module.c_str(),
-         name.c_str(),
-         ci.funcAddr,
-         rettype.c_str(),
-         (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
-         (ci.endTime-ci.startTime));
 
-  // printf("%d:exit %08X, elapsed time=%I64d ms (%I64d ticks)\n",
-  //        GetCurrentThreadId(),ci.funcAddr,
-  //        (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
-  //        (ci.endTime-ci.startTime));
+  EnterCriticalSection(&CallMonLOG::cs_log);
+  // ThreadID|Module|Func|FuncAddr|Rettype|TimeMS|Ticks
+  fprintf(f_logfile,"%d|%s|%s|%08X|%s|%I64d|%I64d\n",
+          GetCurrentThreadId(),
+          module.c_str(),
+          name.c_str(),
+          ci.funcAddr,
+          rettype.c_str(),
+          (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
+          (ci.endTime-ci.startTime));
+  LeaveCriticalSection(&CallMonLOG::cs_log);
+
   return;
 }
