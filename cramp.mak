@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-23 12:20:35 dhruva>
+## Time-stamp: <2003-10-23 17:52:52 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -38,6 +38,7 @@ MD=MKDIR
 SRCDIR=src
 INCDIR=inc
 LIBSRCDIR=lib-src
+UTILDIR=utils
 TSTDIR=test
 
 # Folders created
@@ -77,11 +78,15 @@ COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
       $(OBJDIR)/XMLParse.obj $(OBJDIR)/ipc.obj $(OBJDIR)/ipcmsg.obj
 POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj \
       $(OBJDIR)/ProfileLimit.obj
-OBJS=$(COBJS) $(POBJS) $(XOBJS)
+UOBJS=$(OBJDIR)/proflog2db.obj
+OBJS=$(COBJS) $(POBJS) $(UOBJS)
+
+# Add all query tools here
+UTILITIES=$(BINDIR)/proflog2db.exe
 
 # Currently disabled base class build: Problem with SDK
 all: cramp
-cramp: dirs engine library test
+cramp: dirs engine library utils test
 remake: clean cramp
 
 # Dependancy to force a re-build
@@ -157,6 +162,16 @@ $(LIBSRCDIR)/ProfileLimit.cpp: $(LIBSRCDIR)/ProfileLimit.h
 $(LIBSRCDIR)/CallMon.h: $(DEPS)
 $(LIBSRCDIR)/CallMonLOG.h: $(LIBSRCDIR)/CallMon.h $(DEPS)
 $(LIBSRCDIR)/ProfileLimit.h: $(DEPS)
+
+# Query utilities
+utils: $(UTILITIES)
+$(BINDIR)/proflog2db.exe: $(OBJDIR)/proflog2db.obj
+    @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(OBJDIR)/proflog2db.obj \
+             $(BDB_LIB) /OUT:$(BINDIR)/proflog2db.exe
+$(OBJDIR)/proflog2db.obj: $(UTILDIR)/proflog2db.cpp
+    @$(CPP)  /c $(E_CCFLAGS) $(UTILDIR)/proflog2db.cpp \
+             /Fo$(OBJDIR)/proflog2db.obj
+$(UTILDIR)/proflog2db.cpp: $(DEPS)
 
 # Base class for test cases
 baseclass: $(OBJDIR)/DPEBaseClass.obj
