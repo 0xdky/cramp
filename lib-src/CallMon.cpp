@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-10 19:45:59 dky>
+// Time-stamp: <2004-03-11 11:32:31 dky>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -104,19 +104,14 @@ extern "C" __declspec(dllexport) __declspec(naked)
     // The function prolog.
     __asm
         {
-            PUSH EBP                    // Set up the standard stack frame.
+            PUSH EBP            // Set up the standard stack frame.
                 MOV  EBP , ESP
-
-                PUSH EAX                    // Save off EAX as I need to use it
-                // before saving all registers.
-                MOV  EAX , ESP              // Get the current stack value into
-                //  EAX.
-
-                SUB  ESP , __LOCAL_SIZE     // Save off the space needed by the
+                PUSH EAX        // Save off EAX as I need to use it
+                                // before saving all registers.
+                MOV  EAX , ESP  // Get the current stack value into EAX.
+                SUB  ESP , __LOCAL_SIZE // Save off the space needed by the
                 // local variables.
-
-                PUSHAD                      // Save off all general register
-                // values.
+                PUSHAD          // Save off all general register values.
                 }
 
     // Instrumented code
@@ -147,16 +142,12 @@ extern "C" __declspec(dllexport) __declspec(naked)
     // prolog
     __asm
         {
-            POPAD                       // Restore all general purpose
-                // values.
-
-                ADD ESP , __LOCAL_SIZE      // Remove space needed for locals.
-
-                POP EAX                     // Restore EAX
-
-                MOV ESP , EBP               // Restore the standard stack frame.
+            POPAD               // Restore all general purpose values.
+                ADD ESP , __LOCAL_SIZE // Remove space needed for locals.
+                POP EAX         // Restore EAX
+                MOV ESP , EBP   // Restore the standard stack frame.
                 POP EBP
-                RET                         // Return to caller.
+                RET             // Return to caller.
                 }
 }
 #endif
@@ -278,7 +269,8 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
         }
 
         std::hash_map<ADDR,FuncInfo>::iterator iter;
-        EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+        CRAMP_CS csp(&g_CRAMP_Profiler.g_cs_prof);
+        csp.enter();
 
         iter=g_CRAMP_Profiler.g_hFuncCalls.find(funcAddr);
         if(iter==g_CRAMP_Profiler.g_hFuncCalls.end()){
@@ -286,13 +278,10 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
             memset(&fi,0,sizeof(FuncInfo));
             fi._calls=1;
             fi._pending=FALSE;
-#ifdef HAVE_FILTER
             fi._filtered=!g_CRAMP_Profiler.g_exclusion;
-            // Any error/filtered, ignore profiling the method in the future
+
+            // Any error or filtered
             fi._filtered=!WriteFuncInfo(funcAddr,1,NULL);
-#else
-            fi._filtered=FALSE;
-#endif
             g_CRAMP_Profiler.g_hFuncCalls[funcAddr]=fi;
 
             // If the first call is filtered
@@ -314,7 +303,6 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
             }
         }
     }while(0);
-    LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
     // Handle filtered methods
     if(filtered){
@@ -398,36 +386,6 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
 }
 
 //-----------------------------------------------------------------------------
-// logEntry
-//   Default entry logging procedure
-//-----------------------------------------------------------------------------
-void
-CallMonitor::logEntry(CallInfo &ci){
-    indent(callInfoStack.size()-1);
-    string module,name;
-    getFuncInfo(ci.funcAddr,module,name);
-    printf("%s!%s (%08X)\n",module.c_str(),
-           name.c_str(),ci.funcAddr);
-    return;
-}
-
-//-----------------------------------------------------------------------------
-// logExit
-//   Default exit logging procedure
-//-----------------------------------------------------------------------------
-void
-CallMonitor::logExit(CallInfo &ci,bool normalRet){
-    indent(callInfoStack.size()-1);
-    if (!normalRet) printf("exception ");
-    TICKS ticksPerSecond;
-    queryTickFreq(&ticksPerSecond);
-    printf("exit %08X, elapsed time=%I64d ms (%I64d ticks)\n",ci.funcAddr,
-           (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
-           (ci.endTime-ci.startTime));
-    return;
-}
-
-//-----------------------------------------------------------------------------
 // DumpLastError
 //-----------------------------------------------------------------------------
 void
@@ -442,73 +400,5 @@ DumpLastError(){
                   (LPTSTR) &lpMsgBuf,    0,    NULL );
     OutputDebugString((LPCTSTR)lpMsgBuf);
     LocalFree(lpMsgBuf);
-    return;
-}
-
-//-----------------------------------------------------------------------------
-// getFuncInfo
-//-----------------------------------------------------------------------------
-void
-CallMonitor::getFuncInfo(ADDR addr,
-                         string &module,
-                         string &funcName){
-    SymInitialize(GetCurrentProcess(),NULL,FALSE);
-    TCHAR moduleName[MAX_PATH];
-    TCHAR modShortNameBuf[MAX_PATH];
-    MEMORY_BASIC_INFORMATION mbi;
-
-    VirtualQuery((void*)addr,&mbi,sizeof(mbi));
-    GetModuleFileName((HMODULE)mbi.AllocationBase,
-                      moduleName, MAX_PATH );
-
-    _splitpath(moduleName,NULL,NULL,modShortNameBuf,NULL);
-
-    BYTE symbolBuffer[ sizeof(IMAGEHLP_SYMBOL) + 1024 ];
-    PIMAGEHLP_SYMBOL pSymbol =
-        (PIMAGEHLP_SYMBOL)&symbolBuffer[0];
-    // Following not per docs, but per example...
-    pSymbol->SizeOfStruct = sizeof(symbolBuffer);
-    pSymbol->MaxNameLength = 1023;
-    pSymbol->Address = 0;
-    pSymbol->Flags = 0;
-    pSymbol->Size =0;
-
-    DWORD symDisplacement = 0;
-    HANDLE h_proc=0;
-    h_proc=GetCurrentProcess();
-    if (!SymLoadModule(h_proc,
-                       NULL,
-                       moduleName,
-                       NULL,
-                       (DWORD)mbi.AllocationBase,
-                       0))
-        DumpLastError();
-
-    SymSetOptions( SymGetOptions() & ~SYMOPT_UNDNAME );
-    char undName[1024];
-    if (! SymGetSymFromAddr(h_proc, addr,&symDisplacement, pSymbol) )
-    {
-        DumpLastError();
-        // Couldn't retrieve symbol (no debug info?)
-        strcpy(undName,"<unknown symbol>");
-    }
-    else
-    {
-        // Unmangle name, throwing away decorations
-        // that don't affect uniqueness:
-        if(0==UnDecorateSymbolName(pSymbol->Name, undName,
-                                   sizeof(undName),
-                                   UNDNAME_NO_MS_KEYWORDS |
-                                   UNDNAME_NO_ACCESS_SPECIFIERS |
-                                   UNDNAME_NO_FUNCTION_RETURNS |
-                                   UNDNAME_NO_ALLOCATION_MODEL |
-                                   UNDNAME_NO_ALLOCATION_LANGUAGE |
-                                   UNDNAME_NO_MEMBER_TYPE))
-            strcpy(undName,pSymbol->Name);
-    }
-    SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
-    SymCleanup(h_proc);
-    module = modShortNameBuf;
-    funcName = undName;
     return;
 }

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-11 09:25:12 dky>
+// Time-stamp: <2004-03-11 11:29:20 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -35,17 +35,6 @@ BOOL WriteFuncInfo(unsigned int,unsigned long,FILE *f_func);
 void LogFileSizeMonTH(void *);
 DWORD WINAPI ProfilerMailSlotServerTH(LPVOID);
 
-// Ensure locking and unlocking with in a scope
-class CRAMPFunctionCS{
-public:
-    CRAMPFunctionCS(){
-        EnterCriticalSection(&g_CRAMP_Profiler.g_cs_fun);
-    };
-    ~CRAMPFunctionCS(){
-        LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_fun);
-    };
-};
-
 //-----------------------------------------------------------------------------
 // CRAMP_FlushProfileLogs
 //-----------------------------------------------------------------------------
@@ -60,7 +49,8 @@ extern "C" __declspec(dllexport)
         fflush(g_CRAMP_Profiler.g_fLogFile);
 
     // Block the modification of hash
-    EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+    CRAMP_CS csp(&g_CRAMP_Profiler.g_cs_prof);
+    csp.enter();
 
     FILE *f_stat=0;
     char filename[MAX_PATH];
@@ -98,7 +88,7 @@ extern "C" __declspec(dllexport)
     fclose(f_stat);
 
     // Unlock the hash
-    LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+    csp.leave();
 
     return;
 }
@@ -156,13 +146,12 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
 
     BOOL ret=FALSE;
     HANDLE h_proc=0;
-    CRAMPFunctionCS fcs;
+
     do{
+        CRAMP_CS csf(&g_CRAMP_Profiler.g_cs_fun);
         h_proc=GetCurrentProcess();
         if(!h_proc)
             break;
-
-        SymInitialize(h_proc,NULL,FALSE);
 
         char msg[MAX_PATH*4];
         TCHAR moduleName[MAX_PATH];
@@ -173,14 +162,14 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
 
         VirtualQuery((void *)addr,&mbi,sizeof(mbi));
 
-#ifdef HAVE_FILTER
         // Faster Module level filtering
+        csf.enter();
         std::hash_map<unsigned int,BOOLEAN>::iterator iter;
         iter=g_CRAMP_Profiler.h_FilteredModAddr.find(
             (unsigned int)mbi.AllocationBase);
         if(iter!=g_CRAMP_Profiler.h_FilteredModAddr.end())
             return(!(*iter).second);
-#endif
+        csf.leave();
 
         GetModuleFileName((HMODULE)mbi.AllocationBase,
                           moduleName,MAX_PATH);
@@ -193,8 +182,9 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         pSymbol->Address=0;
         pSymbol->Flags=0;
         pSymbol->Size=0;
-
         DWORD symDisplacement=0;
+
+        csf.enter();
         if(!SymLoadModule(h_proc,
                           NULL,
                           moduleName,
@@ -204,13 +194,12 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
             break;
 
         SymSetOptions(SymGetOptions()&~SYMOPT_UNDNAME);
+        bool match=TRUE;
         char undName[1024];
         if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
-            // Couldn't retrieve symbol (no debug info?)
             strcpy(undName,"<unknown symbol>");
+            match=FALSE;
         }else{
-            // Unmangle name, throwing away decorations
-            // that don't affect uniqueness:
             if(0==UnDecorateSymbolName(pSymbol->Name, undName,
                                        sizeof(undName),
                                        UNDNAME_NO_MS_KEYWORDS        |
@@ -221,16 +210,16 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
                                        UNDNAME_NO_MEMBER_TYPE))
                 strcpy(undName,pSymbol->Name);
         }
+
         SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
+        csf.leave();
 
         // Find if method is filtered
         do{
-            if(!g_CRAMP_Profiler.g_regcomp)
+            ret=TRUE;
+            if(!g_CRAMP_Profiler.g_regcomp||!match)
                 break;
-
             ret=g_CRAMP_Profiler.g_exclusion;
-            if(g_CRAMP_Profiler.g_FilterString.empty())
-                break;
 
             // If module level filtering
             int rc;
@@ -255,21 +244,21 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
                 if(rc<0)
                     break;
             }else{
+                csf.enter();
                 g_CRAMP_Profiler.h_FilteredModAddr[
-                    (unsigned int)mbi.AllocationBase]=TRUE;
+                    (unsigned int)mbi.AllocationBase]=FALSE;
+                csf.leave();
             }
             ret=!ret;
         }while(0);
-        if(ret)
+
+        if(ret){
+            csf.enter();
             fprintf(f_func,"%08X|%s|%s|%ld\n",
                     addr,modShortNameBuf,undName,calls);
+            csf.leave();
+        }
     }while(0);
-
-    if(h_proc){
-        SymCleanup(h_proc);
-        CloseHandle(h_proc);
-        h_proc=0;
-    }
 
     return(ret);
 }
@@ -464,6 +453,10 @@ OnProcessStart(void){
             SetThreadPriority(g_CRAMP_Profiler.g_h_mailslotTH,
                               THREAD_PRIORITY_BELOW_NORMAL);
 
+        // Initialize all debug symbols at start
+        if(!SymInitialize(GetCurrentProcess(),NULL,FALSE))
+            break;
+
         // Set this if all succeeds
         InterlockedExchange(&g_CRAMP_Profiler.IsInitialised,1);
     }while(0);
@@ -549,6 +542,9 @@ OnProcessEnd(void){
         free(g_CRAMP_Profiler.g_regstudy);
         g_CRAMP_Profiler.g_regstudy=0;
     }
+
+    // Cleanup all debug information
+    SymCleanup(GetCurrentProcess());
 
     CleanEmptyLogs();
 

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-10 18:49:18 dky>
+// Time-stamp: <2004-03-11 11:30:47 dky>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -155,4 +155,40 @@ public:
 
     SIZE_T _error;
     std::string _message;
+};
+
+//-----------------------------------------------------------------------------
+//                         CRITICAL_SECTION - Scopped
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// For profiler
+//-----------------------------------------------------------------------------
+class CRAMP_CS{
+public:
+    CRAMP_CS(CRITICAL_SECTION *crit){
+        _ref=FALSE;
+        _pcs=crit;
+    };
+    virtual ~CRAMP_CS(){
+        if(_ref&&_pcs)
+            LeaveCriticalSection(_pcs);
+    };
+    void enter(void){
+        if(_ref||!_pcs)
+            return;
+        EnterCriticalSection(_pcs);
+        _ref=!_ref;
+        return;
+    };
+    void leave(void){
+        if(!_ref||!_pcs)
+            return;
+        LeaveCriticalSection(_pcs);
+        _ref=!_ref;
+        return;
+    };
+private:
+    CRAMP_CS(){};
+    bool _ref;
+    CRITICAL_SECTION *_pcs;
 };
