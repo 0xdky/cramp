@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-02-27 09:59:31 dky>
+## Time-stamp: <2004-02-28 17:28:49 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -229,16 +229,22 @@ $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
 # Compile CRAMP VB project
 vb: $(BINDIR)/CRAMP.exe
-$(BINDIR)/CRAMP.exe: $(VBDIR)/mainui/CRAMP.vbp
-$(VBDIR)/mainui/CRAMP.vbp: $(DEPS)
+$(BINDIR)/CRAMP.exe: $(VBDIR)/mainui/*
+$(VBDIR)/mainui/CRAMP.vbp: $(MAKEFILE)
     @$(ECHO) Compiling VB project $(VBDIR)/mainui/CRAMP.vbp
     @$(VB) /make /outdir $(BINDIR) $(VBDIR)/mainui/CRAMP.vbp
 
 # Compile the installer
+!IF ("$(LEVEL)"=="MAJOR" || "$(LEVEL)"=="MINOR" || "$(LEVEL)"=="TRIVIAL")
+!MESSAGE Updating the CRAMP version number
 installer: remake
     @cvs.exe -z3 edit ./version
     @perl.exe ./scripts/version.pl ./version $(LEVEL)
     @cvs.exe -z3 commit -m "$(LEVEL) modification" ./version
+!ELSE
+installer: remake
+    @perl.exe ./scripts/version.pl ./version $(LEVEL)
+!ENDIF
 
 # Cleaning
 clean: mostly-clean clean-vc60
