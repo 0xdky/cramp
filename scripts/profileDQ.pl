@@ -1,9 +1,9 @@
 #!perl
-## Time-stamp: <2004-01-07 17:26:43 dhruva>
+## Time-stamp: <2004-01-12 09:53:15 dky>
 ##-----------------------------------------------------------------------------
-## File  : profileDB.pl
+## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
-## Usage : perl -S profileDB.pl help
+## Usage : perl -S profileDQ.pl help
 ## Output: Results are written or appended to query.psf
 ## Desc  : Call SetDBFilters on all DB handles
 ##-----------------------------------------------------------------------------
@@ -39,9 +39,7 @@ my $g_append=0;
 my $cramplogdir=".";
 my $progname=$0;
 
-my $g_db_RAW;
 my @g_TIDs=();
-my @g_tie_RAW=();
 my $g_BUFFER_LIMIT=50000;
 
 $progname=~s,.*/,,;
@@ -471,6 +469,7 @@ sub AddRawLogs{
     $chunks=0;
     @rawlogs=();
   }
+  close(LOGTXT);
 
   # Close the last open DB handle
   if (defined($db)) {
@@ -491,16 +490,17 @@ sub AddRawLogs{
 ##-----------------------------------------------------------------------------
 sub GetRawValuesFromIDs{
   my ($tid,$off,@idx)=@_;
-
-  $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
-                -Filename    => $f_logdb,
-                -Subname     => "RAW#$tid",
-                -Flags       => DB_RDONLY)
+  my $db;
+  my @tie_RAW=();
+  $db=tie(@tie_RAW,'BerkeleyDB::Recno',
+          -Filename    => $f_logdb,
+          -Subname     => "RAW#$tid",
+          -Flags       => DB_RDONLY)
     || die("Error: $BerkeleyDB::Error");
-  if (!defined($g_db_RAW)) {
+  if (!defined($db)) {
     return ();
   }
-  if (SetDBFilters($g_db_RAW)) {
+  if (SetDBFilters($db)) {
     return ();
   }
 
@@ -508,19 +508,19 @@ sub GetRawValuesFromIDs{
     if (!defined($off) || $off<0) {
       $off=0;
     }
-    @idx=($off..$#g_tie_RAW);
+    @idx=($off..$#tie_RAW);
   }
 
   my @results=();
   foreach (@idx) {
-    if ($_<0||$_>$#g_tie_RAW) {
+    if ($_<0||$_>$#tie_RAW) {
       next;
     }
-    push(@results,$_."|".$g_tie_RAW[$_]);
+    push(@results,$_."|".$tie_RAW[$_]);
   }
 
-  undef $g_db_RAW;
-  untie @g_tie_RAW;
+  undef $db;
+  untie @tie_RAW;
 
   return @results;
 }
@@ -591,22 +591,26 @@ sub GetThreadIDs{
 sub AddAddrSortedData{
   foreach (GetThreadIDs()) {
     my $tid=$_;
-    $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
-                  -Filename    => $f_logdb,
-                  -Subname     => "RAW#$tid",
-                  -Flags       => DB_RDONLY)
+    my $db;
+    my @tie_RAW=();
+    $db=tie(@tie_RAW,'BerkeleyDB::Recno',
+            -Filename    => $f_logdb,
+            -Subname     => "RAW#$tid",
+            -Flags       => DB_RDONLY)
       || next;
-    if (!defined($g_db_RAW)) {
+    if (!defined($db)) {
       next;
     }
-    if (SetDBFilters($g_db_RAW)) {
+    if (SetDBFilters($db)) {
+      untie @tie_RAW;
+      undef $db;
       next;
     }
 
     my $key;
     my %h_func;
-    foreach (0..$#g_tie_RAW) {
-      $g_tie_RAW[$_]=~/^([0-9]+)(\|)([0-9A-F]+)/;
+    foreach (0..$#tie_RAW) {
+      $tie_RAW[$_]=~/^([0-9]+)(\|)([0-9A-F]+)/;
       $key=$3;
       if (exists($h_func{$key})) {
         $h_func{$key}.=" $_";
@@ -614,10 +618,10 @@ sub AddAddrSortedData{
         $h_func{$key}="$_";
       }
     }
-    undef $g_db_RAW;
-    untie @g_tie_RAW;
 
-    my $db;
+    undef $db;
+    untie @tie_RAW;
+
     my %tie_h_func;
     $db=tie(%tie_h_func,'BerkeleyDB::Hash',
             -Filename    => $f_logdb,
@@ -628,6 +632,8 @@ sub AddAddrSortedData{
       next;
     }
     if (SetDBFilters($db)) {
+      untie %tie_h_func;
+      undef $db;
       next;
     }
 
@@ -638,19 +644,6 @@ sub AddAddrSortedData{
 
     undef $db;
     untie %tie_h_func;
-  } continue {
-    if (defined($db)) {
-      undef $db;
-    }
-    if (defined($g_db_RAW)) {
-      undef $g_db_RAW;
-    }
-    if (defined(%tie_h_func)) {
-      untie %tie_h_func;
-    }
-    if (defined(%g_tie_RAW)) {
-      untie @g_tie_RAW;
-    }
   }
 
   return 0;
