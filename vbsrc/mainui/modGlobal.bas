@@ -927,7 +927,6 @@ Public Sub DoProfiling(arg As String)
        And frmMainui.pidText.Text <> "" Then
       strProCon = strProCon & gstrSpace & frmMainui.compnameText.Text & _
                   gstrSpace & frmMainui.pidText.Text + gstrSpace + arg
-      MsgBox strProCon
       hInst = Shell(strProCon, vbNormalFocus)
     End If
   End If
