@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-28 10:04:02 dhruva>
+## Time-stamp: <2003-10-29 09:10:51 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -55,21 +55,18 @@ sub SetDBFilters{
 ## TickCompare
 ##-----------------------------------------------------------------------------
 sub TickCompare{
-    my @l1=split(/\|/,$_[0]);
-    my @l2=split(/\|/,$_[1]);
-
-    my $k1=$l1[-1];
-    my $k2=$l2[-1];
+    my $k1=$_[0];
+    my $k2=$_[1];
 
     $k1=~s/\0$//;
     $k2=~s/\0$//;
 
-    $k1=sprintf("%d",$k1);
-    $k2=sprintf("%d",$k2);
+    $k1=~s/([0-9]+)$/{$key1=int $1}/e;
+    $k2=~s/([0-9]+)$/{$key2=int $1}/e;
 
-    if($k1 < $k2){
+    if($key1 < $key2){
         return 1;
-    }elsif($k1 > $k2){
+    }elsif($key1 > $key2){
         return -1;
     }
     return 0;
@@ -244,12 +241,14 @@ sub AppendFuncInfoToLogs{
 
     my $deffin="Module|Function";
     foreach(@_){
-        my @info=split(/\|/,$_);
-        my $fin;
-        if($db->db_get($info[-5],$fin)!=0){
-            $fin="Unknown Module|Unknown Function";
+        my $key;
+        my $buf=$_;
+        $buf=~s/^([0-9]+)(\|)([0-9A-F]+)/{$key=$3}/e;
+        my $val;
+        if($db->db_get($key,$val)!=0){
+            $val="Unknown Module|Unknown Function";
         }
-        $_=~s/($info[-5])/$fin|$1/;
+        $_=~s/($key)/$val|$1/;
     }
     undef $db;
 
@@ -436,9 +435,11 @@ sub AddRawLogs{
     my %h_tid;
     while(<LOGTXT>){
         chomp();
-        my @tokens=split(/\|/,$_);
-        $h_tid{$tokens[0]}='';
-        $db->db_put($tokens[0],$_);
+        my $key;
+        my $buf=$_;
+        $buf=~s/^([0-9]+)/{$key=$1}/e;
+        $h_tid{$key}='';
+        $db->db_put($key,$_);
     }
     close(LOGTXT);
     undef $db;
@@ -506,9 +507,11 @@ sub AddAddrSortedData{
     my %h_tid;
     while(<LOGTXT>){
         chomp();
-        my @tokens=split(/\|/,$_);
-        $h_tid{$tokens[0]}='';
-        $db->db_put($tokens[1],$_);
+        my $key1,$key2;
+        my $buf=$_;
+        $buf=~s/^([0-9]+)(\|)([0-9A-F]+)/{$key1=$1;$key2=$3}/e;
+        $h_tid{$key1}='';
+        $db->db_put($key2,$_);
     }
     close(LOGTXT);
     undef $db;
@@ -547,9 +550,11 @@ sub AddTickSortedData{
     my %h_tid;
     while(<LOGTXT>){
         chomp();
-        my @tokens=split(/\|/,$_);
-        $h_tid{$tokens[0]}='';
-        $db->db_put($tokens[0],$_);
+        my $key;
+        my $buf=$_;
+        $buf=~s/^([0-9]+)/{$key=$1}/e;
+        $h_tid{$key}='';
+        $db->db_put($key,$_);
     }
     close(LOGTXT);
     undef $db;
@@ -585,8 +590,10 @@ sub AddFunctionInformation{
     open(LOGFIN,$f_logfin) || die("Cannot open \"$f_logfin\" for read");
     while(<LOGFIN>){
         chomp();
-        my @tokens=split(/\|/,$_);
-        $db->db_put($tokens[0],"$tokens[1]|$tokens[2]");
+        my $key,$val;
+        my $buf=$_;
+        $buf=~s/^([0-9A-F]+)(\|)(.+)(\|[0-9]+)$/{$key=$1;$val=$3}/e;
+        $db->db_put($key,$val);
     }
     close(LOGFIN);
     undef $db;
