@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-07 12:05:51 dhruva>
+## Time-stamp: <2003-10-11 13:37:09 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -8,11 +8,11 @@
 ## mm-dd-yyyy  History                                                      tri
 ## 09-23-2003  Cre                                                          dky
 ##-----------------------------------------------------------------------------
+VERSION="0.1.1"
 
 # Modify to point to XML base folder
 XMLBASE=F:/Applications/xerces
 XMLBASE1=E:/Applications/xerces
-XML_LIB=xerces-c_2D.lib
 
 # DPE Cominc folder for DPE server header files
 DPE_COMINC=../../DPE/Cominc
@@ -35,16 +35,29 @@ TSTDIR=test
 # Folders created
 BINDIR=bin
 OBJDIR=obj
-
 NOLOGO=/nologo
-CPP_DEBUG=/ZI
+
+!IF ("$(NODEBUG)" == "1")
+!MESSAGE Compiling with NO debug symbols, only for release
+MT_DEBUG=/MT
+XML_LIB=xerces-c_2.lib
+!ELSE
+!MESSAGE Compiling with debug options
+CPP_DEBUG=/ZI /DCRAMP_DEBUG
+MT_DEBUG=/MTd
 LINK_DEBUG=/DEBUG
+XML_LIB=xerces-c_2D.lib
+!ENDIF
 
 INCLUDE=./src;$(INCLUDE)
 
+# Version info
+CFLAGS=$(CFLAGS) /V$(VERSION)
+LDFLAGS=$(LDFLAGS) /VERSION:$(VERSION)
+
 # For engine
 E_CFLAGS=$(CFLAGS) $(NOLOGO) /I$(XMLBASE)/include /I$(XMLBASE1)/include
-E_CCFLAGS=$(E_CFLAGS) $(CPP_DEBUG) /MT /GX
+E_CCFLAGS=$(E_CFLAGS) $(CPP_DEBUG) $(MT_DEBUG) /GX
 E_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
 E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(XMLBASE1)/lib
 
@@ -53,7 +66,8 @@ P_CCFLAGS=$(CFLAGS) $(NOLOGO) $(CPP_DEBUG) /GX
 P_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
 
 # Add new files here
-COBJS=$(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj $(OBJDIR)/XMLParse.obj
+COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
+      $(OBJDIR)/XMLParse.obj
 POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj
 OBJS=$(COBJS) $(POBJS) $(XOBJS)
 
@@ -77,6 +91,9 @@ engine: dirs $(COBJS)
     @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(COBJS) psapi.lib shell32.lib \
              $(XML_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
 # Compiling
+$(OBJDIR)/main.obj: $(SRCDIR)/main.cpp
+    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/main.cpp \
+             /Fo$(OBJDIR)/main.obj
 $(OBJDIR)/engine.obj: $(SRCDIR)/engine.cpp
     @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/engine.cpp \
              /Fo$(OBJDIR)/engine.obj
@@ -86,6 +103,8 @@ $(OBJDIR)/TestCaseInfo.obj: $(SRCDIR)/TestCaseInfo.cpp
 $(OBJDIR)/XMLParse.obj: $(SRCDIR)/XMLParse.cpp
     @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/XMLParse.cpp \
              /Fo$(OBJDIR)/XMLParse.obj
+
+$(SRCDIR)/main.cpp: $(SRCDIR)/engine.h
 $(SRCDIR)/engine.cpp: $(SRCDIR)/engine.h
 $(SRCDIR)/TestCaseInfo.cpp: $(SRCDIR)/TestCaseInfo.h
 $(SRCDIR)/XMLParse.cpp: $(SRCDIR)/XMLParse.h
