@@ -57,15 +57,18 @@ Function .onInit
 FunctionEnd
 
 Section "!CRAMP Engine" SEC01
-  SetOutPath "$INSTDIR\bin"
   SetOverwrite ifnewer
+
+  SetOutPath "$INSTDIR\bin"
   File "..\bin\CRAMP.exe"
   File "..\bin\CRAMPEngine.exe"
   File "\Applications\xerces\bin\xerces-c_2_3_0.dll"
   File "..\scripts\crampstaf.pl"
+  File "\tmp\CRAMP-Package\Support\*"
+
+  SetOutPath "$INSTDIR\res"
   File "..\vbsrc\mainui\Attributes.txt"
   File "..\vbsrc\mainui\MostRecentFiles.txt"
-  File "\tmp\CRAMP-Package\Support\*"
 
   SetOutPath "$INSTDIR\docs"
   File "..\docs\CRAMP.ppt"
