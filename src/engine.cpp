@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 11:08:32 dhruva>
+// Time-stamp: <2003-11-03 13:07:24 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -625,7 +625,7 @@ GetProcessHandleFromName(const char *iProcName,
     _splitpath(szLongName,0,0,szLongName,ext);
     strcat(szLongName,ext);
 
-    if(!strstr(_strlwr(szLongName),_strlwr(szProcName))){
+    if(!strstr(_strlwr(szProcName),_strlwr(szLongName))){
       CloseHandle(h_proc);
       h_proc=0;
       continue;
