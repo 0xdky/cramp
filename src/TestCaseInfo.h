@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 11:10:54 dhruva>
+// Time-stamp: <2003-11-07 10:57:46 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -94,6 +94,10 @@ public:
 
   std::string &TestCaseExec(void);
   void TestCaseExec(const char *iExec);
+
+  std::string &GetUID(void){
+    return(s_uid);
+  };
 
   // In milli seconds
   SIZE_T MonitorInterval(void);

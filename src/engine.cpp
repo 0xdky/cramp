@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-05 15:11:34 dhruva>
+// Time-stamp: <2003-11-07 11:00:05 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -128,14 +128,13 @@ TestCaseInfo
       std::list<PROCESS_INFORMATION>::iterator lpiniter=lpin.begin();
       ptc->ProcessInfo((*lpiniter));
       lpiniter++;
-      TestCaseInfo *pGroup=0;
-      pGroup=ptc->GetParentGroup();
-      if(!pGroup)
-        break;
-      for(;lpiniter!=lpin.end();lpiniter++){
+      std::string &str=ptc->GetUID();
+      char tcname[32];
+      for(SIZE_T cc=1;lpiniter!=lpin.end();lpiniter++,cc++){
         TestCaseInfo *psp=0;
+        sprintf(tcname,"%s_mp#%d",str.c_str(),cc);
         // Create a Sub proc
-        psp=pGroup->AddTestCase(0,FALSE,TRUE);
+        psp=ptc->AddTestCase(tcname,FALSE,TRUE);
         DEBUGCHK(psp);
         psp->TestCaseName("Monitoring only");
         psp->TestCaseExec(exec.c_str());
