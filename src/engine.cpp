@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-10 11:27:59 dhruva>
+// Time-stamp: <2003-12-11 08:57:07 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -399,7 +399,7 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
   h_snapshot=CreateToolhelp32Snapshot(TH32CS_SNAPALL,0);
   DEBUGCHK(!(h_snapshot==INVALID_HANDLE_VALUE));
 
-  std::list<DWORD> lpid;
+  std::list<TCIPID> ltcipid;
   PROCESS_INFORMATION pin={0};
   std::list<PROCESS_INFORMATION> lpin;
   ListOfTestCaseInfo::iterator iter=lgc.begin();
@@ -421,8 +421,10 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
         continue;
       }
     }
-    if(pin.dwProcessId)
-      lpid.push_back(pin.dwProcessId);
+    if(pin.dwProcessId){
+      TCIPID tp={pin.dwProcessId,ptc};
+      ltcipid.push_back(tp);
+    }
 
     // Remove call to func
     if(ptc->ExeProcStatus())
@@ -438,14 +440,15 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
       pin=(*lpiniter);
       if(!pin.dwProcessId)
         continue;
-      lpid.push_back(pin.dwProcessId);
+      TCIPID tp={pin.dwProcessId,ptc};
+      ltcipid.push_back(tp);
       CloseHandle(pin.hProcess);
       pin.hProcess=0;
     }
   }
   CloseHandle(h_snapshot);
 
-  if(UpdatePIDCounterHash(lpid))
+  if(UpdatePIDCounterHash(ltcipid))
     return(FALSE);
   WriteCounterData();
 

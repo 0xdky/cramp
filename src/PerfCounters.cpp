@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-10 15:15:06 dhruva>
+// Time-stamp: <2003-12-11 09:21:42 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Desc  : Create a job, process inside the job which may create further
@@ -17,6 +17,7 @@
 
 #include <Pdh.h>
 #include <PDHMsg.h>
+#include <Psapi.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +25,12 @@
 
 #include <string>
 #include <hash_map>
+
+typedef struct{
+  std::string _name;
+  PDH_HCOUNTER *_pCounters;
+  TCIPID _tcipid;
+}CounterInfo;
 
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 BOOL GetNameStrings(void);
@@ -33,8 +40,7 @@ BOOL UpdateCounterList(int,char *);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 
 static BOOL s_NameStr=FALSE;
-std::hash_map<DWORD,std::string> s_h_PIDInstance;
-std::hash_map<DWORD,PDH_HCOUNTER *> s_h_PIDCounters;
+std::hash_map<DWORD,CounterInfo> s_h_PIDCounters;
 
 char C_VM_NAME[256];
 char C_WS_NAME[256];
@@ -163,8 +169,8 @@ GetNameStrings(void){
 // UpdatePIDCounterHash
 //-----------------------------------------------------------------------------
 int
-UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
-  if(!iListOfPID.size())
+UpdatePIDCounterHash(std::list<TCIPID> &iListOfTCIPID){
+  if(!iListOfTCIPID.size())
     return(0);
 
   // Do not check the first time
@@ -231,9 +237,9 @@ UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
     PDH_RAW_COUNTER rval={0};
     LPTSTR szThisInstance=NULL;
     std::hash_map<SIZE_T,int> h_inst;
-    std::list<DWORD>::iterator liter;
+    std::list<TCIPID>::iterator liter;
     std::hash_map<SIZE_T,int>::iterator iiter;
-    std::hash_map<DWORD,PDH_HCOUNTER *>::iterator hiter;
+    std::hash_map<DWORD,CounterInfo>::iterator hiter;
 
     if(ERROR_SUCCESS!=PdhOpenQuery(NULL,0,&hQuery))
       break;
@@ -277,9 +283,9 @@ UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
       PdhRemoveCounter(c_pid);
 
       // Scan the list of PIDs
-      liter=iListOfPID.begin();
-      for(;liter!=iListOfPID.end();liter++){
-        DWORD pid=(*liter);
+      liter=iListOfTCIPID.begin();
+      for(;liter!=iListOfTCIPID.end();liter++){
+        DWORD pid=(*liter)._pid;
         if(pid!=ipid)
           continue;
 
@@ -298,8 +304,11 @@ UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
         sprintf(qstr,"\\\\.\\%s(%s)\\%s",C_PROC_NAME,inst,C_WS_NAME);
         PdhAddCounter(g_CRAMP_Engine.g_hQuery,qstr,0,&apdhc[2]);
 
-        s_h_PIDInstance[pid]=inst;
-        s_h_PIDCounters[pid]=apdhc;
+        CounterInfo ci;
+        ci._name=inst;
+        ci._pCounters=apdhc;
+        ci._tcipid=(*liter);
+        s_h_PIDCounters[pid]=ci;
       }
     }
     PdhCloseQuery(hQuery);
@@ -323,11 +332,11 @@ RemovePIDCounterHash(DWORD iPID){
   if(!g_CRAMP_Engine.g_hQuery)
     return;
 
-  std::hash_map<DWORD,PDH_HCOUNTER *>::iterator iter;
+  std::hash_map<DWORD,CounterInfo>::iterator iter;
   iter=s_h_PIDCounters.find(iPID);
   if(iter==s_h_PIDCounters.end())
     return;
-  PDH_HCOUNTER *pcntr=(*iter).second;
+  PDH_HCOUNTER *pcntr=(*iter).second._pCounters;
   s_h_PIDCounters.erase(iter);
   for(int ii=0;ii<MAX_COUNTERS;ii++)
     PdhRemoveCounter(pcntr[ii]);
@@ -344,9 +353,9 @@ CleanPIDCounterHash(void){
   if(!g_CRAMP_Engine.g_hQuery)
     return;
 
-  std::hash_map<DWORD,PDH_HCOUNTER *>::iterator hiter=s_h_PIDCounters.begin();
+  std::hash_map<DWORD,CounterInfo>::iterator hiter=s_h_PIDCounters.begin();
   for(;hiter!=s_h_PIDCounters.end();hiter++){
-    PDH_HCOUNTER *pcntr=(*hiter).second;
+    PDH_HCOUNTER *pcntr=(*hiter).second._pCounters;
     for(int ii=0;ii<MAX_COUNTERS;ii++)
       PdhRemoveCounter(pcntr[ii]);
     delete [] pcntr;
@@ -370,16 +379,17 @@ WriteCounterData(void){
   char msg[1024];
   SIZE_T vm=0,pb=0,ws=0;
   PDH_FMT_COUNTERVALUE val;
-  std::hash_map<DWORD,std::string>::iterator siter;
-  std::hash_map<DWORD,PDH_HCOUNTER *>::iterator hiter=s_h_PIDCounters.begin();
+  std::hash_map<DWORD,CounterInfo>::iterator hiter=s_h_PIDCounters.begin();
   for(;hiter!=s_h_PIDCounters.end();hiter++){
     DWORD pid=(*hiter).first;
-    siter=s_h_PIDInstance.find(pid);
-    if(siter==s_h_PIDInstance.end())
+    PDH_HCOUNTER *pcntr=(*hiter).second._pCounters;
+    if(!pcntr)
       continue;
 
-    PDH_HCOUNTER *pcntr=(*hiter).second;
-    if(!pcntr)
+    HANDLE h_proc=0;
+    h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,
+                       FALSE,pid);
+    if(!h_proc)
       continue;
 
     PdhGetFormattedCounterValue(pcntr[0],PDH_FMT_LONG,0,&val);
@@ -388,14 +398,22 @@ WriteCounterData(void){
     pb=val.longValue;
     PdhGetFormattedCounterValue(pcntr[2],PDH_FMT_LONG,0,&val);
     ws=val.longValue;
-    siter=s_h_PIDInstance.find(pid);
-    sprintf(msg,"#%ld|%s|%ld|%ld|%ld",
+
+    MEMORYSTATUS mem={0};
+    PROCESS_MEMORY_COUNTERS pmc={0};
+    GlobalMemoryStatus(&mem);
+    GetProcessMemoryInfo(h_proc,&pmc,sizeof(PROCESS_MEMORY_COUNTERS));
+    CloseHandle(h_proc);
+
+    sprintf(msg,"#%ld|%s|%ld|%ld|%ld|%ld|%ld",
             pid,
-            (*siter).second.c_str(),
+            (*hiter).second._name.c_str(),
             vm,
             pb,
-            ws);
-    g_CRAMP_Engine.g_pScenario->Remote()->AddLog(msg);
+            ws,
+            pmc.QuotaPagedPoolUsage,
+            mem.dwAvailPhys);
+    (*hiter).second._tcipid._ptc->AddLog(msg);
     msg[0]='\0';
   }
 
