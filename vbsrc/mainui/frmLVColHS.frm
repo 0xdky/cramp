@@ -142,7 +142,7 @@ Option Explicit
 Private Sub Form_Unload(Cancel As Integer)
   StoreCheckBoxStatus
   frmMainui.manuHideShow.Enabled = True
-  frmMainui.Enabled = True
+  'frmMainui.Enabled = True
 End Sub
 
 Private Sub addrColHSCHB_Click()

@@ -1316,7 +1316,7 @@ Private Sub manuHideShow_Click()
   frmLVColHS.Left = frmMainui.Left - 2892
   frmLVColHS.Visible = True
   manuHideShow.Enabled = False
-  frmMainui.Enabled = False
+  'frmMainui.Enabled = False
   Screen.MousePointer = vbDefault
 End Sub
 

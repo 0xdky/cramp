@@ -427,7 +427,7 @@ Public Sub ShowHideCol()
   
   Dim ss As Integer
   Dim chbVal As Integer
-  Dim chbHandle As CheckBox
+  'Dim chbHandle As CheckBox
   
   ss = 0
   chbVal = 0
@@ -437,29 +437,29 @@ Public Sub ShowHideCol()
       chbVal = chbstatusArray(ss)
       If chbVal = 0 Then
         If ss = 0 Then
-          ReorderColumnPosition .threColHSCHB.Caption, False
+          ReorderColumnPosition "Thread", False
         ElseIf ss = 1 Then
-          ReorderColumnPosition .funcColHSCHB.Caption, False
+          ReorderColumnPosition "Function", False
         ElseIf ss = 2 Then
-          ReorderColumnPosition .addrColHSCHB.Caption, False
+          ReorderColumnPosition "Address", False
         ElseIf ss = 3 Then
-          ReorderColumnPosition .numColHSCHB.Caption, False
+          ReorderColumnPosition "Number", False
         ElseIf ss = 4 Then
-          ReorderColumnPosition .totticksColHSCHB.Caption, False
+          ReorderColumnPosition "Total ticks", False
         ElseIf ss = 5 Then
-          ReorderColumnPosition .maxtickColHSCHB.Caption, False
+          ReorderColumnPosition "Max ticks", False
         ElseIf ss = 6 Then
-          ReorderColumnPosition .modColHSCHB.Caption, False
+          ReorderColumnPosition "Module", False
         ElseIf ss = 7 Then
-          ReorderColumnPosition .depthColHSCHB.Caption, False
+          ReorderColumnPosition "Depth", False
         ElseIf ss = 8 Then
-          ReorderColumnPosition .excepColHSCHB.Caption, False
+          ReorderColumnPosition "Exception", False
         ElseIf ss = 9 Then
-          ReorderColumnPosition .timeColHSCHB.Caption, False
+          ReorderColumnPosition "Time(ns)", False
         ElseIf ss = 10 Then
-          ReorderColumnPosition .countColHSCHB.Caption, False
+          ReorderColumnPosition "Count", False
         ElseIf ss = 11 Then
-          ReorderColumnPosition .ticksColHSCHB.Caption, False
+          ReorderColumnPosition "Ticks", False
         End If
     End If
   Next
