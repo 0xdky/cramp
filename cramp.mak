@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-02-29 13:02:14 dky>
+## Time-stamp: <2004-02-29 13:32:00 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -94,7 +94,7 @@ UTILITIES=$(BINDIR)/ProfileControl.exe $(BINDIR)/profileDB.exe
 
 # Currently disabled base class build: Problem with SDK
 all: cramp
-cramp: dirs res engine library vb utils test
+cramp: dirs res engine library gui utils test
 remake: clean cramp
 
 # Dependancy to force a re-build
@@ -112,9 +112,9 @@ dirs: $(MAKEFILE)
 # Add res
 res: $(RESDIR)/Attributes.txt $(RESDIR)/MostRecentFiles.txt
 $(RESDIR)/Attributes.txt:
-    @$(COPY) $(VBDIR)\mainui\Attributes.txt $(RESDIR)
+    @$(COPY) $(VBDIR)/mainui/Attributes.txt $(RESDIR)
 $(RESDIR)/MostRecentFiles.txt:
-    @$(COPY) $(VBDIR)\mainui\MostRecentFiles.txt $(RESDIR)
+    @$(COPY) $(VBDIR)/mainui/MostRecentFiles.txt $(RESDIR)
 
 # For CRAMP engine
 engine: dirs res $(COBJS)
@@ -228,7 +228,7 @@ $(TSTDIR)/TestProf.cpp: $(DEPS)
 $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
 # Compile CRAMP VB project
-vb: $(BINDIR)/CRAMP.exe
+gui: $(BINDIR)/CRAMP.exe
 $(BINDIR)/CRAMP.exe: $(VBDIR)/mainui/CRAMP.vbw
 $(VBDIR)/mainui/CRAMP.vbw: $(VBDIR)/mainui/CRAMP.vbp
 $(VBDIR)/mainui/CRAMP.vbp: $(MAKEFILE) $(VBDIR)/mainui/*.bas \
