@@ -19,6 +19,481 @@ Begin VB.Form frmMainui
       Visible         =   0   'False
       Width           =   7450
       Begin MSComctlLib.ImageList SortIconImageList 
+         Left            =   6720
+         Top             =   6840
+         _ExtentX        =   794
+         _ExtentY        =   794
+         BackColor       =   -2147483643
+         ImageWidth      =   8
+         ImageHeight     =   7
+         MaskColor       =   12632256
+         _Version        =   393216
+         BeginProperty Images {2C247F25-8591-11D1-B16A-00C0F0283628} 
+            NumListImages   =   2
+            BeginProperty ListImage1 {2C247F27-8591-11D1-B16A-00C0F0283628} 
+               Picture         =   "frmMainui.frx":0000
+               Key             =   ""
+            EndProperty
+            BeginProperty ListImage2 {2C247F27-8591-11D1-B16A-00C0F0283628} 
+               Picture         =   "frmMainui.frx":00D2
+               Key             =   ""
+            EndProperty
+         EndProperty
+      End
+      Begin VB.Frame Frame4 
+         Caption         =   "Profiling"
+         Height          =   972
+         Left            =   300
+         TabIndex        =   32
+         Top             =   240
+         Width           =   6852
+         Begin VB.CommandButton stopCommand 
+            Caption         =   "Stop"
+            Height          =   288
+            Left            =   4440
+            TabIndex        =   39
+            Top             =   480
+            Width           =   972
+         End
+         Begin VB.CommandButton flushproCommand 
+            Caption         =   "Flush"
+            Height          =   288
+            Left            =   5640
+            TabIndex        =   38
+            Top             =   480
+            Width           =   972
+         End
+         Begin VB.CommandButton startCommand 
+            Caption         =   "Start"
+            Height          =   288
+            Left            =   3240
+            TabIndex        =   37
+            Top             =   480
+            Width           =   972
+         End
+         Begin VB.TextBox pidText 
+            Height          =   288
+            Left            =   2040
+            TabIndex        =   35
+            Top             =   480
+            Width           =   972
+         End
+         Begin VB.TextBox compnameText 
+            Height          =   288
+            Left            =   120
+            TabIndex        =   33
+            Top             =   480
+            Width           =   1692
+         End
+         Begin VB.Label procidLabel 
+            Caption         =   "Pid"
+            Height          =   252
+            Left            =   2040
+            TabIndex        =   36
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.Label compnameLabel 
+            Caption         =   "Profile Host"
+            Height          =   252
+            Left            =   120
+            TabIndex        =   34
+            Top             =   240
+            Width           =   1692
+         End
+      End
+      Begin VB.Frame Frame3 
+         Caption         =   "Result"
+         Height          =   3972
+         Left            =   300
+         TabIndex        =   29
+         Top             =   3120
+         Width           =   6852
+         Begin VB.CommandButton preCommand 
+            Caption         =   "Previous"
+            Height          =   288
+            Left            =   1200
+            TabIndex        =   45
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.CommandButton nextCommand 
+            Caption         =   "Next"
+            Height          =   288
+            Left            =   3751
+            TabIndex        =   44
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.TextBox listitemText 
+            Height          =   288
+            Left            =   5760
+            TabIndex        =   43
+            Top             =   240
+            Width           =   951
+         End
+         Begin MSComctlLib.ListView queryLV 
+            Height          =   3132
+            Left            =   120
+            TabIndex        =   30
+            Top             =   720
+            Width           =   6612
+            _ExtentX        =   11668
+            _ExtentY        =   5530
+            LabelEdit       =   1
+            LabelWrap       =   -1  'True
+            HideSelection   =   -1  'True
+            AllowReorder    =   -1  'True
+            FullRowSelect   =   -1  'True
+            _Version        =   393217
+            ForeColor       =   -2147483640
+            BackColor       =   -2147483643
+            BorderStyle     =   1
+            Appearance      =   1
+            NumItems        =   0
+         End
+         Begin VB.Label maxLabel 
+            AutoSize        =   -1  'True
+            Height          =   192
+            Left            =   3050
+            TabIndex        =   49
+            Top             =   480
+            Width           =   36
+         End
+         Begin VB.Label deshLabel 
+            Alignment       =   2  'Center
+            AutoSize        =   -1  'True
+            Caption         =   "-"
+            Height          =   192
+            Left            =   2916
+            TabIndex        =   48
+            Top             =   480
+            Width           =   60
+         End
+         Begin VB.Label miniLabel 
+            Alignment       =   1  'Right Justify
+            AutoSize        =   -1  'True
+            Height          =   192
+            Left            =   2800
+            TabIndex        =   47
+            Top             =   480
+            Width           =   51
+         End
+         Begin VB.Label totalLabel 
+            Alignment       =   2  'Center
+            Height          =   252
+            Left            =   120
+            TabIndex        =   46
+            Top             =   480
+            Width           =   852
+         End
+         Begin VB.Label itemrangeLabel 
+            Caption         =   "Item range : "
+            Height          =   252
+            Left            =   4920
+            TabIndex        =   42
+            Top             =   240
+            Width           =   852
+         End
+         Begin VB.Label totLabel 
+            Caption         =   "Total items:"
+            Height          =   204
+            Left            =   120
+            TabIndex        =   41
+            Top             =   240
+            Width           =   852
+         End
+         Begin VB.Label rngLabel 
+            Caption         =   "Visible items:"
+            Height          =   204
+            Left            =   2520
+            TabIndex        =   40
+            Top             =   240
+            Width           =   972
+         End
+      End
+      Begin VB.Frame Frame2 
+         Caption         =   "Query"
+         Height          =   700
+         Left            =   300
+         TabIndex        =   26
+         Top             =   2400
+         Width           =   6852
+         Begin VB.CommandButton runCommand 
+            Caption         =   "Init"
+            Height          =   288
+            Left            =   5640
+            TabIndex        =   31
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.CommandButton queryCommand 
+            Caption         =   "Query"
+            Enabled         =   0   'False
+            Height          =   288
+            Left            =   4200
+            TabIndex        =   28
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.TextBox queryText 
+            Enabled         =   0   'False
+            Height          =   288
+            Left            =   120
+            TabIndex        =   27
+            Top             =   240
+            Width           =   3732
+         End
+      End
+      Begin VB.Frame Frame1 
+         Caption         =   "Query Option"
+         Height          =   972
+         Left            =   300
+         TabIndex        =   13
+         Top             =   1320
+         Width           =   6852
+         Begin VB.TextBox addressText 
+            Enabled         =   0   'False
+            Height          =   288
+            Left            =   4680
+            TabIndex        =   50
+            Top             =   480
+            Width           =   1092
+         End
+         Begin VB.CheckBox appendCheck 
+            Caption         =   "Append"
+            Height          =   312
+            Left            =   5880
+            TabIndex        =   20
+            Top             =   840
+            Width           =   852
+         End
+         Begin VB.TextBox limitText 
+            Height          =   288
+            Left            =   5880
+            TabIndex        =   18
+            Text            =   "10"
+            Top             =   480
+            Width           =   852
+         End
+         Begin VB.ComboBox rtCombo 
+            Height          =   288
+            Left            =   3600
+            Style           =   2  'Dropdown List
+            TabIndex        =   17
+            Top             =   480
+            Width           =   972
+         End
+         Begin VB.ComboBox threadCombo 
+            Height          =   288
+            Left            =   2520
+            Style           =   2  'Dropdown List
+            TabIndex        =   16
+            Top             =   480
+            Width           =   972
+         End
+         Begin VB.ComboBox staCombo 
+            Height          =   288
+            Left            =   1200
+            Style           =   2  'Dropdown List
+            TabIndex        =   15
+            Top             =   480
+            Width           =   1212
+         End
+         Begin VB.ComboBox pidCombo 
+            Height          =   288
+            Left            =   120
+            Style           =   2  'Dropdown List
+            TabIndex        =   14
+            Top             =   480
+            Width           =   972
+         End
+         Begin VB.Label limitLabel 
+            Caption         =   "Limit"
+            Height          =   252
+            Left            =   5880
+            TabIndex        =   25
+            Top             =   240
+            Width           =   852
+         End
+         Begin VB.Label addLabel 
+            Caption         =   "Address"
+            Height          =   252
+            Left            =   4680
+            TabIndex        =   24
+            Top             =   240
+            Width           =   1092
+         End
+         Begin VB.Label rtLabel 
+            Caption         =   "Type"
+            Height          =   252
+            Left            =   3600
+            TabIndex        =   23
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.Label threadLabel 
+            Caption         =   "Thread"
+            Height          =   252
+            Left            =   2520
+            TabIndex        =   22
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.Label selLabel 
+            Caption         =   "Selection"
+            Height          =   252
+            Left            =   1200
+            TabIndex        =   21
+            Top             =   240
+            Width           =   1212
+         End
+         Begin VB.Label pidLabel 
+            Caption         =   "Pid"
+            Height          =   252
+            Left            =   120
+            TabIndex        =   19
+            Top             =   240
+            Width           =   972
+         End
+      End
+   End
+   Begin VB.Frame fraMainUI 
+      Height          =   6900
+      Index           =   0
+      Left            =   600
+      TabIndex        =   1
+      Top             =   7920
+      Width           =   7450
+      Begin VB.ComboBox cboIdRef 
+         Height          =   315
+         Left            =   6000
+         TabIndex        =   12
+         Top             =   4320
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdBrowse 
+         Caption         =   "..."
+         Height          =   255
+         Left            =   6120
+         TabIndex        =   11
+         Top             =   6360
+         Visible         =   0   'False
+         Width           =   255
+      End
+      Begin VB.TextBox txtInput 
+         Appearance      =   0  'Flat
+         Height          =   285
+         Left            =   6000
+         TabIndex        =   10
+         Top             =   5520
+         Visible         =   0   'False
+         Width           =   1215
+      End
+      Begin VB.ComboBox cboTrueFalse 
+         Height          =   315
+         ItemData        =   "frmMainui.frx":01A4
+         Left            =   6000
+         List            =   "frmMainui.frx":01AE
+         TabIndex        =   9
+         Text            =   "TRUE"
+         Top             =   4920
+         Visible         =   0   'False
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdRun 
+         Caption         =   "&Run"
+         Height          =   495
+         Left            =   6000
+         TabIndex        =   8
+         Top             =   3240
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdDelete 
+         Caption         =   "&Delete"
+         Height          =   495
+         Left            =   6000
+         TabIndex        =   7
+         Top             =   2280
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdAddTc 
+         Caption         =   "Add &Testcase"
+         Height          =   495
+         Left            =   6000
+         TabIndex        =   6
+         Top             =   1320
+         Width           =   1215
+      End
+      Begin VB.CommandButton cmdAddGroup 
+         Caption         =   "Add &Group"
+         Height          =   495
+         Left            =   6000
+         TabIndex        =   5
+         Top             =   360
+         Width           =   1215
+      End
+      Begin MSComDlg.CommonDialog dlgSelect 
+         Left            =   6720
+         Top             =   6240
+         _ExtentX        =   847
+         _ExtentY        =   847
+         _Version        =   393216
+      End
+      Begin MSComctlLib.ListView lvwAttributes 
+         Height          =   2300
+         Left            =   240
+         TabIndex        =   4
+         Top             =   4320
+         Width           =   5500
+         _ExtentX        =   9710
+         _ExtentY        =   4048
+         LabelWrap       =   -1  'True
+         HideSelection   =   0   'False
+         FullRowSelect   =   -1  'True
+         GridLines       =   -1  'True
+         _Version        =   393217
+         ForeColor       =   -2147483640
+         BackColor       =   -2147483643
+         BorderStyle     =   1
+         Appearance      =   1
+         NumItems        =   0
+      End
+      Begin MSComctlLib.TreeView tvwNodes 
+         Height          =   3504
+         Left            =   240
+         TabIndex        =   3
+         Top             =   480
+         Width           =   5496
+         _ExtentX        =   9710
+         _ExtentY        =   6165
+         _Version        =   393217
+         HideSelection   =   0   'False
+         LabelEdit       =   1
+         Style           =   7
+         Appearance      =   1
+      End
+   End
+   Begin MSComctlLib.TabStrip tspMainUI 
+      Height          =   8052
+      Left            =   240
+      TabIndex        =   0
+      Top             =   240
+      Width           =   8172
+      _ExtentX        =   14420
+      _ExtentY        =   14208
+      _Version        =   393216
+      BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
+         NumTabs         =   2
+         BeginProperty Tab1 {1EFB659A-857C-11D1-B16A-00C0F0283628} 
+            Caption         =   "Engine"
+            ImageVarType    =   2
+         EndProperty
+         BeginProperty Tab2 {1EFB659A-857C-11D1-B16A-00C0F0283628} 
+            Caption         =   "Profiler"
+            ImageVarType    =   2
+         EndProperty
+      EndProperty
    End
    Begin VB.Menu mnuFile 
       Caption         =   "&File"
@@ -310,11 +785,6 @@ Private Sub Form_Unload(Cancel As Integer)
     Else
         CleanUp 'pie added this code
     End If
-    
-    '***********************************************************
-    ' My Code Starts Here
-    '***********************************************************
-    'CleanUp
     
     Set ADOXcatalog = Nothing
     If FileExists(gDatabaseName) Then
@@ -1080,4 +1550,5 @@ Private Sub Form_Resize()
   Me.Refresh
 
 End Sub
+
 
