@@ -18,8 +18,5 @@
 "Testcase","IdRef","","Text"
 "Testcase","MaxRunTime","0","Number"
 "Testcase","NumRuns","1","Integer"
-"Testcase","SubProc","False","Boolean"
-
-
-
-
+"Testcase","ExeProc","False","Boolean"
+"Testcase","MonProc","True","Boolean"
