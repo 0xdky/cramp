@@ -1,3 +1,13 @@
+// -*-c++-*-
+//----------------------------------------------------------------------------
+// File : DPEBaseClassTest.cpp
+// Desc : Source file to generate DPE test case.
+// Usage: 
+//----------------------------------------------------------------------------
+// mm-dd-yyyy  History                                                    user
+// 10-06-2003  Cre                                                         sjm
+// 10-07-2003  Modify and add proper comments				   sjm
+//----------------------------------------------------------------------------
 #include "DPEBaseClass.h"
 #include "EPConfigFactoryMain.h"
 #include "BaseDataObj.h"
@@ -10,27 +20,47 @@
 //
 class myClass: public DPEBaseClass
 {
-    public:
-	void InvokeTestCase();
+public:
+    /**
+     * Function to write the test case.
+     * @param
+     * @return
+     *     HRESULT value
+     * <br><b>Legal values</b>
+     * <ul>
+     * <li>S_OK if the operation succeeds</li>
+     * <li>E_FAIL otherwise</li>
+     * </ul>
+     */
+    HRESULT InvokeTestCase();
 
 };
 
-void myClass::InvokeTestCase()
+//----------------------------------------------------------------------------
+// InvokeTestCase
+//     User written test case
+//----------------------------------------------------------------------------
+HRESULT
+myClass::InvokeTestCase()
 {
     IEPIPDClient* pIPDClient = GetIPDClient();
     long lClientId = GetClientId();
 
     //User written TESTCASE.
     // Retrieve project root from server
-    IEP_BaseDataObject* pProjectRoot = GetProjectRoot();
+    IEP_BaseDataObject *pProjectRoot = GetProjectRoot();
     
     // Retrieve archive root (library) from server
-    CComPtr<IEP_BaseDataObject> pArchivRoot;
-    HRESULT hRes = pIPDClient->GetServerCOMObject( lClientId,
-                                           __uuidof(DOArchivRoot), 
-                                           __uuidof(IEP_BaseDataObject),
-				           (void **) &pArchivRoot);
-    PrintSuccess(hRes,"GetServerCOMObject (ArchivRoot)");
+    IEP_BaseDataObject *pArchivRoot = GetArchivRoot();
+
+    // Get project by name 'Temperature Sensor AF20'
+    IEP_BaseDataObject *pProjectByName = NULL; 
+    HRESULT hRes = GetProject( "Temperature Sensor AF20", 
+				&pProjectByName );
+    if( !PrintSuccess( hRes, "Retrieved project Temperature Sensor AF20" ))
+    {
+	return( hRes ); 
+    }
 
     // Retrieve system element root from server
     CComPtr<IEP_BaseDataObject> pSERoot;
@@ -38,12 +68,17 @@ void myClass::InvokeTestCase()
                                            __uuidof(DoSystemsElementRoot), 
                                            __uuidof(IEP_BaseDataObject),
 				           (void **) &pSERoot);
-    PrintSuccess(hRes,"GetServerCOMObject (SystemElementRoot)");
+    if( !PrintSuccess(hRes,"GetServerCOMObject (SystemElementRoot)"))
+    {
+	return( hRes );
+    }
 
     // Print out object information
     PrintBDObjectInfo(pProjectRoot,_T("DOProjectRoot"));
     PrintBDObjectInfo(pArchivRoot,_T("DOArchivRoot"));
     PrintBDObjectInfo(pSERoot,_T("DoSystemsElementRoot"));
+
+    return( hRes );
 }
 
 
