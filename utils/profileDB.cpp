@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-30 17:57:35 dhruva>
+// Time-stamp: <2003-10-30 20:28:20 dhruva>
 //-----------------------------------------------------------------------------
 // File  : proflog2db.cpp
 // Desc  : Dumps the raw text cramp profile log file to Berkeley DB
@@ -373,6 +373,10 @@ AddTickSortedData(void){
       break;
     }
 
+    ret=psdb->set_cachesize(psdb,0,100000000,5);
+    if(ret)
+      DBERROR(psdb,ret,"cache");
+
     ret=psdb->open(psdb,NULL,dbfile,"S_TID_FUNC_SORT_TICK",
                    DB_BTREE,
                    DB_EXCL|DB_CREATE,
@@ -392,8 +396,8 @@ AddTickSortedData(void){
     }
 
     char *buff=0;
-    char orig[1024];
     char line[1024];
+    char *orig=(char *)calloc(1024,sizeof(char));
     const char *sep="|";
     while(!f_log.eof()){
       f_log.getline(line,1024,'\n');
@@ -422,6 +426,9 @@ AddTickSortedData(void){
       if(ret)
         DBERROR(pdb,ret,(char *)key.data);
     }
+    if(orig)
+      free(orig);
+    orig=0;
   }while(0);
 
   f_log.close();
@@ -507,8 +514,8 @@ AddAddrSortedData(void){
     }
 
     char *buff=0;
-    char orig[1024];
     char line[1024];
+    char *orig=(char *)calloc(1024,sizeof(char));
     const char *sep="|";
     while(!f_log.eof()){
       f_log.getline(line,1024,'\n');
@@ -541,6 +548,9 @@ AddAddrSortedData(void){
       if(ret)
         DBERROR(pdb,ret,(char *)key.data);
     }
+    if(orig)
+      free(orig);
+    orig=0;
   }while(0);
 
   f_log.close();
@@ -929,8 +939,10 @@ AppendFunctionInfo(squeue &ique,FILE *f_query){
 
     char tid[32];
     char addr[32];
-    char orig[1024];
+    char *orig=(char *)calloc(1024,sizeof(char));
+    char *origloc=orig;
     while(!ique.empty()){
+      orig=origloc;
       string line=ique.front();
       ique.pop();
 
@@ -953,6 +965,9 @@ AppendFunctionInfo(squeue &ique,FILE *f_query){
       if(DEBUG)
         fprintf(stdout,"%s\n",line.c_str());
     }
+    if(orig)
+      free(orig);
+    orig=0;
   }while(0);
 
   if(pdb)
