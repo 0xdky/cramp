@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-20 12:18:19 dhruva>
+// Time-stamp: <2003-11-20 17:58:38 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -157,7 +157,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
     ListOfTestCaseInfo::iterator iter=l_gc.begin();
     for(;iter!=l_gc.end();iter++){
       TestCaseInfo *ptc=(*iter);
-      if(!ptc)
+      if(!ptc||ptc->GroupStatus()||ptc->PseudoGroupStatus())
         continue;
       GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
       if(ptc->SubProcStatus()){
