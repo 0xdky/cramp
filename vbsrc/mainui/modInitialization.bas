@@ -4,26 +4,27 @@ Option Explicit
 ' set raw-tick combo box
 '***********************************************************
 Public Sub SetRTCombo()
-  Dim strRaw As String
-  strRaw = "RAW"
-
-  frmMainui.rtCombo.AddItem (frmMainui.rtCombo.Text)
-  frmMainui.rtCombo.AddItem (strRaw)
-  gstrRawTick = frmMainui.rtCombo.Text
+  Dim strTickRaw As String
+  strTickRaw = "TICK"
+  frmMainui.rtCombo.AddItem (strTickRaw)
+  strTickRaw = "RAW"
+  frmMainui.rtCombo.AddItem (strTickRaw)
+  frmMainui.rtCombo.ListIndex = 0
 End Sub
 '***********************************************************
 ' set stat-threads-addr combo box
 '***********************************************************
 Public Sub SetSTACombo()
-  Dim strStat As String
-  Dim strAddr As String
-  strStat = "STAT"
-  strAddr = "ADDR"
+  Dim strSTA As String
+  
+  strSTA = "THREADS"
+  frmMainui.staCombo.AddItem (strSTA)
+  strSTA = "STAT"
+  frmMainui.staCombo.AddItem (strSTA)
+  strSTA = "ADDR"
+  frmMainui.staCombo.AddItem (strSTA)
 
-  frmMainui.staCombo.AddItem (frmMainui.staCombo.Text)
-  frmMainui.staCombo.AddItem (strStat)
-  frmMainui.staCombo.AddItem (strAddr)
-  gstrSlection = frmMainui.staCombo.Text
+  frmMainui.staCombo.ListIndex = 0
 End Sub
 '***********************************************************
 ' set process id combo box
@@ -63,7 +64,7 @@ Public Sub GetEnvironmentVariable()
   Next
   
   'get the environment variable "CRAMP_PATH"
-  gperlScript = gCRAMPPath + "/bin/profileDB.pl"
+  gperlScript = gCRAMPPath + "/bin/profileDQ.pl"
   gperlScript = Replace(gperlScript, "\", "/")
   'get the environment variable "CRAMP_LOGPATH"
   gstrCLogPath = Environ("CRAMP_LOGPATH")
@@ -87,7 +88,7 @@ Public Sub GetEnvironmentVariable()
     gperlPath = "wperl.exe"
   End If
   
-  'checking for the profileDB.pl
+  'checking for the profileDQ.pl
   IsFileExistAndSize gperlScript, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
     MsgBox "ERROR :: profileDB.pl Is Not Found Under " & gCRAMPPath & _
@@ -193,8 +194,8 @@ Public Sub StoreCheckBoxStatus()
     chbstatusArray(7) = .depthColHSCHB.Value
     chbstatusArray(8) = .excepColHSCHB.Value
     chbstatusArray(9) = .timeColHSCHB.Value
-    chbstatusArray(10) = .countColHSCHB.Value
-    chbstatusArray(11) = .ticksColHSCHB.Value
+    chbstatusArray(10) = .ticksColHSCHB.Value
+    chbstatusArray(11) = .posiColHSCHB.Value
   End With
   
 End Sub
@@ -207,7 +208,7 @@ Public Sub InitLVColHSForm()
   On Error Resume Next
   
   'set check box values in columan hide-show form
-  If Not UBound(chbstatusArray) > 0 Then Exit Sub
+  If Not UBound(chbstatusArray) = 11 Then Exit Sub
   
   With frmLVColHS
     .threColHSCHB.Value = chbstatusArray(0)
@@ -220,8 +221,8 @@ Public Sub InitLVColHSForm()
     .depthColHSCHB.Value = chbstatusArray(7)
     .excepColHSCHB.Value = chbstatusArray(8)
     .timeColHSCHB.Value = chbstatusArray(9)
-    .countColHSCHB.Value = chbstatusArray(10)
-    .ticksColHSCHB.Value = chbstatusArray(11)
+    .ticksColHSCHB.Value = chbstatusArray(10)
+    .posiColHSCHB.Value = chbstatusArray(11)
   End With
 End Sub
 '***********************************************************
@@ -241,8 +242,8 @@ With frmLVColHS
   .depthColHSCHB.Enabled = False
   .excepColHSCHB.Enabled = False
   .timeColHSCHB.Enabled = False
-  .countColHSCHB.Enabled = False
   .ticksColHSCHB.Enabled = False
+  .posiColHSCHB.Enabled = False
 
   'If frmMainui.staCombo.Text = "STAT" Then
   If frmMainui.queryLV.ColumnHeaders.Count = 6 Then
@@ -254,11 +255,8 @@ With frmLVColHS
     .depthColHSCHB.Enabled = True
     .excepColHSCHB.Enabled = True
     .timeColHSCHB.Enabled = True
-    If frmMainui.staCombo.Text = "ADDR" And frmMainui.limitText.Text = -1 Then
-      .countColHSCHB.Enabled = True
-    Else
-      .ticksColHSCHB.Enabled = True
-    End If
+    .posiColHSCHB.Enabled = True
+    .ticksColHSCHB.Enabled = True
   End If
 End With
 
@@ -368,16 +366,17 @@ currsetArrayStat(4) = "Total ticks"
 currsetArrayStat(5) = "Max ticks"
 
 'for THREADS and ADDR
-ReDim currsettingArray(8)
-currsettingArray(0) = "Thread"
-currsettingArray(1) = "Module"
-currsettingArray(2) = "Function"
-currsettingArray(3) = "Address"
-currsettingArray(4) = "Depth"
-currsettingArray(5) = "Raw Ticks"
-currsettingArray(6) = "Time(ns)"
-currsettingArray(7) = "Count"
-currsettingArray(8) = "Ticks"
+ReDim currsettingArray(9)
+currsettingArray(0) = "Position"
+currsettingArray(1) = "Thread"
+currsettingArray(2) = "Module"
+currsettingArray(3) = "Function"
+currsettingArray(4) = "Address"
+currsettingArray(5) = "Depth"
+currsettingArray(6) = "Raw Ticks"
+currsettingArray(7) = "Time(ns)"
+currsettingArray(8) = "Count"
+currsettingArray(9) = "Ticks"
 
 End Sub
 
@@ -394,7 +393,7 @@ Public Sub ShowHideCol()
   
   On Error Resume Next
   
-  If Not UBound(chbstatusArray) > 0 Then Exit Sub
+  If Not UBound(chbstatusArray) = 11 Then Exit Sub
   
   With frmLVColHS
     For ss = 0 To UBound(chbstatusArray)
@@ -422,9 +421,9 @@ Public Sub ShowHideCol()
             Case 9
               ReorderColumnPosition "Time(ns)", False
             Case 10
-              ReorderColumnPosition "Count", False
-            Case 11
               ReorderColumnPosition "Ticks", False
+            Case 11
+              ReorderColumnPosition "Position", False
         End Select
     End If
   Next

@@ -35,10 +35,6 @@ Public gperlScript As String
 Public gquerySort As String
 Public gstrSpace As String
 Public giFileName As String
-Public gstrSlection As String
-Public gstrRawTick As String
-Public gstrPID As String
-Public gstrThread As String
 Public currsettingArray() As String
 Public currsetArrayStat() As String
 Public chbstatusArray() As String
@@ -679,7 +675,12 @@ Public Sub IsFileExistAndSize(giFileName, gIsFileExist, gFileSize)
     gIsFileExist = gobjFSO.FileExists(giFileName)
       If gIsFileExist <> False Then
         Set FileInfo = gobjFSO.GetFile(giFileName)
-        gFileSize = FileInfo.Size
+        If FileInfo.Size > 0 Then
+          gFileSize = 101
+        Else
+          gFileSize = 0
+        End If
+        'gFileSize = FileInfo.Size
       Else
         gFileSize = 0
       End If
@@ -710,22 +711,22 @@ Public Sub MoveControls(strVal As String)
            .limitLabel.Move 4680, 240
       Case "ADDR"
            'hide-show controls
-           .threadCombo.Visible = False
+           .threadCombo.Visible = True
            .rtCombo.Visible = False
            .addressText.Visible = True
            .limitText.Visible = True
            'hide-show lables
-           .threadLabel.Visible = False
+           .threadLabel.Visible = True
            .rtLabel.Visible = False
            .addLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
-           .addressText.Move 2520, 480
-           .limitText.Move 3720, 480
-           .appendCheck.Move 4670, 480
+           .addressText.Move 3600, 480
+           .limitText.Move 4800, 480
+           .appendCheck.Move 5740, 480
            'move lables
-           .addLabel.Move 2520, 240
-           .limitLabel.Move 3720, 240
+           .addLabel.Move 3600, 240
+           .limitLabel.Move 4800, 240
       Case "STAT"
            'hide-show controls
            .threadCombo.Visible = False
@@ -751,9 +752,22 @@ Dim queryText As String
 
 Select Case strVal
     Case "THREADS"
+      If frmMainui.rtCombo.Text = "TICK" Then
          queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
                      & frmMainui.threadCombo.Text & gstrSpace & frmMainui.rtCombo.Text _
                      & gstrSpace & frmMainui.limitText.Text
+      Else 'RAW
+         If frmMainui.limitText.Text <= 0 Then
+           queryText = "-1"
+           frmMainui.limitText.Text = queryText
+         Else
+           queryText = "1" & gstrSpace & frmMainui.limitText.Text
+         End If
+         queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
+                     & frmMainui.threadCombo.Text & gstrSpace & frmMainui.rtCombo.Text _
+                     & gstrSpace & queryText
+                     '& gstrSpace & "1" & gstrSpace & frmMainui.limitText.Text
+      End If
          If frmMainui.appendCheck.Value = 1 Then
             queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
          End If
@@ -765,9 +779,10 @@ Select Case strVal
             frmMainui.queryCommand.Enabled = False Then
             frmMainui.queryCommand.Enabled = True
          End If
+         frmMainui.manuStack.Enabled = True
    Case "ADDR"
          queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
-                     & strVal & gstrSpace & frmMainui.addressText.Text & gstrSpace _
+                     & frmMainui.threadCombo.Text & gstrSpace & strVal & gstrSpace & frmMainui.addressText.Text & gstrSpace _
                      & frmMainui.limitText.Text
          If frmMainui.appendCheck.Value = 1 Then
             queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
@@ -780,6 +795,7 @@ Select Case strVal
             frmMainui.queryCommand.Enabled = False Then
             frmMainui.queryCommand.Enabled = True
          End If
+         frmMainui.manuStack.Enabled = True
     Case "STAT"
          queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace & strVal
          If frmMainui.appendCheck.Value = 1 Then
@@ -793,6 +809,7 @@ Select Case strVal
             frmMainui.queryCommand.Enabled = False Then
             frmMainui.queryCommand.Enabled = True
          End If
+         frmMainui.manuStack.Enabled = False
 End Select
 
 'MsgBox queryText
@@ -854,7 +871,7 @@ Public Sub SetValueInComboBox(pid As udtPID, thisCombo As ComboBox)
   'add ALL at the last into the thread combo box
   tmpStr = "ALL"
   thisCombo.AddItem (tmpStr)
-  gstrThread = thisCombo.Text
+  thisCombo.ListIndex = 0
   
   aa = 0
 End Sub
@@ -893,13 +910,6 @@ With frmMainui
           'strdic = gobjDic.Item(ss)
           strQuery = gobjDic.Item(kk)
           MyArray = Split(strQuery, "|", -1, 1)
-
-          'If UBound(MyArray) > .queryLV.ColumnHeaders.Count - 1 Then
-          '  'insert headers
-          '  .staCombo.Text = "THREADS"
-          '  AddHeaders
-          '  .staCombo.Text = "STAT"
-          'End If
 
           For ss = 0 To UBound(MyArray)
             strQuery = MyArray(ss)
@@ -946,6 +956,7 @@ With frmMainui
     Set clm = .queryLV.ColumnHeaders.Add(, , "Total ticks")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Max ticks")
   Else
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Position")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Thread")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Module")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Function")
@@ -953,11 +964,7 @@ With frmMainui
     Set clm = .queryLV.ColumnHeaders.Add(, , "Depth")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Raw Ticks")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Time(ns)")
-    If .staCombo.Text = "ADDR" And frmMainui.limitText.Text = -1 Then
-      Set clm = .queryLV.ColumnHeaders.Add(, , "Count")
-    Else
-      Set clm = .queryLV.ColumnHeaders.Add(, , "Ticks")
-    End If
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Ticks")
   End If
 End With
 End Sub
@@ -1037,7 +1044,6 @@ Public Sub SetValueFromLV(strType As String)
             .threadCombo.Text = .queryLV.SelectedItem.SubItems(ss - 1)
           End If
         End If
-        gstrThread = .threadCombo.Text
         Exit For
       ElseIf colname = "Address" And .staCombo.Text = "ADDR" Then
         If ss = 1 Then
@@ -1177,6 +1183,105 @@ Public Sub HideShowNextPre()
   
 End Sub
 
+'***********************************************************
+' set stack in LV
+'***********************************************************
+Public Sub GetStackForGivenPosition()
+  Dim ss As Long
+  Dim colname As String
+  Dim strPosi As String
+  Dim strThre As String
+
+  ss = 0
+  colname = ""
+  strPosi = ""
+  strThre = ""
+
+  On Error Resume Next
+  If Not UBound(chbstatusArray) = 11 Then Exit Sub
+  
+  If chbstatusArray(0) = 0 Then
+    MsgBox "ERROR :: Thread column does not exist"
+    Exit Sub
+  End If
+  
+  If chbstatusArray(11) = 0 Then
+    MsgBox "ERROR :: Position column does not exist"
+    Exit Sub
+  End If
+  
+  With frmMainui
+    If Not .queryLV.ColumnHeaders.Count > 0 Then Exit Sub
+    
+    If .staCombo.Text <> "STAT" Then
+    
+    For ss = 1 To .queryLV.ColumnHeaders.Count
+      colname = .queryLV.ColumnHeaders.Item(ss).Text
+      Select Case colname
+        Case "Position"
+          If ss = 1 Then
+            If IsNumeric(.queryLV.SelectedItem) Then
+              strPosi = .queryLV.SelectedItem
+            End If
+          ElseIf (ss - 1) <> 0 Then
+            If IsNumeric(.queryLV.SelectedItem.SubItems(ss - 1)) Then
+              strPosi = .queryLV.SelectedItem.SubItems(ss - 1)
+            End If
+          End If
+        Case "Thread"
+          If ss = 1 Then
+            If IsNumeric(.queryLV.SelectedItem) Then
+              strThre = .queryLV.SelectedItem
+            End If
+          ElseIf (ss - 1) <> 0 Then
+            If IsNumeric(.queryLV.SelectedItem.SubItems(ss - 1)) Then
+              strThre = .queryLV.SelectedItem.SubItems(ss - 1)
+            End If
+          End If
+      End Select
+      If strPosi <> "" And strThre <> "" Then
+        Exit For
+      End If
+    Next
+    End If
+  
+    If strPosi <> "" And strThre <> "" Then
+      If .limitText.Text <= 0 Then .limitText.Text = "10"
+      
+      .queryText.Text = .pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
+                     & strThre & gstrSpace & "STACK" & gstrSpace & strPosi _
+                     & gstrSpace & .limitText.Text
+                     '& gstrSpace & "1" & gstrSpace & .limitText.Text
+      If .appendCheck.Value = 1 Then
+        .queryText.Text = .queryText.Text & gstrSpace & UCase(.appendCheck.Caption)
+      End If
+      colname = .queryText.Text
+                    
+      RunPerlScriptWithCP
+      CreateDictionary
+      gDicCountLower = 0
+      gDicCountUpper = .listitemText.Text
+      SetValueInListView
+      HideShowNextPre
+      ShowHideCol
+    
+      'set thread combo box
+      For ss = 0 To .threadCombo.ListCount - 1
+        If .threadCombo.list(ss) = strThre Then
+          .threadCombo.ListIndex = ss
+          Exit For
+        End If
+      Next
+    
+      .queryText.Text = colname
+    End If
+  End With
+  
+  ss = 0
+  colname = ""
+  strPosi = ""
+  strThre = ""
+End Sub
 '***********************************************************
 ' cleaning up globals
 '***********************************************************

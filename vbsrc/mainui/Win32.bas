@@ -471,7 +471,7 @@ Public Function SetPIDCombo(fld As String) As String
      Dim pidHand As udtPID
      pidHand = pidArray(0)
      SetValueInComboBox pidHand, frmMainui.threadCombo
-     gstrPID = frmMainui.pidCombo.Text
+     frmMainui.pidCombo.ListIndex = 0
      frmMainui.queryCommand.Enabled = True
    Else
      MsgBox "ERROR :: No DataBase Under " + fld + " Folder"

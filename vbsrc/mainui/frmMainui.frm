@@ -4,28 +4,28 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8490
-   ClientLeft      =   5325
+   ClientHeight    =   8496
+   ClientLeft      =   5328
    ClientTop       =   3060
-   ClientWidth     =   8670
+   ClientWidth     =   8676
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   8490
-   ScaleWidth      =   8670
+   ScaleHeight     =   8496
+   ScaleWidth      =   8676
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
-      Left            =   6120
+      Left            =   600
       TabIndex        =   2
-      Top             =   -7080
+      Top             =   720
       Visible         =   0   'False
       Width           =   7332
       Begin MSComctlLib.ImageList SortIconImageList 
          Left            =   6720
          Top             =   6840
-         _ExtentX        =   794
-         _ExtentY        =   794
+         _ExtentX        =   804
+         _ExtentY        =   804
          BackColor       =   -2147483643
          ImageWidth      =   8
          ImageHeight     =   7
@@ -141,8 +141,8 @@ Begin VB.Form frmMainui
             TabIndex        =   30
             Top             =   720
             Width           =   6612
-            _ExtentX        =   11668
-            _ExtentY        =   5530
+            _ExtentX        =   11663
+            _ExtentY        =   5525
             LabelEdit       =   1
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
@@ -282,14 +282,15 @@ Begin VB.Form frmMainui
          Begin VB.ComboBox rtCombo 
             Height          =   288
             Left            =   3600
+            Style           =   2  'Dropdown List
             TabIndex        =   17
-            Text            =   "TICK"
             Top             =   480
             Width           =   972
          End
          Begin VB.ComboBox threadCombo 
             Height          =   288
             Left            =   2520
+            Style           =   2  'Dropdown List
             TabIndex        =   16
             Top             =   480
             Width           =   972
@@ -297,14 +298,15 @@ Begin VB.Form frmMainui
          Begin VB.ComboBox staCombo 
             Height          =   288
             Left            =   1200
+            Style           =   2  'Dropdown List
             TabIndex        =   15
-            Text            =   "THREADS"
             Top             =   480
             Width           =   1212
          End
          Begin VB.ComboBox pidCombo 
             Height          =   288
             Left            =   120
+            Style           =   2  'Dropdown List
             TabIndex        =   14
             Top             =   480
             Width           =   972
@@ -326,7 +328,7 @@ Begin VB.Form frmMainui
             Width           =   1092
          End
          Begin VB.Label rtLabel 
-            Caption         =   "Raw/Tick"
+            Caption         =   "Type"
             Height          =   252
             Left            =   3600
             TabIndex        =   23
@@ -364,7 +366,7 @@ Begin VB.Form frmMainui
       Index           =   0
       Left            =   600
       TabIndex        =   1
-      Top             =   840
+      Top             =   8040
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -447,8 +449,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   4048
+         _ExtentX        =   9716
+         _ExtentY        =   4043
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -466,8 +468,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9710
-         _ExtentY        =   6165
+         _ExtentX        =   9716
+         _ExtentY        =   6160
          _Version        =   393217
          HideSelection   =   0   'False
          LabelEdit       =   1
@@ -481,8 +483,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8172
-      _ExtentX        =   14420
-      _ExtentY        =   14208
+      _ExtentX        =   14415
+      _ExtentY        =   14203
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -563,6 +565,9 @@ Begin VB.Form frmMainui
       End
       Begin VB.Menu manuCurrSetting 
          Caption         =   "Save setting"
+      End
+      Begin VB.Menu manuStack 
+         Caption         =   "Stack"
       End
    End
 End
@@ -1107,6 +1112,13 @@ Private Sub appendCheck_Click()
 End Sub
 
 '***********************************************************
+' set integer value only
+'***********************************************************
+Private Sub limitText_Change()
+  If limitText.Text = "-" Or limitText.Text = "" Then Exit Sub
+  If Not IsNumeric(limitText.Text) Then limitText.Text = "10"
+End Sub
+'***********************************************************
 ' limit text box lost focus notification
 '***********************************************************
 Private Sub limitText_LostFocus()
@@ -1117,6 +1129,12 @@ Private Sub limitText_LostFocus()
   SetQueryText (staCombo.Text)
 End Sub
 
+'***********************************************************
+' set integer value only
+'***********************************************************
+Private Sub pidText_Change()
+  If Not IsNumeric(pidText.Text) Then pidText.Text = ""
+End Sub
 '***********************************************************
 ' set process id combo box
 '***********************************************************
@@ -1133,21 +1151,9 @@ Private Sub pidCombo_Click()
   SetValueInComboBox pidHand, Me.threadCombo
   'set query text
   SetQueryText (staCombo.Text)
-  gstrPID = pidCombo.Text
   Screen.MousePointer = vbDefault
 End Sub
 
-'***********************************************************
-' set the correct value in pid combo box
-'***********************************************************
-Private Sub pidCombo_LostFocus()
-  
-  If Not pidCombo.ListCount > 0 Then GoTo pidError
-  
-pidError:
-  'no pid in the pid combo box
-  pidCombo.Text = gstrPID
-End Sub
 '***********************************************************
 ' query command control
 '***********************************************************
@@ -1174,8 +1180,6 @@ End Sub
 Private Sub rtCombo_Click()
   'set query text
   SetQueryText (frmMainui.staCombo.Text)
-  'set raw-tick string
-  gstrRawTick = rtCombo.Text
 End Sub
 '***********************************************************
 ' set stat-threads-addr combo box
@@ -1185,8 +1189,6 @@ Private Sub staCombo_Click()
   SetQueryText (staCombo.Text)
   'move controls
   MoveControls (staCombo.Text)
-  'set selection string
-  gstrSlection = staCombo.Text
 End Sub
 
 '***********************************************************
@@ -1195,18 +1197,8 @@ End Sub
 Private Sub threadCombo_Click()
   'set query text
   SetQueryText (frmMainui.staCombo.Text)
-  gstrThread = threadCombo.Text
 End Sub
 
-Private Sub threadCombo_LostFocus()
-  
-If Not threadCombo.ListCount > 0 Then GoTo threadError
-  
-threadError:
-  'no thread id in the thread combo box
-  threadCombo.Text = gstrThread
-
-End Sub
 '***********************************************************
 ' run command control
 '***********************************************************
@@ -1230,31 +1222,6 @@ Private Sub runCommand_Click()
   End If
   frmMainui.totalLabel.Caption = gobjDic.Count
   Screen.MousePointer = vbDefault
-End Sub
-
-'***********************************************************
-' stat-threads-addr lost focus notification
-'***********************************************************
-Private Sub staCombo_LostFocus()
-  Dim strVal As String
-  strVal = staCombo.Text
-
-  If staCombo.Text <> "THREADS" Or staCombo.Text <> "STAT" _
-     Or staCombo.Text <> "ADDR" Then
-     staCombo.Text = gstrSlection
-  End If
-End Sub
-
-'***********************************************************
-' raw-tick lost focus notification
-'***********************************************************
-Private Sub rtCombo_LostFocus()
-  Dim strVal As String
-  strVal = staCombo.Text
-
-  If staCombo.Text <> "RAW" Or staCombo.Text <> "TICK" Then
-     rtCombo.Text = gstrRawTick
-  End If
 End Sub
 
 '***********************************************************
@@ -1362,6 +1329,12 @@ Private Sub preCommand_Click()
   Screen.MousePointer = vbDefault
 End Sub
 '***********************************************************
+' set integer value
+'***********************************************************
+Private Sub listitemText_Change()
+  If Not IsNumeric(listitemText.Text) Then listitemText.Text = "100"
+End Sub
+'***********************************************************
 ' listitem lost focus
 '***********************************************************
 Private Sub listitemText_LostFocus()
@@ -1404,6 +1377,14 @@ Private Sub manuCurrSetting_Click()
   Screen.MousePointer = vbHourglass
   manuCurrSetting.Checked = True
   StoreUserSetting
+  Screen.MousePointer = vbDefault
+End Sub
+'***********************************************************
+' set stack
+'***********************************************************
+Private Sub manuStack_Click()
+  Screen.MousePointer = vbHourglass
+  GetStackForGivenPosition
   Screen.MousePointer = vbDefault
 End Sub
 '***********************************************************
