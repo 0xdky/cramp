@@ -37,6 +37,9 @@ Public gstrSpace As String
 Public giFileName As String
 Public gstrSlection As String
 Public gstrRawTick As String
+Public currsettingArray() As String
+Public currsetArrayStat() As String
+Public chbstatusArray() As String
 Public gFileSize As Long
 Public gDicCountUpper As Long
 Public gDicCountLower As Long
@@ -892,6 +895,8 @@ ss = 0
 aa = 0
 kk = 0
 
+'set column hide-show
+SetNewColumnPosition
 End Sub
 '***********************************************************
 ' add headers into the listview
@@ -915,7 +920,7 @@ With frmMainui
     Set clm = .queryLV.ColumnHeaders.Add(, , "Function")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Address")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Depth")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Raw Ticks")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Exception")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Time(ns)")
     If .staCombo.Text = "ADDR" And frmMainui.limitText.Text = -1 Then
       Set clm = .queryLV.ColumnHeaders.Add(, , "Count")
@@ -1041,10 +1046,10 @@ End Sub
 '***********************************************************
 Public Sub CreateDictionary()
   Dim strQuery As String
-  Dim i As Long
+  Dim I As Long
   Dim MyFileStream
 
-  i = 0
+  I = 0
   Set MyFileStream = gobjFSO.OpenTextFile(giFileName, 1, False)
   'clean up dictionary
   If gobjDic.Count > 0 Then
@@ -1054,13 +1059,13 @@ Public Sub CreateDictionary()
   Do Until MyFileStream.AtEndOfStream
     strQuery = MyFileStream.ReadLine
     If strQuery <> "" Then
-      gobjDic.Add i, strQuery
-      i = i + 1
+      gobjDic.Add I, strQuery
+      I = I + 1
     End If
   Loop
   'Close file
   MyFileStream.Close
-  i = 0
+  I = 0
 End Sub
 '***********************************************************
 ' hide-show of next and previous button
@@ -1109,9 +1114,15 @@ Public Sub CleanUp()
   'clean up lable
   frmMainui.rngLabel.Caption = ""
   frmMainui.totLabel.Caption = ""
-
+  
+  'set counter to zero
   gFileSize = 0
   gDicCountUpper = 0
   gDicCountLower = 0
+
+  'clean up array
+  Erase currsettingArray
+  Erase currsetArrayStat
+  Erase chbstatusArray
 
 End Sub
