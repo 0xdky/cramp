@@ -73,6 +73,7 @@ Public Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 
 Public Const REG_SZ As Long = 1
 Public Const REG_DWORD As Long = 4
+Public Const ERROR_SUCCESS = 0&
 
 Public Const HKEY_CLASSES_ROOT = &H80000000
 Public Const HKEY_CURRENT_USER = &H80000001
@@ -93,7 +94,20 @@ Public Const ERROR_NO_MORE_ITEMS = 259
 
 Public Const KEY_QUERY_VALUE = &H1
 Public Const KEY_SET_VALUE = &H2
-Public Const KEY_ALL_ACCESS = &H3F
+'Public Const KEY_ALL_ACCESS = &H3F
+Public Const KEY_CREATE_LINK = &H20
+Public Const KEY_CREATE_SUB_KEY = &H4
+Public Const KEY_ENUMERATE_SUB_KEYS = &H8
+Public Const KEY_NOTIFY = &H10
+Public Const KEY_READ = (KEY_QUERY_VALUE _
+                        Or KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY)
+Public Const KEY_WRITE = ((KEY_SET_VALUE _
+                         Or KEY_CREATE_SUB_KEY))
+Public Const KEY_EXECUTE = KEY_READ
+Public Const KEY_ALL_ACCESS = ((KEY_QUERY_VALUE _
+                              Or KEY_SET_VALUE Or KEY_CREATE_SUB_KEY _
+                              Or KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY _
+                              Or KEY_CREATE_LINK))
 
 Public Const REG_OPTION_NON_VOLATILE = 0
 
@@ -135,6 +149,16 @@ Declare Function RegSetValueExLong Lib "advapi32.dll" Alias _
 "RegSetValueExA" (ByVal hKey As Long, ByVal lpValueName As String, _
 ByVal Reserved As Long, ByVal dwType As Long, lpValue As Long, _
 ByVal cbData As Long) As Long
+
+Public Declare Function RegQueryValueEx Lib "advapi32.dll" Alias "RegQueryValueExA" ( _
+   ByVal hKey As Long, _
+   ByVal lpValueName As String, _
+   ByVal lpReserved As Long, _
+   lpType As Long, _
+   lpData As Any, _
+   lpcbData As Long _
+) As Long
+
 
 'Windows type used to call the Net API
 Public Const MAX_PREFERRED_LENGTH As Long = -1
@@ -481,5 +505,29 @@ Public Function GetPointerToByteStringW(ByVal dwData As Long) As String
     
 End Function
 
-'SJM Code end
+Public Function RegKeyExists(sKeyName As String) As Boolean
+Dim sKey As String            ' Key to open
+Dim hKey As Long              ' Handle to registry key
+Dim lValue As Long            ' Variable for value
+Dim sValue As String
 
+sKey = "Environment"
+If RegOpenKeyEx(HKEY_CURRENT_USER, sKey, 0, KEY_READ, hKey) = ERROR_SUCCESS Then
+    'Key exist, find the value for sKeyName if it exists
+    If RegQueryValueEx(hKey, _
+                      sKeyName, _
+                      0, _
+                      REG_SZ, _
+                      ByVal sValue, _
+                      lValue _
+                     ) = ERROR_SUCCESS Then
+        RegKeyExists = True
+    End If
+    RegKeyExists = False
+Else
+    RegKeyExists = False
+End If
+    
+End Function
+
+'SJM Code end

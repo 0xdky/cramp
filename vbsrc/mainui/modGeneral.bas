@@ -325,14 +325,41 @@ Public Sub FillVarListView()
     Dim sSTAF_PATH As String
     
 On Local Error GoTo FillVarError
-
-    'Get the environment variables
-    sCRAMP_LOGPATH = Environ("CRAMP_LOGPATH")
-    sCRAMP_PATH = Environ("CRAMP_PATH")
-    sCRAMP_PROFILE_CALLDEPTH = Environ("CRAMP_PROFILE_CALLDEPTH")
-    sCRAMP_PROFILE_LOGSIZE = Environ("CRAMP_PROFILE_LOGSIZE")
-    sCRAMP_PROFILE_MAXCALLLIMIT = Environ("CRAMP_PROFILE_MAXCALLLIMIT")
-    sCRAMP_PROFILE_INCLUSION = Environ("CRAMP_PROFILE_INCLUSION")
+    
+    sCRAMP_LOGPATH = regQuery_Key("Environment", "CRAMP_LOGPATH")
+    If sCRAMP_LOGPATH = "" Then
+        sCRAMP_LOGPATH = Environ("CRAMP_LOGPATH")
+    End If
+    
+    sCRAMP_PATH = regQuery_Key("Environment", "CRAMP_PATH")
+    If sCRAMP_PATH = "" Then
+        sCRAMP_PATH = Environ("CRAMP_PATH")
+    End If
+    
+    sCRAMP_PROFILE_CALLDEPTH = regQuery_Key("Environment", "CRAMP_PROFILE_CALLDEPTH")
+    If sCRAMP_PROFILE_CALLDEPTH = "" Then
+        sCRAMP_PROFILE_CALLDEPTH = Environ("CRAMP_PROFILE_CALLDEPTH")
+    End If
+    
+    sCRAMP_PROFILE_LOGSIZE = regQuery_Key("Environment", "CRAMP_PROFILE_LOGSIZE")
+    If sCRAMP_PROFILE_LOGSIZE = "" Then
+        sCRAMP_PROFILE_LOGSIZE = Environ("CRAMP_PROFILE_LOGSIZE")
+    End If
+    
+    sCRAMP_PROFILE_MAXCALLLIMIT = regQuery_Key("Environment", "CRAMP_PROFILE_MAXCALLLIMIT")
+    If sCRAMP_PROFILE_MAXCALLLIMIT = "" Then
+        sCRAMP_PROFILE_MAXCALLLIMIT = Environ("CRAMP_PROFILE_MAXCALLLIMIT")
+    End If
+    
+    sCRAMP_PROFILE_INCLUSION = regQuery_Key("Environment", "CRAMP_PROFILE_INCLUSION")
+    If sCRAMP_PROFILE_INCLUSION = "" Then
+        sCRAMP_PROFILE_INCLUSION = Environ("CRAMP_PROFILE_INCLUSION")
+    End If
+    
+    sSTAF_PATH = regQuery_Key("Environment", "STAF_PATH")
+    If sSTAF_PATH = "" Then
+        sSTAF_PATH = Environ("STAF_PATH")
+    End If
     sSTAF_PATH = Environ("STAF_PATH")
     
     Dim itmX As ListItem
