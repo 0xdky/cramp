@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-02-29 13:36:47 dky>
+## Time-stamp: <2004-03-03 13:41:22 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -90,7 +90,8 @@ UOBJS=$(OBJDIR)/profileDB.obj
 OBJS=$(COBJS) $(POBJS) $(UOBJS)
 
 # Add all query tools here
-UTILITIES=$(BINDIR)/ProfileControl.exe $(BINDIR)/profileDB.exe
+UTILITIES=$(BINDIR)/ProfileControl.exe $(BINDIR)/profileDB.exe \
+          $(BINDIR)/noconsole.exe
 
 # Currently disabled base class build: Problem with SDK
 all: cramp
@@ -197,6 +198,14 @@ $(OBJDIR)/ProfileControl.obj: $(UTILDIR)/ProfileControl.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(UTILDIR)/ProfileControl.cpp \
              /Fo$(OBJDIR)/ProfileControl.obj
 $(UTILDIR)/ProfileControl.cpp: $(DEPS)
+
+$(BINDIR)/noconsole.exe: $(OBJDIR)/noconsole.obj
+    @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(OBJDIR)/noconsole.obj \
+             Shell32.lib /OUT:$(BINDIR)/noconsole.exe
+$(OBJDIR)/noconsole.obj: $(UTILDIR)/noconsole.cpp
+    @$(CPP)  /c $(E_CCFLAGS) $(UTILDIR)/noconsole.cpp \
+             /Fo$(OBJDIR)/noconsole.obj
+$(UTILDIR)/noconsole.cpp: $(DEPS)
 
 # Base class for test cases
 baseclass: $(OBJDIR)/DPEBaseClass.obj
