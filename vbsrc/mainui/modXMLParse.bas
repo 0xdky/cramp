@@ -75,9 +75,9 @@ Public Sub WriteChildrenToXMLFile(ByVal nodeElement As Node, _
         Set XMLChildElement = _
                 XMLElement.ownerDocument.createElement(nodeName)
         
-        XMLChildElement.setAttribute "Id", childNode.Key
+        XMLChildElement.setAttribute "Id", childNode.key
         
-        WriteAttributes XMLChildElement, tblType, childNode.Key
+        WriteAttributes XMLChildElement, tblType, childNode.key
         
         Set XMLNewElementNode = XMLElement.appendChild(XMLChildElement)
         
@@ -93,7 +93,7 @@ Public Sub LoadScenario(strFileName As String)
     Dim xmlDoc As DOMDocument30
     Dim scenario As Node
     Dim root As IXMLDOMElement
-    
+    Dim nodeName As String
     While gIdRef.Count
         gIdRef.Remove 1
     Wend
@@ -107,9 +107,9 @@ Public Sub LoadScenario(strFileName As String)
     Set root = xmlDoc.documentElement
     
     WriteXMLNodeIntoDB root
-    
+    nodeName = "Scenario" & "(" & root.getAttribute("Name") & ")"
     Set scenario = frmMainui.tvwNodes.Nodes.Add(, , root.getAttribute("Id"), _
-                  root.getAttribute("Name"))
+                  nodeName)
     scenario.EnsureVisible
     frmMainui.tvwNodes.SelectedItem = scenario
     SetActionButtons
@@ -255,6 +255,7 @@ Public Sub CreateTreeViewAndDB(ByVal nodeElement As IXMLDOMElement, _
     Dim tvwNode As Node
     Dim index As Integer
     Dim IdRefVal, IdRefName As String
+    Dim nodeName As String
     
     If nodeElement Is Nothing Then
         Exit Sub
@@ -262,12 +263,14 @@ Public Sub CreateTreeViewAndDB(ByVal nodeElement As IXMLDOMElement, _
     
     For index = 0 To nodeElement.childNodes.length - 1
         Set childNode = nodeElement.childNodes.Item(index)
+        nodeName = childNode.nodeName & "(" & _
+                  childNode.getAttribute("Name") & ")"
         sName = childNode.getAttribute("Name")
         sKey = childNode.getAttribute("Id")
         
             
         Set tvwNode = frmMainui.tvwNodes.Nodes.Add(parentNode, _
-                                        tvwChild, sKey, sName)
+                                        tvwChild, sKey, nodeName)
         tvwNode.EnsureVisible
         
         IncreaseGlobalCounters tvwNode

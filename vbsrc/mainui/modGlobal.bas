@@ -131,7 +131,7 @@ End Function
 '
 '************************************************************
 Public Function NewRecordName(tblType As ObjectType) As String
-    Dim nodeName As String
+    Dim nodeName, prefixName As String
     Dim ii As Integer
     Dim bSuccess As Boolean
     Dim index As Integer
@@ -141,19 +141,21 @@ Public Function NewRecordName(tblType As ObjectType) As String
         Case otNone
             nodeName = ""
         Case otScenario
-            NewRecordName = "Scenario"
+            NewRecordName = "scenario"
             Exit Function
         Case otGroup
-            nodeName = "Group."
+            prefixName = "Group("
+            nodeName = "group."
         Case otTestcase
-            nodeName = "Testcase."
+            prefixName = "Testcase("
+            nodeName = "testcase."
     End Select
     index = 1
     Do
         tmpName = nodeName & index
         bSuccess = True
         For ii = 0 To gIdCounter - 1
-            If gNameList(ii) = tmpName Then
+            If gNameList(ii) = (prefixName & tmpName & ")") Then
                 bSuccess = False
                 Exit For
             End If
@@ -653,6 +655,32 @@ Public Function NodeCanBeAdded(parentNode As Node, _
     NodeCanBeAdded = True
 End Function
 
+Public Sub UpdateNodeName(strName As String)
+    Dim tblType As ObjectType
+    Dim curName, newName As String
+    
+    tblType = nodetype(frmMainui.tvwNodes.SelectedItem)
+    curName = frmMainui.tvwNodes.SelectedItem.Text
+    
+    Select Case tblType
+        Case otScenario
+            newName = "Scenario" & "(" & strName & ")"
+        Case otGroup
+            newName = "Group" & "(" & strName & ")"
+        Case otTestcase
+            newName = "Test Case" & "(" & strName & ")"
+    End Select
+    
+    Dim ii As Integer
+    For ii = 0 To gIdCounter - 1
+        If gNameList(ii) = frmMainui.tvwNodes.SelectedItem.Text Then
+            gNameList(ii) = newName
+        End If
+    Next ii
+    
+    frmMainui.tvwNodes.SelectedItem.Text = newName
+    
+End Sub
 
 'Public Sub RegSettingTest()
 

@@ -143,22 +143,26 @@ Public Sub AddNodeInTreeView(Optional ByVal parentNode As Node, _
     Dim childNode As Node
     Dim nodeName As String
     Dim parentName As String
+    Dim newName As String
     Dim ii As Integer
     Dim uId As String
     
     tableName = ReturnTableName(tblType)
-    nodeName = NewRecordName(tblType)
+    newName = NewRecordName(tblType)
     uId = GenerateId(tblType)
     
     Select Case tblType
         Case otScenario
             parentName = ""
+            nodeName = "Scenario" & "(" & newName & ")"
         Case otGroup
             parentName = parentNode.Text
-            GroupAttributes(1, 1) = nodeName
+            GroupAttributes(1, 1) = newName
+            nodeName = "Group" & "(" & newName & ")"
         Case otTestcase
             parentName = parentNode.Text
-            TestcaseAttributes(1, 1) = nodeName
+            TestcaseAttributes(1, 1) = newName
+            nodeName = "Testcase" & "(" & newName & ")"
     End Select
     
     'Add in the tvwNodes
@@ -275,7 +279,7 @@ Public Sub WriteIntoDB()
         cnn, adOpenKeyset, adLockOptimistic
     
     While Not rst.EOF
-        If rst.Fields("Id").Value = selectedNode.Key Then
+        If rst.Fields("Id").Value = selectedNode.key Then
             'Recordset exists, modify it
             For ii = 1 To frmMainui.lvwAttributes.ListItems.Count
                 rst.Fields(frmMainui.lvwAttributes.ListItems(ii).Text).Value = _
@@ -299,7 +303,7 @@ Public Sub WriteIntoDB()
                 frmMainui.lvwAttributes.ListItems(ii).SubItems(1)
     Next ii
     
-    rst.Fields("Id").Value = selectedNode.Key
+    rst.Fields("Id").Value = selectedNode.key
     
     rst.Update
     rst.Close
@@ -334,7 +338,7 @@ Public Sub RefreshData()
         cnn, adOpenForwardOnly, adLockReadOnly
     
     Do
-        If rst.Fields("Id").Value = selectedNode.Key Then
+        If rst.Fields("Id").Value = selectedNode.key Then
             'Clear the lstTable first
             frmMainui.lvwAttributes.ListItems.Clear
     
