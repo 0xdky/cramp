@@ -118,7 +118,8 @@ Section "STAF" SEC03
   File /r "\Applications\AutoTest\STAF\bin\*"
 
   FileOpen $SBAT "$SMSTARTUP\STAFServer.bat" w
-  FileWrite $SBAT "@call $\"$INSTDIR\TOOLS\STAF\bin\STAFProc.exe$\""
+  FileWrite $SBAT "@TITLE=STAF Server$\n"
+  FileWrite $SBAT "@CALL $\"$INSTDIR\TOOLS\STAF\bin\STAFProc.exe$\""
   FileClose $SBAT
 
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
@@ -152,6 +153,8 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
+  
+  SetRebootFlag true
 SectionEnd
 
 ; Section descriptions
@@ -162,14 +165,9 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC04} "PERL - 5.9.0 (+ extra modules)"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
-Function .onInstSuccess
-  SetRebootFlag true
-FunctionEnd
-  
 Function un.onUninstSuccess
   HideWindow
   MessageBox MB_ICONINFORMATION|MB_OK "$(^Name) was successfully removed from your computer."
-  SetRebootFlag true
 FunctionEnd
 
 Function un.onInit
@@ -179,10 +177,19 @@ Function un.onInit
 FunctionEnd
 
 Section Uninstall
-  Delete "$SMSTARTUP\STAFServer.bat"
-  Delete "$DESKTOP\CRAMP.lnk"
-  RMDir /r "$SMPROGRAMS\CRAMP"
-  RMDir /r "$INSTDIR"
+  SetRebootFlag true
+
+  Delete /REBOOTOK "$SMSTARTUP\STAFServer.bat"
+  Delete /REBOOTOK "$DESKTOP\CRAMP.lnk"
+  Delete /REBOOTOK "$INSTDIR\bin\*"
+  Delete /REBOOTOK "$INSTDIR\TOOLS\STAF\bin\*"
+  Delete /REBOOTOK "$INSTDIR\TOOLS\PERL\bin\*"
+
+  RMDir  /r "$SMPROGRAMS\CRAMP"
+  RMDir  /r "$INSTDIR"
+
+  RMDir  /REBOOTOK "$SMPROGRAMS\CRAMP"
+  RMDir  /REBOOTOK "$INSTDIR"
 
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                  "STAF_PATH"
@@ -205,6 +212,5 @@ Section Uninstall
 
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
-
   SetAutoClose true
 SectionEnd
