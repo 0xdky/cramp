@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-11-05 11:15:43 dhruva>
+## Time-stamp: <2003-11-26 17:09:46 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -33,6 +33,7 @@ LINK=LINK
 DEL=DEL /F /Q
 ERASE=ERASE /F /Q
 MD=MKDIR
+COPY=XCOPY /y /q /r
 
 # Existing folders
 SRCDIR=src
@@ -44,6 +45,7 @@ TSTDIR=test
 # Folders created
 BINDIR=bin
 OBJDIR=obj
+RESDIR=res
 NOLOGO=/nologo
 
 !IF ("$(NODEBUG)" == "1")
@@ -99,9 +101,18 @@ DEPS=$(MAKEFILE) $(INCDIR)/cramp.h
 # Rebuild on changes to makefile
 $(MAKEFILE):
 
-dirs: $(MAKEFILE)
+# Create folders
+dirs: $(MAKEFILE) res
     @IF NOT EXIST $(OBJDIR) $(MD) $(OBJDIR)
     @IF NOT EXIST $(BINDIR) $(MD) $(BINDIR)
+    @IF NOT EXIST $(RESDIR) $(MD) $(RESDIR)
+
+# Add res
+res: $(RESDIR)/Attributes.txt $(RESDIR)/MostRecentFiles.txt
+$(RESDIR)/Attributes.txt:
+    @$(COPY) vbsrc\mainui\Attributes.txt $(RESDIR)
+$(RESDIR)/MostRecentFiles.txt:
+    @$(COPY) vbsrc\mainui\MostRecentFiles.txt $(RESDIR)
 
 # For CRAMP engine
 engine: dirs $(COBJS)
@@ -207,6 +218,8 @@ clean: mostly-clean clean-vc60
     @IF EXIST $(BINDIR) @RMDIR $(BINDIR)
     @IF EXIST $(OBJDIR) @$(ERASE) $(OBJDIR)
     @IF EXIST $(OBJDIR) @RMDIR $(OBJDIR)
+    @IF EXIST $(RESDIR) @$(ERASE) $(RESDIR)
+    @IF EXIST $(RESDIR) @RMDIR $(RESDIR)
 
 clean-vc60:
     @IF EXIST vc60.pdb @$(DEL) vc60.pdb
