@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-03-13 12:23:08 dky>
+## Time-stamp: <2004-03-13 15:49:48 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -165,7 +165,7 @@ $(SRCDIR)/XMLParse.h: $(DEPS)
 # Profiling DLL
 library: dirs $(PROFLIB).dll
 $(PROFLIB).dll: $(POBJS)
-    @$(LINK) /DLL $(LINK_DEBUG) $(E_LDFLAGS) $(POBJS) imagehlp.lib \
+    @$(LINK) /DLL $(LINK_DEBUG) $(E_LDFLAGS) $(POBJS) dbghelp.lib \
              psapi.lib pcre.lib /OUT:$(BINDIR)/$(PROFLIB).dll
 $(OBJDIR)/CallMon.obj: $(LIBSRCDIR)/CallMon.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/CallMon.cpp \
