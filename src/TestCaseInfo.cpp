@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 19:03:38 dhruva>
+// Time-stamp: <2003-11-03 11:21:37 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -96,6 +96,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
 
   if(iUniqueID){
     b_uid=TRUE;
+    s_uid=iUniqueID;
     u_uid=hashstring(iUniqueID);
     if(FindTCFromUID(u_uid)){
       CRAMPException excep;
@@ -103,6 +104,8 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
       excep._error=u_uid;
       throw(excep);
     }
+  }else{
+    s_uid="Unknown";
   }
 
   b_block=iBlock;
@@ -737,7 +740,7 @@ TestCaseInfo::AddLog(std::string ilog){
     return;
 
   EnterCriticalSection(&g_CRAMP_Engine.g_cs_log);
-  fprintf(g_CRAMP_Engine.g_fLogFile,"%s\n",ilog.c_str());
+  fprintf(g_CRAMP_Engine.g_fLogFile,"%s|%s\n",s_uid.c_str(),ilog.c_str());
   LeaveCriticalSection(&g_CRAMP_Engine.g_cs_log);
 
   return;

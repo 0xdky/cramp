@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 19:02:06 dhruva>
+// Time-stamp: <2003-11-03 11:10:54 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -129,6 +129,7 @@ private:
   SIZE_T u_numruns;                 // Number of runs
   SIZE_T u_maxtimelimit;            // Max time limit for the process
 
+  std::string s_uid;                // UID as string for logging
   std::string s_name;               // Executable for test case
   std::string s_exec;               // Executable for test case
 

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 16:49:27 dhruva>
+// Time-stamp: <2003-11-03 11:08:32 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -598,6 +598,7 @@ GetProcessHandleFromName(const char *iProcName,
   SIZE_T found=0;
   HMODULE hMod=0;
   HANDLE h_proc=0;
+  char ext[_MAX_EXT];
   char szProcName[1024];
   char szShortName[1024]="unknown";
   char szLongName[1024]="unknown";
@@ -619,6 +620,11 @@ GetProcessHandleFromName(const char *iProcName,
       continue;
 
     strcpy(szProcName,iProcName);
+
+    // Get filename with ext
+    _splitpath(szLongName,0,0,szLongName,ext);
+    strcat(szLongName,ext);
+
     if(!strstr(_strlwr(szLongName),_strlwr(szProcName))){
       CloseHandle(h_proc);
       h_proc=0;
