@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-07 17:12:50 dhruva>
+## Time-stamp: <2004-01-07 17:26:43 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -513,6 +513,9 @@ sub GetRawValuesFromIDs{
 
   my @results=();
   foreach (@idx) {
+    if ($_<0||$_>$#g_tie_RAW) {
+      next;
+    }
     push(@results,$_."|".$g_tie_RAW[$_]);
   }
 
