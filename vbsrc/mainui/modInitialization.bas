@@ -427,7 +427,6 @@ Public Sub ShowHideCol()
   
   Dim ss As Integer
   Dim chbVal As Integer
-  'Dim chbHandle As CheckBox
   
   ss = 0
   chbVal = 0
@@ -436,31 +435,32 @@ Public Sub ShowHideCol()
     For ss = 0 To UBound(chbstatusArray)
       chbVal = chbstatusArray(ss)
       If chbVal = 0 Then
-        If ss = 0 Then
-          ReorderColumnPosition "Thread", False
-        ElseIf ss = 1 Then
-          ReorderColumnPosition "Function", False
-        ElseIf ss = 2 Then
-          ReorderColumnPosition "Address", False
-        ElseIf ss = 3 Then
-          ReorderColumnPosition "Number", False
-        ElseIf ss = 4 Then
-          ReorderColumnPosition "Total ticks", False
-        ElseIf ss = 5 Then
-          ReorderColumnPosition "Max ticks", False
-        ElseIf ss = 6 Then
-          ReorderColumnPosition "Module", False
-        ElseIf ss = 7 Then
-          ReorderColumnPosition "Depth", False
-        ElseIf ss = 8 Then
-          ReorderColumnPosition "Exception", False
-        ElseIf ss = 9 Then
-          ReorderColumnPosition "Time(ns)", False
-        ElseIf ss = 10 Then
-          ReorderColumnPosition "Count", False
-        ElseIf ss = 11 Then
-          ReorderColumnPosition "Ticks", False
-        End If
+        Select Case ss
+            Case 0
+              ReorderColumnPosition "Thread", False
+            Case 1
+              ReorderColumnPosition "Function", False
+            Case 2
+              ReorderColumnPosition "Address", False
+            Case 3
+              ReorderColumnPosition "Number", False
+            Case 4
+              ReorderColumnPosition "Total ticks", False
+            Case 5
+              ReorderColumnPosition "Max ticks", False
+            Case 6
+              ReorderColumnPosition "Module", False
+            Case 7
+              ReorderColumnPosition "Depth", False
+            Case 8
+              ReorderColumnPosition "Exception", False
+            Case 9
+              ReorderColumnPosition "Time(ns)", False
+            Case 10
+              ReorderColumnPosition "Count", False
+            Case 11
+              ReorderColumnPosition "Ticks", False
+        End Select
     End If
   Next
   End With
