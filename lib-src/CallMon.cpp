@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-29 10:36:06 dhruva>
+// Time-stamp: <2003-10-29 12:23:20 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -286,8 +286,8 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
   iter=g_hFuncCalls.find(funcAddr);
   if(iter==g_hFuncCalls.end()){
     FuncInfo fi={1,TRUE};
-    g_hFuncCalls[funcAddr]=fi;
     fi._pending=WriteFuncInfo(funcAddr,1);
+    g_hFuncCalls[funcAddr]=fi;
   }else{
     (*iter).second._calls++;
   }
