@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-16 10:57:09 dhruva>
+## Time-stamp: <2003-10-17 18:31:33 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -64,7 +64,8 @@ E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(XMLBASE1)/lib
 # Add new files here
 COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
       $(OBJDIR)/XMLParse.obj $(OBJDIR)/ipc.obj $(OBJDIR)/ipcmsg.obj
-POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj
+POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj \
+      $(OBJDIR)/ProfileLimit.obj
 OBJS=$(COBJS) $(POBJS) $(XOBJS)
 
 # Currently disabled base class build: Problem with SDK
@@ -131,13 +132,20 @@ $(OBJDIR)/CallMon.obj: $(SRCDIR)/CallMon.cpp
 $(OBJDIR)/CallMonLOG.obj: $(SRCDIR)/CallMonLOG.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/CallMonLOG.cpp \
              /Fo$(OBJDIR)/CallMonLOG.obj
+$(OBJDIR)/ProfileLimit.obj: $(SRCDIR)/ProfileLimit.cpp
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/ProfileLimit.cpp \
+             /Fo$(OBJDIR)/ProfileLimit.obj
 $(OBJDIR)/DllMain.obj: $(SRCDIR)/DllMain.cpp $(SRCDIR)/CallMonLOG.h
     @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/DllMain.cpp \
              /Fo$(OBJDIR)/DllMain.obj
-$(SRCDIR)/CallMon.cpp: $(SRCDIR)/CallMon.h $(DEPS)
-$(SRCDIR)/CallMonLOG.cpp: $(SRCDIR)/CallMonLOG.h $(DEPS)
+
+$(SRCDIR)/CallMon.cpp: $(SRCDIR)/CallMon.h
+$(SRCDIR)/CallMonLOG.cpp: $(SRCDIR)/CallMonLOG.h $(SRCDIR)/ProfileLimit.h
+$(SRCDIR)/ProfileLimit.cpp: $(SRCDIR)/ProfileLimit.h
+
 $(SRCDIR)/CallMon.h: $(DEPS)
 $(SRCDIR)/CallMonLOG.h: $(SRCDIR)/CallMon.h $(DEPS)
+$(SRCDIR)/ProfileLimit.h: $(DEPS)
 
 # Base class for test cases
 baseclass: $(OBJDIR)/DPEBaseClass.obj
