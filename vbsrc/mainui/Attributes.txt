@@ -1,5 +1,5 @@
 "Scenario","Id","","Text"
-"Scenario","Name","Scenario","Text"
+"Scenario","Name","scenario","Text"
 "Scenario","Block","True","Boolean"
 "Scenario","MaxRunTime","0","Number"
 "Scenario","MonInterval","2000","Number"
