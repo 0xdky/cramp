@@ -832,16 +832,28 @@ Select Case strVal
                      & frmMainui.threadCombo.Text & gstrSpace & frmMainui.rtCombo.Text _
                      & gstrSpace & frmMainui.limitText.Text
       Else 'RAW
-         If frmMainui.limitText.Text <= 0 Then
-           queryText = "-1"
-           frmMainui.limitText.Text = queryText
-         Else
-           queryText = "1" & gstrSpace & frmMainui.limitText.Text
-         End If
-         queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
-                     & frmMainui.threadCombo.Text & gstrSpace & frmMainui.rtCombo.Text _
-                     & gstrSpace & queryText
-                     '& gstrSpace & "1" & gstrSpace & frmMainui.limitText.Text
+        Dim ss As Integer
+        Dim colname As String
+        Dim strPosi As Long
+        ss = 0
+        strPosi = 0
+        colname = ""
+        'get the position value
+        For ss = 1 To frmMainui.queryLV.ColumnHeaders.Count
+          colname = frmMainui.queryLV.ColumnHeaders.Item(ss).Text
+          If colname = "Position" Then
+            If IsNumeric(frmMainui.queryLV.SelectedItem) Then
+              strPosi = frmMainui.queryLV.SelectedItem
+              Exit For
+            End If
+          End If
+        Next
+        
+        queryText = strPosi & gstrSpace & frmMainui.limitText.Text
+         
+        queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
+                    & frmMainui.threadCombo.Text & gstrSpace & frmMainui.rtCombo.Text _
+                    & gstrSpace & queryText
       End If
          If frmMainui.appendCheck.Value = 1 Then
             queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
@@ -886,6 +898,10 @@ Select Case strVal
          End If
          frmMainui.manuStack.Enabled = False
 End Select
+
+If frmMainui.queryLV.ListItems.Count <> 0 Then
+  frmMainui.queryLV.SetFocus
+End If
 
 'MsgBox queryText
 If frmMainui.queryCommand.Enabled = True Then
@@ -1220,7 +1236,7 @@ Public Sub CreateDictionary()
     'Close file
     MyFileStream.Close
   Else
-    MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
+    'MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
     'clean up ui
     gDicCountLower = 0
     frmMainui.miniLabel.Caption = gDicCountLower
@@ -1405,6 +1421,103 @@ Public Sub AddRemAddrInSTACB()
     If found = False Then frmMainui.staCombo.AddItem (Value)
   End If
   frmMainui.Refresh
+End Sub
+'***********************************************************
+' save LV info into excel sheet
+'***********************************************************
+Public Sub SaveLVInfoToExcel()
+  With frmMainui
+    .dlgSelect.Flags = cdlOFNOverwritePrompt
+    .dlgSelect.Filter = "XLS Files (*.xls)|*.xls"
+    .dlgSelect.FileName = ""
+    .dlgSelect.ShowSave
+    
+    If .dlgSelect.FileTitle <> "" And .dlgSelect.FileName <> "" Then
+      SaveIntoExcel (.dlgSelect.FileName)
+    End If
+ End With
+End Sub
+'***********************************************************
+' save LV data into excel sheet
+'***********************************************************
+Public Sub SaveIntoExcel(excelfilename As String)
+  Dim row As Long
+  Dim col As Long
+  Dim lvrow As Long
+  Dim lvcol As Long
+  Dim new_value As String
+  Dim FileName As String
+  Dim excel_app As Excel.Application
+  Dim excel_book As Excel.Workbook
+  Dim excel_sheet As Excel.Worksheet
+  Dim myObject
+
+  row = 0
+  col = 0
+  lvrow = 0
+  lvcol = 0
+  new_value = ""
+  FileName = excelfilename
+  
+  On Error Resume Next
+  
+  If FileName = "" Then Exit Sub
+  
+  'check for listview entry
+  lvrow = frmMainui.queryLV.ListItems.Count
+  If lvrow = 0 Then
+    MsgBox "ERROR :: ListView is empty"
+    Exit Sub
+  End If
+  
+  'delete the file if exists
+  'If gobjFSO.FileExists(FileName) Then
+    'gobjFSO.DeleteFile FileName, True
+  'End If
+  
+  Screen.MousePointer = vbHourglass
+  
+  Set excel_app = New Excel.Application
+  'excel_app.Visible = True
+  Set excel_book = excel_app.Workbooks.Add
+  Set excel_sheet = excel_book.ActiveSheet
+
+  excel_app.Range("A1").Select
+  excel_app.Sheets("Sheet1").Name = "query"
+  excel_app.DisplayAlerts = False
+  
+  'check number of columns in the LV
+  lvcol = frmMainui.queryLV.ColumnHeaders.Count
+  
+  Dim colnum As Integer
+  
+  For row = 1 To lvrow
+    For col = 0 To lvcol - 1
+      colnum = frmMainui.queryLV.ColumnHeaders.Item(col + 1).Position
+      If row = 1 Then
+        'output header name
+        excel_sheet.Cells(row, col + 1).Value = frmMainui.queryLV.ColumnHeaders.Item(colnum).Text
+      End If
+      
+      'output LV info
+      If colnum = 1 Then
+       new_value = frmMainui.queryLV.ListItems(row).Text
+       excel_sheet.Cells(row + 1, col + 1).Value = new_value
+      Else
+       new_value = frmMainui.queryLV.ListItems.Item(row).SubItems(colnum - 1)
+       excel_sheet.Cells(row + 1, col + 1).Value = new_value
+      End If
+    Next
+  Next
+  
+  excel_book.Close SaveChanges:=True, FileName:=FileName
+  Set excel_book = Nothing
+  
+  'close excel application
+  excel_app.Quit
+  Set excel_app = Nothing
+  
+  Screen.MousePointer = vbDefault
 End Sub
 '***********************************************************
 ' cleaning up globals

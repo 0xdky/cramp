@@ -13,9 +13,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
-      Left            =   5640
+      Left            =   720
       TabIndex        =   2
-      Top             =   -6600
+      Top             =   600
       Visible         =   0   'False
       Width           =   7450
       Begin MSComctlLib.ImageList SortIconImageList 
@@ -363,7 +363,7 @@ Begin VB.Form frmMainui
       Index           =   0
       Left            =   720
       TabIndex        =   1
-      Top             =   840
+      Top             =   7920
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -1121,7 +1121,11 @@ End Sub
 '***********************************************************
 Private Sub mnuSaveAs_Click()
     
+  If tspMainUI.SelectedItem.Caption = "Engine" Then
     FileSaveAs
+  Else 'profiler
+    SaveLVInfoToExcel
+  End If
     
 End Sub
 
@@ -1142,13 +1146,13 @@ Private Sub tspMainUI_Click()
     RenameFormWindow
 End Sub
 
-Private Sub tvwNodes_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub tvwNodes_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
     If Button = vbRightButton Then
       PopupMenu mnuNodeRightCL
     End If
 End Sub
 
-Private Sub tvwNodes_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub tvwNodes_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
     Dim strKey As String, strText As String
     Dim nodNew As Node, nodDragged As Node
     Dim nodType As ObjectType
@@ -1179,13 +1183,13 @@ Private Sub tvwNodes_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long,
     Set tvwNodes.DropHighlight = Nothing
 End Sub
 
-Private Sub tvwNodes_OLEDragOver(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single, State As Integer)
+Private Sub tvwNodes_OLEDragOver(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single, State As Integer)
     'If no node is selected, select the first node you dragged over.
     If tvwNodes.SelectedItem Is Nothing Then
-        Set tvwNodes.SelectedItem = tvwNodes.HitTest(x, y)
+        Set tvwNodes.SelectedItem = tvwNodes.HitTest(X, Y)
     End If
     'Highlight the node being dragged over as a potential drop target.
-    Set tvwNodes.DropHighlight = tvwNodes.HitTest(x, y)
+    Set tvwNodes.DropHighlight = tvwNodes.HitTest(X, Y)
 End Sub
 
 Private Sub tvwNodes_OLEStartDrag(Data As MSComctlLib.DataObject, AllowedEffects As Long)
@@ -1256,10 +1260,6 @@ End Sub
 ' set integer value only
 '***********************************************************
 Private Sub limitText_KeyPress(KeyAscii As Integer)
-  'check for -ve sign
-  If KeyAscii = 45 Then
-    Exit Sub
-  End If
   KeyAscii = ChkForDigit(KeyAscii)
 End Sub
 '***********************************************************
@@ -1267,6 +1267,9 @@ End Sub
 '***********************************************************
 Private Sub limitText_LostFocus()
   If Not IsNumeric(limitText.Text) Then
+    limitText.Text = 10
+  End If
+  If limitText.Text = "0" Then
     limitText.Text = 10
   End If
   'set query text
@@ -1317,6 +1320,9 @@ ShowHideCol
 'add-remove ADDR
 AddRemAddrInSTACB
 manuCurrSetting.Checked = False
+If frmMainui.queryLV.ListItems.Count <> 0 Then
+  frmMainui.queryLV.SetFocus
+End If
 Screen.MousePointer = vbDefault
 End Sub
 
@@ -1496,7 +1502,7 @@ End Sub
 '***********************************************************
 ' pop up menu when right click in the listview
 '***********************************************************
-Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
   If queryLV.ColumnHeaders.Count > 0 Then
     If Button = vbRightButton Then
       PopupMenu mnuLVRigCL
