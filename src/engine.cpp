@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-09 16:33:06 dhruva>
+// Time-stamp: <2003-12-09 18:53:57 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -359,7 +359,10 @@ MemoryPollTH(LPVOID lpParameter){
 
   SIZE_T monint=0;
   monint=g_CRAMP_Engine.g_pScenario->MonitorInterval();
+
+#ifdef USE_PDH
   PdhOpenQuery(0,0,&g_CRAMP_Engine.g_hQuery);
+#endif
 
   while(1){
     long dest=1;

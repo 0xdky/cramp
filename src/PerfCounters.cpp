@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-09 16:18:25 dhruva>
+// Time-stamp: <2003-12-09 18:59:38 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Desc  : Create a job, process inside the job which may create further
@@ -161,8 +161,11 @@ GetNameStrings(void){
 //-----------------------------------------------------------------------------
 int
 UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
-  if(!iListOfPID.size())
+  if(!g_CRAMP_Engine.g_hQuery)
     return(-1);
+
+  if(!iListOfPID.size())
+    return(0);
 
   // Get the name strings through the registry.
   if(!s_NameStr){
@@ -282,6 +285,9 @@ UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
 //-----------------------------------------------------------------------------
 void
 RemovePIDCounterHash(DWORD iPID){
+  if(!g_CRAMP_Engine.g_hQuery)
+    return;
+
   std::hash_map<DWORD,PDH_HCOUNTER *>::iterator iter;
   iter=s_h_PIDCounters.find(iPID);
   if(iter==s_h_PIDCounters.end())
@@ -299,6 +305,9 @@ RemovePIDCounterHash(DWORD iPID){
 //-----------------------------------------------------------------------------
 void
 CleanPIDCounterHash(void){
+  if(!g_CRAMP_Engine.g_hQuery)
+    return;
+
   std::hash_map<DWORD,PDH_HCOUNTER *>::iterator hiter=s_h_PIDCounters.begin();
   for(;hiter!=s_h_PIDCounters.end();hiter++){
     PDH_HCOUNTER *pcntr=(*hiter).second;

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-09 14:11:37 dhruva>
+// Time-stamp: <2003-12-09 19:00:09 dhruva>
 //-----------------------------------------------------------------------------
 // File : PerfCounters.h
 // Desc : Extract performance counters
@@ -17,7 +17,6 @@
 #define K_LANG "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Perflib\\009"
 
 #ifndef __PERFCOUNTERS_SRC
-extern BOOL GetNameStrings(void);
 extern void WriteCounterData(void);
 extern void CleanPIDCounterHash(void);
 extern void RemovePIDCounterHash(DWORD);
