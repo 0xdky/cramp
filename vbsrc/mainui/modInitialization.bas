@@ -116,6 +116,11 @@ Public Sub GetEnvironmentVariable()
   gIsFileExist = False
   gFileSize = 0
   
+  'check for CRAMP_DEBUG
+  If Environ("CRAMP_DEBUG") <> "" Then
+    frmMainui.queryText.Enabled = True
+  End If
+  
 End Sub
 
 '***********************************************************
@@ -180,7 +185,7 @@ Public Sub GetAllThreads(pidPosition As Long, strPID As String)
     gIsFileExist = False
     gFileSize = 0
     cmbBool = False
-    MsgBox "File " + giFileName + " does not exists Or size is zero."
+    'MsgBox "File " + giFileName + " does not exists Or size is zero."
   End If
   
   ss = 0

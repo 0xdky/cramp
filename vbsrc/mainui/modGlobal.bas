@@ -962,19 +962,53 @@ Select Case strVal
                      gstrSpace & frmMainui.tableCombo.Text
 End Select
 
-'disable run button when respective db file is not there
-If frmMainui.actionCombo.Text = "QUERY" And frmMainui.staCombo.Text = "THREADS" _
-   And frmMainui.threadCombo.Text = "" Or frmMainui.queryText.Text = "" Then
-  frmMainui.queryCommand.Enabled = False
-Else
-  frmMainui.queryCommand.Enabled = True
-End If
+'disable the run button as per the condition
+DisableRunButton
 
 'MsgBox queryText
 If frmMainui.queryCommand.Enabled = True Then
   frmMainui.queryText.Text = queryText
+Else
   queryText = ""
+  frmMainui.queryText.Text = queryText
 End If
+
+End Sub
+'***********************************************************
+' disable the run button as per the condition
+'***********************************************************
+Public Sub DisableRunButton()
+
+  Select Case frmMainui.actionCombo.Text
+    Case "QUERY"
+      Select Case frmMainui.staCombo.Text
+        Case "THREADS"
+          If frmMainui.pidCombo.Text = "" Or frmMainui.threadCombo.Text = "" Then
+            frmMainui.queryCommand.Enabled = False
+          Else
+            frmMainui.queryCommand.Enabled = True
+          End If
+        Case "ADDR"
+          If frmMainui.pidCombo.Text = "" Or frmMainui.threadCombo.Text = "" _
+             Or frmMainui.addressText.Text = "" Then
+            frmMainui.queryCommand.Enabled = False
+          Else
+            frmMainui.queryCommand.Enabled = True
+          End If
+        Case "STAT"
+          If frmMainui.pidCombo.Text = "" Then
+            frmMainui.queryCommand.Enabled = False
+          Else
+            frmMainui.queryCommand.Enabled = True
+          End If
+      End Select
+    Case "DUMP"
+      If frmMainui.pidCombo.Text = "" Then
+        frmMainui.queryCommand.Enabled = False
+      Else
+        frmMainui.queryCommand.Enabled = True
+      End If
+  End Select
 
 End Sub
 '***********************************************************
@@ -1444,7 +1478,7 @@ Public Sub GetStackForGivenPosition()
                     
       RunPerlScriptWithCP
       strTmp = CreateDictionary
-      StorePreviousQuery (strTmp)
+      StorePreviousQuery
       gDicCountLower = 0
       gDicCountUpper = .listitemText.Text
       SetValueInListView
@@ -1521,6 +1555,13 @@ End Sub
 '***********************************************************
 Public Sub SaveLVInfoToExcel()
   On Error Resume Next
+  
+  'check for listview entry
+  If frmMainui.queryLV.ListItems.Count = 0 Then
+    MsgBox "ERROR :: ListView is empty"
+    Exit Sub
+  End If
+  
   With frmMainui
     .dlgSelect.Flags = cdlOFNOverwritePrompt
     .dlgSelect.Filter = "XLS Files (*.xls)|*.xls"
@@ -1557,18 +1598,6 @@ Public Sub SaveIntoExcel(excelfilename As String)
   On Error Resume Next
   
   If FileName = "" Then Exit Sub
-  
-  'check for listview entry
-  lvrow = frmMainui.queryLV.ListItems.Count
-  If lvrow = 0 Then
-    MsgBox "ERROR :: ListView is empty"
-    Exit Sub
-  End If
-  
-  'delete the file if exists
-  'If gobjFSO.FileExists(FileName) Then
-    'gobjFSO.DeleteFile FileName, True
-  'End If
   
   Screen.MousePointer = vbHourglass
   
@@ -1614,8 +1643,7 @@ Public Sub SaveIntoExcel(excelfilename As String)
   
   Screen.MousePointer = vbDefault
 End Sub
-Public Sub StorePreviousQuery(strQuery As Boolean)
-If strQuery = True Then
+Public Sub StorePreviousQuery()
   'save previous query
   If gSPrevQuery <> gPrevQuery Then
     gSPrevQuery = gPrevQuery
@@ -1625,7 +1653,6 @@ If strQuery = True Then
     If gPrevQuery <> frmMainui.queryText.Text Then
       gPrevQuery = frmMainui.queryText.Text
   End If
-End If
 End Sub
 
 '***********************************************************
@@ -1657,6 +1684,9 @@ Public Sub CleanUp()
     .totLabel.Caption = ""
   End With
   
+  gPrevQuery = ""
+  gSPrevQuery = ""
+
   'set counter to zero
   gFileSize = 0
   gDicCountUpper = 0

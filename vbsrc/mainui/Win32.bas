@@ -492,7 +492,7 @@ Public Function SetPIDCombo(fld As String) As String
      frmMainui.pidCombo.ListIndex = 0
      frmMainui.queryCommand.Enabled = True
    Else
-     MsgBox "ERROR :: No DataBase Under " + fld + " Folder"
+     MsgBox "ERROR :: No log files Under " + fld + " Folder"
      frmMainui.queryCommand.Enabled = False
    End If
    

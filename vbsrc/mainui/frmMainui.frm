@@ -3,14 +3,14 @@ Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8490
+   ClientHeight    =   8445
    ClientLeft      =   5340
    ClientTop       =   3075
-   ClientWidth     =   8670
+   ClientWidth     =   9285
    Icon            =   "frmMainui.frx":0000
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8490
-   ScaleWidth      =   8670
+   ScaleHeight     =   8445
+   ScaleWidth      =   9285
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
@@ -518,11 +518,11 @@ Begin VB.Form frmMainui
       End
    End
    Begin MSComctlLib.TabStrip tspMainUI 
-      Height          =   8052
-      Left            =   240
+      Height          =   8055
+      Left            =   600
       TabIndex        =   0
       Top             =   240
-      Width           =   8172
+      Width           =   8175
       _ExtentX        =   14420
       _ExtentY        =   14208
       _Version        =   393216
@@ -817,8 +817,6 @@ Private Sub Form_Load()
     '***********************************************************
     ' My Code Starts Here
     '***********************************************************
-    'set the initial ui width
-    Me.Width = 9400
     'descending order
     imgIconNo = lvwDescending
     'get all cramp environment variable
@@ -1366,9 +1364,22 @@ Dim strTmp As Boolean
 RunPerlScriptWithCP
 'store query.psf file into the dictionary
 strTmp = CreateDictionary
-StorePreviousQuery (strTmp)
+StorePreviousQuery
 
 If Me.actionCombo.Text = "DUMP" Then
+  'clean up ui
+  If queryLV.ColumnHeaders.Count > 0 Then
+    queryLV.ColumnHeaders.Clear
+  End If
+  queryLV.ListItems.Clear
+  gDicCountLower = 0
+  frmMainui.miniLabel.Caption = gDicCountLower
+  gDicCountUpper = 0
+  frmMainui.maxLabel.Caption = gDicCountUpper
+  If gobjDic.Count > 0 Then
+    gobjDic.removeAll
+  End If
+  frmMainui.totalLabel.Caption = gobjDic.Count
   Screen.MousePointer = vbDefault
   Exit Sub
 End If
@@ -1421,8 +1432,6 @@ Private Sub runCommand_Click()
   Screen.MousePointer = vbHourglass
   'set process id combobox
   SetProcessIDCombo
-  'set query text
-  SetQueryText (staCombo.Text)
   'clean up ui
   If queryLV.ColumnHeaders.Count > 0 Then
     queryLV.ColumnHeaders.Clear
@@ -1439,6 +1448,14 @@ Private Sub runCommand_Click()
   AddRemAddrInSTACB
   frmMainui.totalLabel.Caption = gobjDic.Count
   Screen.MousePointer = vbDefault
+  'disable run button when respective db file is not there
+  If frmMainui.pidCombo.Text = "" Then
+    Me.queryCommand.Enabled = False
+  Else
+    Me.queryCommand.Enabled = True
+  End If
+  'set query text
+  SetQueryText (staCombo.Text)
 End Sub
 
 '***********************************************************
@@ -1654,6 +1671,7 @@ End Sub
 ' resizing the window
 '***********************************************************
 Private Sub Form_Resize()
+  tspMainUI.Move 240, 240
   fraMainUI(0).Move 600, 840
   fraMainUI(1).Move 600, 840
     
@@ -1726,14 +1744,14 @@ Private Sub Form_Resize()
     Frame3.Width = fraMainUI(1).Width - (((fraMainUI(1).Left - Frame3.Left) - 250))
     
     Frame3.Height = fraMainUI(1).Height - Frame4.Height - Frame1.Height _
-                    - Frame2.Height - (fraMainUI(1).Top - Frame4.Top + 100)
+                    - Frame2.Height - (fraMainUI(1).Top - Frame4.Top + 50)
     
     'move the profiler listview
     With Me.queryLV
       l = .Left
       t = .Top
       w = Frame3.Width - ((Frame3.Left + .Left) + 150)
-      h = Frame3.Height - 950
+      h = Frame3.Height - 850
       .Move l, t, w + 150, h
     End With
   End If
@@ -1765,6 +1783,7 @@ If gSPrevQuery <> "" Then
   'store query.psf file into the dictionary
   Dim strTmp As Boolean
   strTmp = CreateDictionary
+  StorePreviousQuery
   gDicCountLower = 0
   gDicCountUpper = listitemText.Text
   'set query.psf output into the listview
