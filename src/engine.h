@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:12:09 dhruva>
+// Time-stamp: <2003-10-15 11:54:45 dhruva>
 //-----------------------------------------------------------------------------
 // File : engine.h
 // Desc : engine header file
@@ -16,6 +16,7 @@
 #include <psapi.h>
 #include "ipcmsg.h"
 #include "TestCaseInfo.h"
+#include <list>
 
 //------------------------ MACROS AND DEFINED ---------------------------------
 #define COMPKEY_TERMINATE  ((UINT_PTR) 0)
@@ -60,6 +61,8 @@ extern DWORD WINAPI MemoryPollTH(LPVOID);
 extern TestCaseInfo *GetTestCaseInfos(const char *);
 extern BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *,CRAMPMessaging *);
 extern PROC_INFO *GetHandlesToActiveProcesses(HANDLE);
+extern SIZE_T GetProcessHandleFromName(const char *,
+                                       std::list<PROCESS_INFORMATION> &);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 
 //--------------------------- GLOBAL VARIABLES --------------------------------

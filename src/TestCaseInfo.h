@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:15:28 dhruva>
+// Time-stamp: <2003-10-15 09:24:08 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -81,6 +81,10 @@ public:
   BOOLEAN PseudoGroupStatus(void);
 
   BOOLEAN SubProcStatus(void);
+  // Set this to monitor a running process
+  // Will be monitored only if it is still running at the time of monitoring
+  void SubProcStatus(BOOLEAN iIsSubProc);
+
   BOOLEAN RemoteStatus(void);
 
   BOOLEAN BlockStatus(void);

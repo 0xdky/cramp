@@ -1,11 +1,13 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 12:27:13 dhruva>
+// Time-stamp: <2003-10-15 12:17:01 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
 // Desc  : Create a job, process inside the job which may create further
 //         processes. Add a callback on the job to notify when a process
 //         is added to the job. A timer to monitor the processes in the job.
+// TODO  :
+//        o If the sub proc is too fast, sometimes it does not get registered
 //-----------------------------------------------------------------------------
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
@@ -44,6 +46,7 @@ DWORD WINAPI MemoryPollTH(LPVOID);
 TestCaseInfo *GetTestCaseInfos(const char *);
 BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *,CRAMPMessaging *);
 PROC_INFO *GetHandlesToActiveProcesses(HANDLE);
+SIZE_T GetProcessHandleFromName(const char *,std::list<PROCESS_INFORMATION> &);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 
 //--------------------------- GLOBAL VARIABLES --------------------------------
@@ -99,6 +102,7 @@ InitGlobals(void){
 //-----------------------------------------------------------------------------
 // GetTestCaseInfos
 //  Internally, call the XML parser and get a list of test cases
+//  This does some updation like getting proc info for subprocs...
 //-----------------------------------------------------------------------------
 TestCaseInfo
 *GetTestCaseInfos(const char *ifile){
@@ -107,7 +111,43 @@ TestCaseInfo
   XMLParse xml(ifile);
   if(!xml.ParseXMLFile())
     return(0);
-  return(xml.GetScenario());
+  TestCaseInfo *pScenario=0;
+  pScenario=xml.GetScenario();
+  ListOfTestCaseInfo lgc=pScenario->BlockListOfGC();
+  pScenario->ReleaseListOfGC();
+  ListOfTestCaseInfo::iterator iter=lgc.begin();
+  for(;iter!=lgc.end();iter++){
+    TestCaseInfo *ptc=0;
+    ptc=(*iter);
+    if(!ptc)
+      continue;
+    if(!ptc->SubProcStatus())
+      continue;
+    std::string &exec=ptc->TestCaseExec();
+    PROCESS_INFORMATION pin={0};
+    do{
+      std::list<PROCESS_INFORMATION> lpin;
+      if(!GetProcessHandleFromName(exec.c_str(),lpin))
+        break;
+      std::list<PROCESS_INFORMATION>::iterator lpiniter=lpin.begin();
+      ptc->ProcessInfo((*lpiniter));
+      lpiniter++;
+      TestCaseInfo *pGroup=0;
+      pGroup=ptc->GetParentGroup();
+      if(!pGroup)
+        break;
+      for(;lpiniter!=lpin.end();lpiniter++){
+        TestCaseInfo *psp=0;
+        // Create a Sub proc
+        psp=pGroup->AddTestCase(0,FALSE,TRUE);
+        DEBUGCHK(psp);
+        psp->TestCaseExec(exec.c_str());
+        psp->ProcessInfo((*lpiniter));
+      }
+    }while(0);
+  }
+
+  return(pScenario);
 }
 
 //-----------------------------------------------------------------------------
@@ -420,8 +460,8 @@ JobNotifyTH(LPVOID){
       switch(dwBytesXferred){
         case JOB_OBJECT_MSG_NEW_PROCESS:
           ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
-          // Test case created a sub process
           do{
+            // Has test case created a sub process?
             if(ptc)
               break;
             // Get the parent process and the test case to append to
@@ -509,6 +549,42 @@ JobNotifyTH(LPVOID){
     }
   }
   return(0);
+}
+
+//-----------------------------------------------------------------------------
+// GetProcessHandleFromName
+//-----------------------------------------------------------------------------
+SIZE_T
+GetProcessHandleFromName(const char *iProcName,
+                         std::list<PROCESS_INFORMATION> &olPIN){
+  if(!iProcName)
+    return(0);
+
+  HANDLE h_snap=0;
+  h_snap=CreateToolhelp32Snapshot(TH32CS_SNAPALL,0);
+  DEBUGCHK(!(h_snap==INVALID_HANDLE_VALUE));
+  PROCESSENTRY32 pe={0};
+  pe.dwSize=sizeof(PROCESSENTRY32);
+  SIZE_T found=0;
+  BOOLEAN ret=FALSE;
+  ret=Process32First(h_snap,&pe);
+  for(;ret;ret=Process32Next(h_snap,&pe)){
+    if(!stricmp(pe.szExeFile,iProcName)){
+      HANDLE h_proc=0;
+      h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,
+                         FALSE,pe.th32ProcessID);
+      if(!h_proc)
+        continue;
+      PROCESS_INFORMATION pin={0};
+      pin.dwProcessId=pe.th32ProcessID;
+      pin.hProcess=h_proc;
+      olPIN.push_back(pin);
+      found++;
+    }
+  }
+  CloseHandle(h_snap);
+  h_snap=0;
+  return(found);
 }
 
 //-----------------------------------------------------------------------------

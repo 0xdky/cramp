@@ -1,11 +1,10 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 12:41:07 dhruva>
+// Time-stamp: <2003-10-15 12:18:56 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
 // TODO  :
 //         o Add garbage collection and reuse of objects
-//         o Fix the Number of run issue
 //-----------------------------------------------------------------------------
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
@@ -145,6 +144,13 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
       LeaveCriticalSection(&cs_tci);
       ListOfTestCaseInfo &lgc=BlockListOfGC();
       lgc.push_back(this);
+      // Assign some unique ID if not assigned to handle
+      // log processing and do not set b_uid as this is generated!
+      if(!b_uid){
+        char uidstr[32];
+        sprintf(uidstr,"CRAMP_NAME#%d",lgc.size());
+        u_uid=hashstring(uidstr);
+      }
       ReleaseListOfGC();
     }
     catch(CRAMPException excep){
@@ -359,6 +365,17 @@ TestCaseInfo::BlockStatus(BOOLEAN iIsBlocked){
 BOOLEAN
 TestCaseInfo::SubProcStatus(void){
   return(b_subproc);
+}
+
+//-----------------------------------------------------------------------------
+// SubProcStatus
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::SubProcStatus(BOOLEAN iIsSubProc){
+  b_subproc=iIsSubProc;
+  // To prevent this from being found for link or reference
+  b_uid=FALSE;
+  return;
 }
 
 //-----------------------------------------------------------------------------

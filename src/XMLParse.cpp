@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:24:10 dhruva>
+// Time-stamp: <2003-10-15 12:16:29 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -51,7 +51,8 @@ typedef enum{
   REINITIALIZEDATA,
   STOPONFIRSTFAILURE,
   EXECPATH,
-  NUMRUNS
+  NUMRUNS,
+  SUBPROC
 }AttributeEnum;
 
 // Internal map between value and attribute
@@ -85,6 +86,7 @@ ElemAttr g_ElemAttrMap[]={
   TESTCASE, "NAME"                ,   NAME                ,//17
   TESTCASE, "PROFILING"           ,   PROFILING           ,//18
   TESTCASE, "BLOCK"               ,   BLOCK               ,//19
+  TESTCASE, "SUBPROC"             ,   SUBPROC             ,//20
   0,0};
 
 //-----------------------------------------------------------------------------
@@ -373,6 +375,10 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
           break;
         case EXECPATH:
           pChild->TestCaseExec((*from).attrvalue);
+          break;
+        case SUBPROC:
+          if(!stricmp((*from).attrvalue,"TRUE"))
+            pChild->SubProcStatus(TRUE);
           break;
         case NUMRUNS:
         {
