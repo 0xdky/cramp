@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 15:44:15 dhruva>
+// Time-stamp: <2003-10-23 10:18:06 dhruva>
 //-----------------------------------------------------------------------------
 // File : engine.h
 // Desc : engine header file
@@ -26,19 +26,6 @@
 #ifndef BUFSIZE
 #define BUFSIZE 1024
 #endif
-
-// Courtesy: Jeffrey Richter
-typedef unsigned (__stdcall *PTHREAD_START) (void *);
-#define chBEGINTHREADEX(psa, cbStack, pfnStartAddr,         \
-                        pvParam, fdwCreate, pdwThreadId)    \
-  ((HANDLE)_beginthreadex(                                  \
-    (void *)        (psa),                                  \
-    (unsigned)      (cbStack),                              \
-    (PTHREAD_START) (pfnStartAddr),                         \
-    (void *)        (pvParam),                              \
-    (unsigned)      (fdwCreate),                            \
-    (unsigned *)    (pdwThreadId)))
-
 //------------------------ MACROS AND DEFINED ---------------------------------
 
 //-----------------------------------------------------------------------------
