@@ -382,7 +382,7 @@ Public Sub InitialiseMRUFileList()
         Next jj
     Next ii
     
-    sFileName = App.Path & "\res\MostRecentFiles.txt"
+    sFileName = App.Path & "\..\res\MostRecentFiles.txt"
     
     If Not FileExists(sFileName) Then
         Exit Sub
