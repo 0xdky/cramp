@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-03-05 08:31:54 dky>
+## Time-stamp: <2004-03-06 15:18:54 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -21,6 +21,7 @@
 ## 02-25-2004  Bug  Implemented call stack using correct algo           sjm/dky
 ## 02-28-2004  Mod  Added filtering during dumping                          dky
 ## 03-05-2004  Mod  Use the .fo file for dumping in debug mode              dky
+## 03-06-2004  Mod  Added support to show error messages if enabled (V1.21) dky
 ##-----------------------------------------------------------------------------
 ## Log file syntax:
 ##  Thread ID|Function address|Depth|Raw Ticks|Time in Ns|Ticks
@@ -29,11 +30,14 @@
 ## Stat file syntax:
 ##  Function address|Number of calls|Total ticks|Single max tick
 ##-----------------------------------------------------------------------------
+use Win32;
 use DB_File;
 use BerkeleyDB;
 
 # Global variables
+my $g_nw=0;                     # No window / error window
 my $g_pid;                      # Process ID of the profiled program
+my $g_verb=1;                   # Default verbosity
 my $f_logdb;                    # Berkeley DB file
 my $f_logtxt;                   # Profiler stack log file
 my $f_logfin;                   # Profiler unique function list
@@ -43,6 +47,7 @@ my $f_queryout;                 # QUERY results
 my $g_append=0;                 # Flag to determine appending of query results
 my $cramplogdir=".";            # Env variable for profile log folder
 my $progname=$0;                # Current PERL script name
+my $g_debug=exists($ENV{'CRAMP_DEBUG'}); # Debug info
 
 my $g_exclude=!exists($ENV{'CRAMP_PROFILE_INCLUSION'}); # Filter option
 my $g_filterstring=0;           # Filter string for regexp comparison
@@ -56,7 +61,8 @@ $progname=~s,.*/,,;
 ## usage
 ##-----------------------------------------------------------------------------
 sub usage{
-  print STDERR "usage : $progname ARGS
+  select STDERR;
+  print "usage : $progname [[-nw|--no-window][-q|--quite][-d|--debug] ARGS
 ARGS  : PID DUMP STAT|TICK|ADDR|ALL
         PID QUERY STAT [APPEND]
         PID QUERY THREADS [APPEND]
@@ -69,11 +75,40 @@ output: Results are written or appended to query.psf";
 }
 
 ##-----------------------------------------------------------------------------
+## ErrorMessage
+##  0=> Abort? (0|1), rest is the message to be displayed
+##-----------------------------------------------------------------------------
+sub ErrorMessage{
+  if (!$g_verb) {
+    return(0);
+  }
+
+  my $abort=shift;
+  my $message=join(' ',@_);
+  my $callerinfo=join(':',caller);
+
+  if ($g_debug) {
+    $message.="\nat $callerinfo";
+  }
+
+  if ($g_nw) {
+    print STDERR "Error: $message\n";
+  } else {
+    Win32::MsgBox($message,MB_ICONSTOP,"CRAMP Error");
+  }
+
+  if ($abort) {
+    exit(1);
+  }
+  return(0);
+}
+
+##-----------------------------------------------------------------------------
 ## PrintTime
 ##  A debug print utility function which can be used for script profiling
 ##-----------------------------------------------------------------------------
 sub PrintTime{
-  if (!exists($ENV{'CRAMP_DEBUG'})) {
+  if (!$g_verb || !$g_debug) {
     return;
   }
 
@@ -94,7 +129,7 @@ sub PrintTime{
 ##-----------------------------------------------------------------------------
 sub SetDBFilters{
   if (!defined($_[0])) {
-    warn("SetDBFilters: Undefined DB handle");
+    ErrorMessage(0,"Undefined DB handle");
     return 1;
   }
   $_[0]->filter_fetch_key  ( sub { s/\0$//    } ) ;
@@ -211,15 +246,15 @@ sub GetCallStack{
 sub WriteResults{
   if (g_append) {
     open(QUERYOUT,">>$f_queryout")
-      || die("Cannot open \"$f_queryout\" for write");
+      || ErrorMessage(1,"Unable to open \"$f_queryout\" for write");
   } else {
     open(QUERYOUT,">$f_queryout")
-      || die("Cannot open \"$f_queryout\" for write");
+      || ErrorMessage(1,"Unable to open \"$f_queryout\" for write");
   }
 
   foreach (@_) {
     print QUERYOUT "$_\n";
-    if (exists($ENV{'CRAMP_DEBUG'})) {
+    if ($g_verb && $g_debug) {
       print STDOUT "$_\n";
     }
   }
@@ -242,7 +277,7 @@ sub ProcessArgs{
     $cramplogdir=~s/\/+$//g;
     $cramplogdir=~s/\/{2,}/\//g;
     if (! -d $cramplogdir) {
-      print STDERR "Error: Invalid \"$cramplogdir\" log path\n";
+      ErrorMessage(0,"Invalid \"$cramplogdir\" log path");
       return 1;
     }
   }
@@ -257,15 +292,26 @@ sub ProcessArgs{
 
   @ARGV=map(uc,@ARGV);
 
+  my @temparray=();
   foreach (@ARGV) {
     if (/HELP/) {
       usage();
       return 0;
+    } elsif (/(-NW)|(--NO-WINDOW)/) {
+      $g_nw=1;
+    } elsif (/(-D)|(--DEBUG)/) {
+      $g_debug=1;
+    } elsif (/(-Q)|(--QUIET)/) {
+      $g_verb=0;
+      $g_nw=1;
+    } else {
+      push(@temparray,$_);
     }
   }
+  @ARGV=@temparray;
 
   if ($#ARGV<1) {
-    print STDERR "Error: Insufficient argument\n";
+    ErrorMessage(0,"Insufficient argument");
     return 1;
   }
 
@@ -301,7 +347,7 @@ sub ProcessArgs{
     }
 
     if (! -f $f_logdb) {
-      print STDERR "Error: DB file for \"$g_pid\" PID not found\n";
+      ErrorMessage(0,"DB file for \"$g_pid\" PID not found");
       return 1;
     }
 
@@ -327,7 +373,7 @@ sub ProcessArgs{
       }
 
       if ($#tidlist<0) {
-        print STDERR "Error: Thread ID not found\n";
+        ErrorMessage(0,"Thread ID not found");
         return 1;
       }
 
@@ -389,7 +435,7 @@ sub ProcessArgs{
     AppendFuncInfoToLogs(@values);
     return WriteResults(@values);
   } else {
-    print STDERR "Error: Unknown command\n";
+    ErrorMessage(0,"Unknown command/option \"$ARGV[1]\"");
     return 1;
   }
 
@@ -450,7 +496,7 @@ sub UpdateDB{
   }
 
   if (DumpLogsToDB(@_)) {
-    print STDERR "Error: Failed to dump logs to DB\n";
+    ErrorMessage(0,"Failed to dump logs to DB");
     return 1;
   }
 
@@ -468,9 +514,9 @@ sub GetProfileStat{
   $db=new BerkeleyDB::Hash
     -Filename    => $f_logdb,
       -Subname     => "FUNC_INFO",
-        -Flags       => DB_RDONLY
-          || die("Error: $BerkeleyDB::Error");
+        -Flags       => DB_RDONLY;
   if (!defined($db)) {
+    ErrorMessage(0,"Unable to open \"FUNC_INFO\" table in DB");
     return 1;
   }
   if (SetDBFilters($db)) {
@@ -511,7 +557,7 @@ sub AddRawLogs{
   my $chunks=0;
   my @rawlogs=();
 
-  open(LOGTXT,$_[0]) || die("Cannot open \"$_[0]\" for read");
+  open(LOGTXT,$_[0]) || return -1;
   while (<LOGTXT>) {
     chomp();
     push(@rawlogs,$_);
@@ -531,9 +577,11 @@ sub AddRawLogs{
         $db=new BerkeleyDB::Recno
           -Filename    => $f_logdb,
             -Subname     => "RAW#$ptid",
-              -Flags       => DB_CREATE
-                || die("Error in creating/opening RAW#$tid table");
-        die if !defined($db);
+              -Flags       => DB_CREATE;
+        if (!defined($db)) {
+          ErrorMessage(0,"Unable to create/open \"RAW#$tid\" table in DB");
+          return 1;
+        }
         if (SetDBFilters($db)) {
           return 1;
         }
@@ -578,9 +626,9 @@ sub GetRawValuesFromIDs{
   $db=tie(@tie_RAW,'BerkeleyDB::Recno',
           -Filename    => $f_logdb,
           -Subname     => "RAW#$tid",
-          -Flags       => DB_RDONLY)
-    || die("Error: $BerkeleyDB::Error");
+          -Flags       => DB_RDONLY);
   if (!defined($db)) {
+    ErrorMessage(0,"Unable to open \"RAW#$tid\" table in DB");
     return ();
   }
   if (SetDBFilters($db)) {
@@ -618,9 +666,9 @@ sub AddThreadIDs{
   $db=tie(@tie_TID,'BerkeleyDB::Recno',
           -Filename    => $f_logdb,
           -Subname     => "TID",
-          -Flags       => DB_CREATE)
-    || die("Error in dumping thread id");
+          -Flags       => DB_CREATE);
   if (!defined($db)) {
+    ErrorMessage(0,"Unable to create \"TID\" table in DB");
     return 1;
   }
   if (SetDBFilters($db)) {
@@ -711,9 +759,9 @@ sub AddAddrSortedData{
     $db=tie(%tie_h_func,'BerkeleyDB::Hash',
             -Filename    => $f_logdb,
             -Subname     => "FUNCALL#$tid",
-            -Flags       => DB_CREATE)
-      || die("Error: $BerkeleyDB::Error");
+            -Flags       => DB_CREATE);
     if (!defined($db)) {
+      ErrorMessage(0,"Unable to create \"FUNCALL#$tid\" table in DB");
       next;
     }
     if (SetDBFilters($db)) {
@@ -749,9 +797,9 @@ sub GetAddrSortedData{
   $db=tie(%tie_h_func,'BerkeleyDB::Hash',
           -Filename    => $f_logdb,
           -Subname     => "FUNCALL#$tid",
-          -Flags       => DB_RDONLY)
-    || die("Error: $BerkeleyDB::Error");
+          -Flags       => DB_RDONLY);
   if (!defined($db)) {
+    ErrorMessage(0,"Unable to open \"FUNCALL#$tid\" table in DB");
     untie %tie_h_func;
     return ();
   }
@@ -797,9 +845,9 @@ sub AddTickSortedData{
       -Subname     => "TICK",
         -Flags       => DB_CREATE,
           -Property    => DB_DUP|DB_DUPSORT,
-            -DupCompare  => \&TickCompare
-              || die("Error: $BerkeleyDB::Error");
+            -DupCompare  => \&TickCompare;
   if (!defined($db)) {
+    ErrorMessage(0,"Unable to open \"TICK\" table in DB");
     return 1;
   }
   if (SetDBFilters($db)) {
@@ -811,7 +859,8 @@ sub AddTickSortedData{
   my $count=0;
   $db->truncate($count);
 
-  open(LOGTXT,$_[0]) || die("Cannot open \"$_[0]\" for read");
+  open(LOGTXT,$_[0]) ||
+    ErrorMessage(1,"Unable to open \"$_[0]\" for read");
   while (<LOGTXT>) {
     chomp();
     /^([0-9]+)/;
@@ -838,7 +887,7 @@ sub AddTickSortedData{
 ##-----------------------------------------------------------------------------
 sub GetDuplicateKeyValues{
   if (!defined($_[0])) {
-    warn("GetDuplicateKeyValues: Undefined DB handle");
+    ErrorMessage(0,"Undefined DB handle");
     return ();
   }
 
@@ -882,9 +931,9 @@ sub GetTickSortedValues{
       -Subname     => "TICK",
         -Flags       => DB_RDONLY,
           -Property    => DB_DUP|DB_DUPSORT,
-            -DupCompare  => \&TickCompare
-              || die("Error: $BerkeleyDB::Error");
+            -DupCompare  => \&TickCompare;
   if (!defined($db)) {
+    ErrorMessage(0,"Unable to open \"TICK\" table in DB");
     return ();
   }
   if (SetDBFilters($db)) {
@@ -907,7 +956,8 @@ sub GetTickSortedValues{
 ##  Multiple calls to this function is supported.
 ##-----------------------------------------------------------------------------
 sub AddFunctionInformation{
-  open(LOGFIN,$f_logfin) || die("Cannot open \"$f_logfin\" for read");
+  open(LOGFIN,$f_logfin) ||
+    ErrorMessage(1,"Unable to open \"$f_logfin\" for read");
   my @flogs=<LOGFIN>;
   close(LOGFIN);
 
@@ -915,9 +965,9 @@ sub AddFunctionInformation{
   $db=new BerkeleyDB::Hash
     -Filename    => $f_logdb,
       -Subname     => "FUNC_INFO",
-        -Flags       => DB_EXCL|DB_CREATE
-          || die("Error: $BerkeleyDB::Error");
+        -Flags       => DB_EXCL|DB_CREATE;
   if (!defined($db)) {
+    ErrorMessage(0,"Unable to create \"FUNC_INFO\" table in DB");
     return 1;
   }
   if (SetDBFilters($db)) {
@@ -949,9 +999,9 @@ sub AppendFuncInfoToLogs{
   $db=new BerkeleyDB::Hash
     -Filename    => $f_logdb,
       -Subname     => "FUNC_INFO",
-        -Flags       => DB_RDONLY
-          || die("Error: $BerkeleyDB::Error");
+        -Flags       => DB_RDONLY;
   if (!defined($db)) {
+    ErrorMessage(0,"Unable to open \"FUNC_INFO\" table in DB");
     return 1;
   }
   if (SetDBFilters($db)) {
@@ -1123,7 +1173,7 @@ sub ApplyFilter{
   }
 
   # If all goes well, overwrite the files
-  if (!exists($ENV{'CRAMP_DEBUG'})) {
+  if (!$g_debug) {
     if (0==$ret) {
       unlink($f_logtxt);
       unlink($f_logfin);
