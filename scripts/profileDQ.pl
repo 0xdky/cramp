@@ -1,9 +1,9 @@
 #!perl
-## Time-stamp: <2004-03-01 12:32:49 dky>
+## Time-stamp: <2004-03-05 08:31:54 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
-## Usage : perl -S profileDQ.pl help
+## Usage : perl -S profileDQ.pl --help
 ## Output: Results are written or appended to query.psf
 ## Desc  : Call SetDBFilters on all DB handles
 ##-----------------------------------------------------------------------------
@@ -20,6 +20,7 @@
 ## 02-22-2004  Mod  Proper call stack results by re-ordering                dky
 ## 02-25-2004  Bug  Implemented call stack using correct algo           sjm/dky
 ## 02-28-2004  Mod  Added filtering during dumping                          dky
+## 03-05-2004  Mod  Use the .fo file for dumping in debug mode              dky
 ##-----------------------------------------------------------------------------
 ## Log file syntax:
 ##  Thread ID|Function address|Depth|Raw Ticks|Time in Ns|Ticks
@@ -59,8 +60,8 @@ sub usage{
 ARGS  : PID DUMP STAT|TICK|ADDR|ALL
         PID QUERY STAT [APPEND]
         PID QUERY THREADS [APPEND]
-        PID QUERY thread_id STACK pos Start End [APPEND]
-        PID QUERY thread_id|ALL RAW Start End (-1 till end) [APPEND]
+        PID QUERY thread_id STACK pos Start limit [APPEND]
+        PID QUERY thread_id|ALL RAW Start limit (-1 till end) [APPEND]
         PID QUERY thread_id|ALL TICK limit [APPEND]
         PID QUERY thread_id|ALL ADDR function_address limit [APPEND]
 output: Results are written or appended to query.psf";
@@ -1135,9 +1136,15 @@ sub ApplyFilter{
       unlink("$f_logfin.fo");
       unlink("$f_logstat.fo");
     }
+  } else {
+    if (0==$ret) {
+      $f_logtxt.=".fo";
+      $f_logfin.=".fo";
+      $f_logstat.=".fo";
+    }
   }
 
-  return 0;
+  return $ret;
 }
 
 ##------------------------ Execution starts here ------------------------------
