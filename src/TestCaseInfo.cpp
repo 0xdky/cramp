@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-09-30 15:34:14 dhruva>
+// Time-stamp: <2003-10-02 13:55:45 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -89,6 +89,8 @@ TestCaseInfo::~TestCaseInfo(){
       CloseHandle(pi_procinfo.hThread);
     if(pi_procinfo.hProcess)
       CloseHandle(pi_procinfo.hProcess);
+  }else{
+    l_tci.clear();
   }
   Init();
 }
