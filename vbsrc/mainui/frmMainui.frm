@@ -14,9 +14,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   3
-      Left            =   0
+      Left            =   -6480
       TabIndex        =   63
-      Top             =   960
+      Top             =   7800
       Visible         =   0   'False
       Width           =   7695
       Begin VB.Frame frmSettings 
@@ -59,9 +59,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   2
-      Left            =   6240
+      Left            =   -3960
       TabIndex        =   57
-      Top             =   8640
+      Top             =   8040
       Visible         =   0   'False
       Width           =   7695
       Begin VB.Frame frmList 
@@ -113,9 +113,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
-      Left            =   8400
+      Left            =   1080
       TabIndex        =   2
-      Top             =   9120
+      Top             =   720
       Visible         =   0   'False
       Width           =   7450
       Begin MSComctlLib.ImageList SortIconImageList 
@@ -497,13 +497,34 @@ Begin VB.Form frmMainui
             Width           =   972
          End
       End
+      Begin VB.Label perlLabel 
+         Alignment       =   2  'Center
+         AutoSize        =   -1  'True
+         Caption         =   "perltext"
+         BeginProperty Font 
+            Name            =   "MS Sans Serif"
+            Size            =   13.5
+            Charset         =   0
+            Weight          =   700
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
+         ForeColor       =   &H000000FF&
+         Height          =   360
+         Left            =   3120
+         TabIndex        =   66
+         Top             =   7080
+         Visible         =   0   'False
+         Width           =   1065
+      End
    End
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   0
-      Left            =   8040
+      Left            =   8160
       TabIndex        =   1
-      Top             =   -120
+      Top             =   -6000
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315

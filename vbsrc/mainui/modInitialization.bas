@@ -90,6 +90,10 @@ Public Sub GetEnvironmentVariable()
   'gperlPath = Replace(gperlPath, "\", "/")
   IsFileExistAndSize gperlPath, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
+    If IsPerlAlreadyInstalled() = False Then
+       MsgBox "PERL not found. Profile result can not be analyzed.", vbCritical, "Perl Error"
+       ShowPerlErrorMsg
+    End If
     gperlPath = "wperl.exe"
     Dim sEmpty As String
     gperlDir = sEmpty
@@ -641,8 +645,9 @@ End Function
 ' add / at the end of the path if it is not there
 '***********************************************************
 Public Function SetPath(instring As String) As String
-   'appends a forward slash to a path if needed
-   If Right$(instring, 1) <> "/" Then
+   'appends a forward slash at the end to a path if needed
+   If Right$(instring, 1) <> "/" And _
+      Right$(instring, 1) <> "\" Then
       instring = instring & "/"
    End If
    SetPath = instring
@@ -793,4 +798,60 @@ Public Sub GetLocalComputerName()
       frmMainui.compnameText.Text = pc_name
     End If
 
+End Sub
+
+'***********************************************************
+' check "wperl.exe" in the "PATH" environment variable
+'***********************************************************
+Public Function IsPerlAlreadyInstalled() As Boolean
+    IsPerlAlreadyInstalled = False
+    Dim MyArray
+    Dim strPathEnv As String
+    
+    strPathEnv = Environ("PATH")
+    strPathEnv = StripNulls(strPathEnv)
+    If strPathEnv = "" Then
+      Exit Function
+    End If
+    
+    MyArray = Split(strPathEnv, ";", -1, 1)
+    
+    Dim ss As Integer
+    ss = 0
+    While ss <= UBound(MyArray)
+        strPathEnv = MyArray(ss)
+        strPathEnv = StripNulls(strPathEnv)
+        If strPathEnv <> "" Then
+            'add "/" at the end of the path if it does not exist, otherwise not
+            strPathEnv = SetPath(strPathEnv)
+            strPathEnv = strPathEnv & "wperl.exe"
+            
+            IsFileExistAndSize strPathEnv, gIsFileExist, gFileSize
+            If gIsFileExist <> False And gFileSize <> 0 Then
+                IsPerlAlreadyInstalled = True
+                Exit Function
+            End If
+        End If
+        ss = ss + 1
+    Wend
+    
+End Function
+
+'***********************************************************
+' show perl error msg in the "profiler" tab page
+'***********************************************************
+Public Sub ShowPerlErrorMsg()
+
+Dim lab As Label
+
+    frmMainui.Frame1.Visible = False
+    frmMainui.Frame2.Visible = False
+    frmMainui.Frame3.Visible = False
+    
+    frmMainui.perlLabel.Visible = True
+    frmMainui.perlLabel.Caption = "PERL NOT FOUND !" & Chr(10) & "PROFILE RESULTS CAN NOT BE ANALYZED."
+    frmMainui.perlLabel.Width = 7000
+    frmMainui.perlLabel.Height = 1000
+    
+    frmMainui.perlLabel.Top = (frmMainui.fraMainUI(1).Height - frmMainui.Frame4.Height + 1000) / 2
 End Sub
