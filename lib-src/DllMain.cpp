@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-04 13:13:24 dhruva>
+// Time-stamp: <2003-12-02 19:31:47 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -43,6 +43,7 @@ BOOL OnProcessStart(void);
 BOOL OnProcessEnd(void);
 void FlushLogQueue(void);
 BOOL WriteFuncInfo(unsigned int,unsigned long);
+DWORD WINAPI ProfilerMailSlotServerTH(LPVOID);
 
 //-----------------------------------------------------------------------------
 // CRAMP_FlushProfileLogs
@@ -284,6 +285,8 @@ OnProcessStart(void){
   g_CRAMP_Profiler.g_l_maxcalllimit=0;
   g_CRAMP_Profiler.g_l_logsizelimit=0;
   g_CRAMP_Profiler.g_l_calldepthlimit=0;
+  g_CRAMP_Profiler.g_h_mailslot=0;
+  g_CRAMP_Profiler.g_h_mailslotTH=0;
   g_CRAMP_Profiler.g_h_logsizemonTH=0;
 
   g_CRAMP_Profiler.g_pid=GetCurrentProcessId();
@@ -380,6 +383,11 @@ OnProcessStart(void){
       SetThreadPriority(g_CRAMP_Profiler.g_h_logsizemonTH,
                         THREAD_PRIORITY_BELOW_NORMAL);
 
+    // Create a messaging thread for IPC
+    g_CRAMP_Profiler.g_h_mailslotTH=chBEGINTHREADEX(NULL,0,
+                                                    ProfilerMailSlotServerTH,
+                                                    NULL,0,NULL);
+
     // Set this if all succeeds
     valid=TRUE;
   }while(0);
@@ -402,6 +410,14 @@ OnProcessEnd(void){
 
   g_CRAMP_Profiler.g_fLogFile=0;
   g_CRAMP_Profiler.g_fFuncInfo=0;
+
+  if(g_CRAMP_Profiler.g_h_mailslot)
+    CloseHandle(g_CRAMP_Profiler.g_h_mailslot);
+  g_CRAMP_Profiler.g_h_mailslot=0;
+
+  if(g_CRAMP_Profiler.g_h_mailslotTH)
+    TerminateThread(g_CRAMP_Profiler.g_h_mailslotTH,0);
+  g_CRAMP_Profiler.g_h_mailslotTH=0;
 
   if(g_CRAMP_Profiler.g_h_logsizemonTH)
     TerminateThread(g_CRAMP_Profiler.g_h_logsizemonTH,0);
@@ -505,6 +521,86 @@ DumpLogsTH(void){
 
   fflush(g_CRAMP_Profiler.g_fLogFile);
   return;
+}
+
+//-----------------------------------------------------------------------------
+// ProfilerMailSlotServerTH
+//-----------------------------------------------------------------------------
+DWORD WINAPI
+ProfilerMailSlotServerTH(LPVOID idata){
+  char filename[MAX_PATH];
+  sprintf(filename,"\\\\.\\mailslot\\cramp_mailslot#%ld",
+          GetCurrentProcessId());
+
+  g_CRAMP_Profiler.g_h_mailslot=CreateMailslot(filename,
+                                               0,
+                                               MAILSLOT_WAIT_FOREVER,
+                                               NULL);
+  if(INVALID_HANDLE_VALUE==g_CRAMP_Profiler.g_h_mailslot)
+    return(1);
+
+  // Mail slot server loop
+  DWORD wstate=-1;
+  HANDLE h_event;
+  char msevtname[256];
+
+  sprintf(msevtname,"CRAMP_MAILSLOT#%ld",GetCurrentProcessId());
+  h_event=CreateEvent(NULL,FALSE,FALSE,msevtname);
+  DEBUGCHK(h_event);
+
+  while(1){
+    DWORD cbMessage=0,cMessage=0,cbRead=0;
+    BOOL fResult;
+    LPSTR lpszBuffer;
+    DWORD cAllMessages;
+    OVERLAPPED ov;
+
+    ov.Offset=0;
+    ov.OffsetHigh=0;
+    ov.hEvent=h_event;
+    fResult=GetMailslotInfo(g_CRAMP_Profiler.g_h_mailslot,
+                            (LPDWORD)NULL,
+                            &cbMessage,
+                            &cMessage,
+                            (LPDWORD)NULL);
+    DEBUGCHK(fResult);
+    if(cbMessage==MAILSLOT_NO_MESSAGE)
+      continue;
+    cAllMessages=cMessage;
+
+    // Mail slot loop
+    while(cMessage){
+      lpszBuffer=(LPSTR)GlobalAlloc(GPTR,cbMessage);
+      DEBUGCHK(lpszBuffer);
+      lpszBuffer[0]='\0';
+      fResult=ReadFile(g_CRAMP_Profiler.g_h_mailslot,
+                       lpszBuffer,
+                       cbMessage,
+                       &cbRead,
+                       &ov);
+      if(!fResult||!strlen(lpszBuffer))
+        break;
+
+      // Process the result HERE
+      if(!stricmp("STOP",lpszBuffer))
+        CRAMP_DisableProfile();
+      else if(!stricmp("START",lpszBuffer))
+        CRAMP_EnableProfile();
+      else if(!stricmp("FLUSH",lpszBuffer))
+        CRAMP_FlushProfileLogs();
+
+      GlobalFree((HGLOBAL)lpszBuffer);
+      fResult=GetMailslotInfo(g_CRAMP_Profiler.g_h_mailslot,
+                              (LPDWORD)NULL,
+                              &cbMessage,
+                              &cMessage,
+                              (LPDWORD)NULL);
+      if(!fResult)
+        break;
+    }
+  }
+
+  return(0);
 }
 
 //-----------------------------------------------------------------------------
