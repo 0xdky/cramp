@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 10:18:06 dhruva>
+// Time-stamp: <2003-11-17 12:02:01 dhruva>
 //-----------------------------------------------------------------------------
 // File : engine.h
 // Desc : engine header file
@@ -23,9 +23,6 @@
 #define COMPKEY_STATUS     ((UINT_PTR) 1)
 #define COMPKEY_JOBOBJECT  ((UINT_PTR) 2)
 
-#ifndef BUFSIZE
-#define BUFSIZE 1024
-#endif
 //------------------------ MACROS AND DEFINED ---------------------------------
 
 //-----------------------------------------------------------------------------
