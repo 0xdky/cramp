@@ -4,13 +4,13 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8490
-   ClientLeft      =   5325
+   ClientHeight    =   8496
+   ClientLeft      =   5328
    ClientTop       =   3060
-   ClientWidth     =   8670
+   ClientWidth     =   8664
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8490
-   ScaleWidth      =   8670
+   ScaleHeight     =   8496
+   ScaleWidth      =   8664
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
@@ -117,10 +117,11 @@ Begin VB.Form frmMainui
             TabIndex        =   31
             Top             =   720
             Width           =   6612
-            _ExtentX        =   11668
-            _ExtentY        =   5530
+            _ExtentX        =   11663
+            _ExtentY        =   5525
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
+            AllowReorder    =   -1  'True
             FullRowSelect   =   -1  'True
             _Version        =   393217
             ForeColor       =   -2147483640
@@ -385,8 +386,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   4048
+         _ExtentX        =   9716
+         _ExtentY        =   4043
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -404,8 +405,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9710
-         _ExtentY        =   6165
+         _ExtentX        =   9716
+         _ExtentY        =   6160
          _Version        =   393217
          HideSelection   =   0   'False
          Style           =   7
@@ -418,8 +419,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8172
-      _ExtentX        =   14420
-      _ExtentY        =   14208
+      _ExtentX        =   14415
+      _ExtentY        =   14203
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -488,6 +489,19 @@ Begin VB.Form frmMainui
    End
    Begin VB.Menu mnuHelp 
       Caption         =   "&Help"
+   End
+   Begin VB.Menu mnuLVRigCL 
+      Caption         =   "&LVRightCL"
+      Visible         =   0   'False
+      Begin VB.Menu manuHideShow 
+         Caption         =   "HideShowHeaders"
+      End
+      Begin VB.Menu manuDevider 
+         Caption         =   "-"
+      End
+      Begin VB.Menu manuCurrSetting 
+         Caption         =   "Save setting"
+      End
    End
 End
 Attribute VB_Name = "frmMainui"
@@ -1063,6 +1077,9 @@ Private Sub pidCombo_Click()
   'set list view
   SetValueInListView
   HideShowNextPre
+  'set default setting
+  ShowHideCol
+  manuCurrSetting.Checked = False
   Screen.MousePointer = vbDefault
 End Sub
 
@@ -1080,6 +1097,9 @@ gDicCountUpper = listitemText.Text
 'set query.psf output into the listview
 SetValueInListView
 HideShowNextPre
+'show hide col
+ShowHideCol
+manuCurrSetting.Checked = False
 Screen.MousePointer = vbDefault
 End Sub
 
@@ -1133,6 +1153,9 @@ Private Sub runCommand_Click()
     'set list view
     SetValueInListView
     HideShowNextPre
+    'show hide col
+    ShowHideCol
+    manuCurrSetting.Checked = False
   End If
   Screen.MousePointer = vbDefault
 End Sub
@@ -1237,6 +1260,9 @@ Private Sub nextCommand_Click()
   SetValueInListView
   HideShowNextPre
   Screen.MousePointer = vbDefault
+  'show hide col
+  ShowHideCol
+  manuCurrSetting.Checked = False
 End Sub
 '***********************************************************
 ' previous button click
@@ -1255,6 +1281,9 @@ Private Sub preCommand_Click()
   SetValueInListView
   HideShowNextPre
   Screen.MousePointer = vbDefault
+  'show hide col
+  ShowHideCol
+  manuCurrSetting.Checked = False
 End Sub
 '***********************************************************
 ' listitem lost focus
@@ -1266,5 +1295,36 @@ Private Sub listitemText_LostFocus()
   If listitemText.Text > 2000 Then
     listitemText.Text = 2000
   End If
+End Sub
+
+Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+  If queryLV.ColumnHeaders.Count > 0 Then
+    'pop up menu when right click in the listview
+    If Button = vbRightButton Then
+      PopupMenu mnuLVRigCL
+    End If
+  End If
+End Sub
+
+Private Sub manuHideShow_Click()
+  Screen.MousePointer = vbHourglass
+  'click on the manu hide-show
+  InitLVColHSForm
+  'set check box sensitivity
+  SetCHBSensitivity
+  frmLVColHS.Top = frmMainui.Top + 2553
+  frmLVColHS.Left = frmMainui.Left - 2892
+  frmLVColHS.Visible = True
+  manuHideShow.Enabled = False
+  frmMainui.Enabled = False
+  Screen.MousePointer = vbDefault
+End Sub
+
+Private Sub manuCurrSetting_Click()
+  Screen.MousePointer = vbHourglass
+  manuCurrSetting.Checked = True
+  'set current setting
+  StoreUserSetting
+  Screen.MousePointer = vbDefault
 End Sub
 
