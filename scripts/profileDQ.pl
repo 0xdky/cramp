@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-06 15:31:34 dhruva>
+## Time-stamp: <2004-01-07 17:12:50 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -53,7 +53,7 @@ sub usage{
 ARGS  : PID DUMP ALL|TICK|ADDR
         PID QUERY STAT [APPEND]
         PID QUERY THREADS [APPEND]
-        PID QUERY thread_id STACK pos Start End [APPEND] (Not yet implemented)
+        PID QUERY thread_id STACK pos Start End [APPEND]
         PID QUERY thread_id|ALL RAW Start End (-1 till end) [APPEND]
         PID QUERY thread_id|ALL TICK limit [APPEND]
         PID QUERY thread_id|ALL ADDR function_address limit [APPEND]
@@ -293,7 +293,15 @@ sub ProcessArgs{
           }
         }
       } elsif ($ARGV[3]=~/STACK/) {
-        # Not yet supported
+        $max=10;
+        $key=$ARGV[4]-1;
+        if ($#ARGV>=5) {
+          $max=$ARGV[5];
+        }
+        if ($key < 0) {
+          $key=0;
+        }
+        push(@values,GetRawValuesFromIDs($tidlist[0],($key..$key+$max)));
       }
     }
 
