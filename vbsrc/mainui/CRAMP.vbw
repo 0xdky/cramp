@@ -1,7 +1,7 @@
-frmMainui = 49, 77, 732, 760, , 13, 1, 640, 648, C
-modGlobal = 159, 10, 916, 741, 
+frmMainui = 38, 34, 721, 717, , 13, 1, 640, 648, C
+modGlobal = 159, 10, 916, 741, C
 modXMLParse = 189, -4, 872, 613, C
-modDatabase = 17, 97, 759, 775, 
-Win32 = 124, 76, 807, 599, 
-modFileHandling = 109, 50, 846, 657, C
+modDatabase = 286, 72, 1028, 750, 
+Win32 = 195, 112, 878, 635, 
+modFileHandling = 191, 18, 928, 625, 
 modInitialization = 0, 0, 0, 0, C

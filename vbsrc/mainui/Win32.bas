@@ -134,6 +134,105 @@ Declare Function RegSetValueExLong Lib "advapi32.dll" Alias _
 ByVal Reserved As Long, ByVal dwType As Long, lpValue As Long, _
 ByVal cbData As Long) As Long
 
+'Windows type used to call the Net API
+Public Const MAX_PREFERRED_LENGTH As Long = -1
+Public Const NERR_SUCCESS As Long = 0&
+Public Const ERROR_MORE_DATA As Long = 234&
+Public Const LB_SETTABSTOPS As Long = &H192
+
+'See NetServerEnum demo for complete
+'list of server types supported
+Public Const SV_TYPE_ALL                 As Long = &HFFFFFFFF
+Public Const SV_TYPE_WORKSTATION         As Long = &H1
+Public Const SV_TYPE_SERVER              As Long = &H2
+
+Public Const STYPE_ALL       As Long = -1  'note: my const
+Public Const STYPE_DISKTREE  As Long = 0
+Public Const STYPE_PRINTQ    As Long = 1
+Public Const STYPE_DEVICE    As Long = 2
+Public Const STYPE_IPC       As Long = 3
+Public Const STYPE_SPECIAL   As Long = &H80000000
+Public Const ACCESS_READ     As Long = &H1
+Public Const ACCESS_WRITE    As Long = &H2
+Public Const ACCESS_CREATE   As Long = &H4
+Public Const ACCESS_EXEC     As Long = &H8
+Public Const ACCESS_DELETE   As Long = &H10
+Public Const ACCESS_ATRIB    As Long = &H20
+Public Const ACCESS_PERM     As Long = &H40
+Public Const ACCESS_ALL      As Long = ACCESS_READ Or _
+                                        ACCESS_WRITE Or _
+                                        ACCESS_CREATE Or _
+                                        ACCESS_EXEC Or _
+                                        ACCESS_DELETE Or _
+                                        ACCESS_ATRIB Or _
+                                        ACCESS_PERM
+                                        
+'for use on Win NT/2000 only
+Public Type SERVER_INFO_100
+  sv100_platform_id  As Long
+  sv100_name         As Long
+End Type
+
+'shi2_current_uses: number of current connections to the resource
+'shi2_max_uses    : max concurrent connections resource can accommodate
+'shi2_netname     : share name of a resource
+'shi2_passwd      : share's password when
+'                  (server running with share-level security)
+'shi2_path        : local path for the shared resource
+'shi2_permissions : shared resource's permissions
+'                  (servers running with share-level security)
+'shi2_remark      : string containing optional comment about the resource
+'shi2_type        : the type of the shared resource
+Public Type SHARE_INFO_2
+  shi2_netname       As Long
+  shi2_type          As Long
+  shi2_remark        As Long
+  shi2_permissions   As Long
+  shi2_max_uses      As Long
+  shi2_current_uses  As Long
+  shi2_path          As Long
+  shi2_passwd        As Long
+End Type
+
+Public Declare Function NetServerEnum Lib "netapi32" _
+  (ByVal servername As Long, _
+   ByVal level As Long, _
+   buf As Any, _
+   ByVal prefmaxlen As Long, _
+   entriesread As Long, _
+   totalentries As Long, _
+   ByVal servertype As Long, _
+   ByVal domain As Long, _
+   resume_handle As Long) As Long
+
+Public Declare Function NetShareEnum Lib "netapi32" _
+  (ByVal servername As Long, _
+   ByVal level As Long, _
+   bufptr As Long, _
+   ByVal prefmaxlen As Long, _
+   entriesread As Long, _
+   totalentries As Long, _
+   resume_handle As Long) As Long
+   
+Public Declare Function NetApiBufferFree Lib "netapi32" _
+   (ByVal Buffer As Long) As Long
+     
+Public Declare Sub CopyMemory Lib "kernel32" _
+   Alias "RtlMoveMemory" _
+  (pTo As Any, uFrom As Any, _
+   ByVal lSize As Long)
+   
+Public Declare Function lstrlenW Lib "kernel32" _
+  (ByVal lpString As Long) As Long
+
+Public Declare Function SendMessage Lib "user32" _
+   Alias "SendMessageA" _
+  (ByVal hwnd As Long, _
+   ByVal wMsg As Long, _
+   ByVal wParam As Long, _
+   lParam As Any) As Long
+
+
 '***********************************************************
 ' My Code Starts Here
 '***********************************************************
@@ -247,6 +346,8 @@ Private Sub SetKeyValue(sKeyName As String, sValueName As String, _
        lRetVal = SetValueEx(hKey, sValueName, lValueType, vValueSetting)
        RegCloseKey (hKey)
    End Sub
+   
+   
 
 '***********************************************************
 ' My Code Starts Here
@@ -259,7 +360,7 @@ Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
 
    Dim fHandle As Long
    Dim Location As Integer
-   Dim strlength As Integer
+   Dim strLength As Integer
    Dim FileName As String
    Dim ProcessID As String
    Dim pidArray() As String
@@ -298,13 +399,13 @@ Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
       FileName = StripNulls(FileName)
       tmpStr = Right$(FileName, 3)
       If tmpStr = ".db" Then
-        strlength = Len(FileName)
+        strLength = Len(FileName)
         Location = InStr(FileName, "#")
-        Location = strlength - Location
+        Location = strLength - Location
         ProcessID = Right(FileName, Location)
         Location = InStr(ProcessID, ".")
-        strlength = Len(ProcessID)
-        Location = strlength - Location + 2
+        strLength = Len(ProcessID)
+        Location = strLength - Location + 2
         ProcessID = Left(ProcessID, Location)
         addValue = ChkValueInArray(pidArray(), ProcessID)
         If addValue = True Then
@@ -347,4 +448,78 @@ Private Function StripNulls(OriginalStr As String) As String
    StripNulls = OriginalStr
 End Function
 
+
+'SJM Code for UNC path
+
+Public Function GetConnectionPermissions(ByVal dwPermissions As Long) As String
+
+  'Permissions are only returned a shared
+  'resource running with share-level security.
+  'A server running user-level security ignores
+  'this member, so the function returns
+  '"not applicable".
+   Dim tmp As String
+   
+   If (dwPermissions And ACCESS_READ) Then tmp = tmp & "R"
+   If (dwPermissions And ACCESS_WRITE) Then tmp = tmp & " W"
+   If (dwPermissions And ACCESS_CREATE) Then tmp = tmp & " C"
+   If (dwPermissions And ACCESS_DELETE) Then tmp = tmp & " D"
+   If (dwPermissions And ACCESS_EXEC) Then tmp = tmp & " E"
+   If (dwPermissions And ACCESS_ATRIB) Then tmp = tmp & " A"
+   If (dwPermissions And ACCESS_PERM) Then tmp = tmp & " P"
+
+   If Len(tmp) = 0 Then tmp = "n/a"
+  
+   GetConnectionPermissions = tmp
+   
+   
+End Function
+
+
+Public Function GetConnectionType(ByVal dwConnectType As Long) As String
+
+  'compare connection type value
+   Select Case dwConnectType
+      Case STYPE_DISKTREE: GetConnectionType = "disk drive"
+      Case STYPE_PRINTQ:   GetConnectionType = "print queue"
+      Case STYPE_DEVICE:   GetConnectionType = "communication device"
+      Case STYPE_IPC:      GetConnectionType = "ipc"
+      Case STYPE_SPECIAL:  GetConnectionType = "administrative"
+      Case Else:
+         
+        'weird case. On my NT2000 machines,
+        'I have to do this to identify the
+        'IPC$ share type
+         Select Case (dwConnectType Xor STYPE_SPECIAL) 'rtns 3 if IPC
+            Case STYPE_IPC: GetConnectionType = "ipc"
+            Case Else:      GetConnectionType = "undefined"
+         End Select
+         
+   End Select
+   
+End Function
+
+
+Public Function GetPointerToByteStringW(ByVal dwData As Long) As String
+  
+   Dim tmp() As Byte
+   Dim tmplen As Long
+   
+   If dwData <> 0 Then
+   
+      tmplen = lstrlenW(dwData) * 2
+      
+      If tmplen <> 0 Then
+      
+         ReDim tmp(0 To (tmplen - 1)) As Byte
+         CopyMemory tmp(0), ByVal dwData, tmplen
+         GetPointerToByteStringW = tmp
+         
+     End If
+     
+   End If
+    
+End Function
+
+'SJM Code end
 

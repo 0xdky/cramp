@@ -306,20 +306,96 @@ End Sub
 '***********************************************************
 '
 '***********************************************************
-Public Function GetUNCPath(strPath As String) As String
+Public Function GetUNCPath(strPath As String, _
+                strReturnString As String) As Boolean
     
-    Dim strLeft, strRight As String
-    Dim strLength As Long
-    
+    Dim bufptr          As Long  'output
+    Dim dwServer        As Long  'pointer to the server
+    Dim dwEntriesread   As Long  'out
+    Dim dwTotalentries  As Long  'out
+    Dim dwResumehandle  As Long  'out
+    Dim success         As Long
+    Dim nStructSize     As Long
+    Dim cnt             As Long
+    Dim usrname         As String
+    Dim bServer         As String
+    Dim shi2            As SHARE_INFO_2
+    Dim strSearch As String
+    Dim strShareName, strFilePath As String
+    Dim retVal As Integer
+    Dim resShared As Boolean
+    Dim Msg, Style, Title, Response, MyString
+      
     If Left$(strPath, 2) = "\\" Then
-        GetUNCPath = strPath
-    Else
-        strLength = Len(strPath)
-        strLeft = Left$(strPath, 2)
-        strRight = Right(strPath, strLength - 2)
-        GetUNCPath = "\\" & Environ("COMPUTERNAME") & "\" & _
-                    Left$(strLeft, 1) & strRight
+        strReturnString = strPath
+        GetUNCPath = True
+        Exit Function
+    End If
+    
+    resShared = False
+    'demo using the local machine
+     bServer = "\\" & Environ$("COMPUTERNAME") & vbNullString
+     
+    'create pointer to the machine name
+     dwServer = StrPtr(bServer)
+     
+     success = NetShareEnum(dwServer, _
+                            2, _
+                            bufptr, _
+                            MAX_PREFERRED_LENGTH, _
+                            dwEntriesread, _
+                            dwTotalentries, _
+                            dwResumehandle)
+    
+    If success = NERR_SUCCESS And _
+        success <> ERROR_MORE_DATA Then
+       
+        nStructSize = LenB(shi2)
+       
+        For cnt = 0 To dwEntriesread - 1
+          
+            'get one chunk of data and cast
+            'into an SHARE_INFO_2 type, and
+            'add the data to a list
+             CopyMemory shi2, ByVal bufptr + (nStructSize * cnt), nStructSize
+        
+    
+            strSearch = GetPointerToByteStringW(shi2.shi2_path)
+            
+            retVal = InStr(strPath, strSearch)
+            If retVal <> 0 Then
+                strShareName = GetPointerToByteStringW(shi2.shi2_netname)
+                
+                If InStr(strShareName, "$") = 0 Then
+                    resShared = True
+                    Exit For
+                End If
+            End If
+          
+        Next
+       
     End If
 
+    Call NetApiBufferFree(bufptr)
+    
+    If resShared Then
+        strReturnString = bServer & "\" & _
+                            strShareName & "\" & _
+                            Right$(strPath, (Len(strPath) - Len(strSearch)))
+        GetUNCPath = True
+    Else
+        strFilePath = Left$(strPath, (Len(strPath) - Len(ParseFileName(strPath))))
+        
+        Msg = "File path " & strFilePath & " is not shared" & Chr(13) & _
+              "Please select a shared folder"
+        Style = vbYes + vbExclamation
+        Title = "CRAMP"
+        Response = MsgBox(Msg, Style, Title)
+            
+        strReturnString = ""
+        GetUNCPath = False
+         
+    End If
+   
 End Function
 

@@ -492,6 +492,8 @@ Private Sub cmdAddGroup_Click()
     
     AddNodeInTreeView tvwNodes.SelectedItem, otGroup
     
+    gSaveFlag = True
+    
 End Sub
 
 '***********************************************************
@@ -505,6 +507,8 @@ Private Sub cmdAddTc_Click()
     
     AddNodeInTreeView tvwNodes.SelectedItem, otTestcase
     
+    gSaveFlag = True
+    
 End Sub
 
 '***********************************************************
@@ -512,16 +516,34 @@ End Sub
 '***********************************************************
 Private Sub cmdBrowse_Click()
     Dim ExecPath As String
+    Dim strReturnString As String
+    Dim retVal As Boolean
+    retVal = False
     dlgSelect.Flags = cdlOFNNoChangeDir
     dlgSelect.Filter = "EXE Files (*.exe)|*.exe"
-    dlgSelect.ShowOpen
-    ExecPath = dlgSelect.FileName
+    dlgSelect.CancelError = True
+    strReturnString = ""
     
-    ExecPath = GetUNCPath(ExecPath)
+On Local Error GoTo BrowseError
     
-    If ExecPath <> "" Then
-        lvwAttributes.SelectedItem.SubItems(1) = ExecPath
-    End If
+    While retVal = False
+        dlgSelect.ShowOpen
+        ExecPath = dlgSelect.FileName
+        
+        If ExecPath <> "" Then
+            retVal = GetUNCPath(ExecPath, strReturnString)
+        End If
+        
+    Wend
+    
+    lvwAttributes.SelectedItem.SubItems(1) = strReturnString
+    lvwAttributes.SetFocus
+    cmdBrowse.Visible = False
+    
+    Exit Sub
+    
+BrowseError:
+    
     lvwAttributes.SetFocus
     cmdBrowse.Visible = False
     
@@ -538,6 +560,8 @@ Private Sub cmdDelete_Click()
     selectedType = nodetype(selectedNode)
     DeleteNode selectedNode
     DeleteRecord selectedNode
+        
+    gSaveFlag = True
         
 End Sub
 
