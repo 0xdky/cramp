@@ -126,7 +126,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
     Dim nodeName As String
     Dim ii As Integer
     Dim bSuccess As Boolean
-    Dim index As Integer
+    Dim Index As Integer
     Dim tmpName As String
     
     Select Case tblType
@@ -140,9 +140,9 @@ Public Function NewRecordName(tblType As ObjectType) As String
         Case otTestcase
             nodeName = "Testcase."
     End Select
-    index = 1
+    Index = 1
     Do
-        tmpName = nodeName & index
+        tmpName = nodeName & Index
         bSuccess = True
         For ii = 0 To gIdCounter - 1
             If gNameList(ii) = tmpName Then
@@ -150,7 +150,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
                 Exit For
             End If
         Next ii
-        index = index + 1
+        Index = Index + 1
     Loop Until bSuccess = True
     
     NewRecordName = tmpName
@@ -397,7 +397,7 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
 End Sub
 
 Public Sub RenameFormWindow()
-    If frmMainui.tspMainUI.SelectedItem.index = 2 Then
+    If frmMainui.tspMainUI.SelectedItem.Index = 2 Then
         frmMainui.Caption = "CRAMP [" & _
         LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
         "]"
@@ -1007,7 +1007,7 @@ Public Sub SetValueFromLV()
     SetQueryText (frmMainui.staCombo.Text)
   ElseIf frmMainui.staCombo.Text = "THREADS" Then
     'threads
-    lvValue = frmMainui.queryLV.SelectedItem.SubItems(1)
+    lvValue = frmMainui.queryLV.SelectedItem
     frmMainui.threadCombo.Text = lvValue
     'set query text
     SetQueryText (frmMainui.staCombo.Text)

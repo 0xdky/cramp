@@ -4,12 +4,12 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8130
-   ClientLeft      =   5325
+   ClientHeight    =   8136
+   ClientLeft      =   5328
    ClientTop       =   3060
    ClientWidth     =   8460
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8130
+   ScaleHeight     =   8136
    ScaleWidth      =   8460
    Begin VB.Frame fraMainUI 
       Height          =   6900
@@ -19,21 +19,75 @@ Begin VB.Form frmMainui
       Top             =   600
       Visible         =   0   'False
       Width           =   7450
+      Begin VB.Frame Frame4 
+         Caption         =   "Profiling"
+         Height          =   972
+         Left            =   240
+         TabIndex        =   33
+         Top             =   240
+         Width           =   6852
+         Begin VB.CommandButton flushproCommand 
+            Caption         =   "Flush"
+            Height          =   372
+            Left            =   4800
+            TabIndex        =   39
+            Top             =   480
+            Width           =   1092
+         End
+         Begin VB.CommandButton startstopCommand 
+            Caption         =   "Start"
+            Height          =   372
+            Left            =   3480
+            TabIndex        =   38
+            Top             =   480
+            Width           =   1092
+         End
+         Begin VB.TextBox pidText 
+            Height          =   372
+            Left            =   1800
+            TabIndex        =   36
+            Top             =   480
+            Width           =   1452
+         End
+         Begin VB.TextBox compnameText 
+            Height          =   372
+            Left            =   120
+            TabIndex        =   34
+            Top             =   480
+            Width           =   1572
+         End
+         Begin VB.Label procidLabel 
+            Caption         =   "Pid"
+            Height          =   252
+            Left            =   1800
+            TabIndex        =   37
+            Top             =   240
+            Width           =   1452
+         End
+         Begin VB.Label compnameLabel 
+            Caption         =   "Computer Name"
+            Height          =   252
+            Left            =   120
+            TabIndex        =   35
+            Top             =   240
+            Width           =   1572
+         End
+      End
       Begin VB.Frame Frame3 
          Caption         =   "Result"
-         Height          =   3852
+         Height          =   3492
          Left            =   240
          TabIndex        =   30
-         Top             =   2760
-         Width           =   6732
+         Top             =   3360
+         Width           =   6852
          Begin MSComctlLib.ListView queryLV 
             Height          =   3492
             Left            =   120
             TabIndex        =   31
             Top             =   240
-            Width           =   6492
-            _ExtentX        =   11456
-            _ExtentY        =   6165
+            Width           =   6612
+            _ExtentX        =   11663
+            _ExtentY        =   6160
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
             _Version        =   393217
@@ -49,7 +103,7 @@ Begin VB.Form frmMainui
          Height          =   732
          Left            =   240
          TabIndex        =   27
-         Top             =   1800
+         Top             =   2640
          Width           =   6852
          Begin VB.CommandButton runCommand 
             Caption         =   "Run"
@@ -82,7 +136,7 @@ Begin VB.Form frmMainui
          Height          =   1212
          Left            =   240
          TabIndex        =   13
-         Top             =   360
+         Top             =   1320
          Width           =   6852
          Begin VB.CheckBox appendCheck 
             Caption         =   "Append"
@@ -275,8 +329,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   4048
+         _ExtentX        =   9716
+         _ExtentY        =   4043
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -294,8 +348,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9710
-         _ExtentY        =   6165
+         _ExtentX        =   9716
+         _ExtentY        =   6160
          _Version        =   393217
          HideSelection   =   0   'False
          Style           =   7
@@ -308,8 +362,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8175
-      _ExtentX        =   14420
-      _ExtentY        =   13785
+      _ExtentX        =   14415
+      _ExtentY        =   13780
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -603,21 +657,21 @@ Private Sub lvwAttributes_Click()
     If UCase(Selection) = UCase("ExecPath") Then
         cmdBrowse.Move PX + CellWidth - 300, PY
         cmdBrowse.Visible = True
-        SelectedIndex = lvwAttributes.SelectedItem.index
+        SelectedIndex = lvwAttributes.SelectedItem.Index
         
         Exit Sub
     ElseIf UCase(Selection) = UCase("IdRef") Then
         CreateIdRefList
-        Dim index As Integer
+        Dim Index As Integer
         cboIdRef.Clear
         cboIdRef.Move PX, PY, CellWidth - 150
         cboIdRef.Visible = True
         cboIdRef.Text = lvwAttributes.SelectedItem.SubItems(1)
-        For index = 1 To gIdRef.Count
-            cboIdRef.AddItem gIdRef.Item(index)
-        Next index
+        For Index = 1 To gIdRef.Count
+            cboIdRef.AddItem gIdRef.Item(Index)
+        Next Index
         cboIdRef.SetFocus
-        SelectedIndex = lvwAttributes.SelectedItem.index
+        SelectedIndex = lvwAttributes.SelectedItem.Index
         
         Exit Sub
     
@@ -631,7 +685,7 @@ Private Sub lvwAttributes_Click()
             cboTrueFalse.Visible = True
             cboTrueFalse.Text = Selection
             cboTrueFalse.SetFocus
-            SelectedIndex = lvwAttributes.SelectedItem.index
+            SelectedIndex = lvwAttributes.SelectedItem.Index
             
             Exit Sub
             
@@ -645,7 +699,7 @@ Private Sub lvwAttributes_Click()
     txtInput.Visible = True
     'txtInput.SelText = Selection
     txtInput.SetFocus
-    SelectedIndex = lvwAttributes.SelectedItem.index
+    SelectedIndex = lvwAttributes.SelectedItem.Index
         
 End Sub
 
@@ -711,12 +765,12 @@ End Sub
 'First save the existing scenario if it is modified
 'then open the clicked scenario
 '***********************************************************
-Private Sub mnuMRU_Click(index As Integer)
+Private Sub mnuMRU_Click(Index As Integer)
     Dim RetStatus As Boolean
     RetStatus = CheckSaveStatus
     
     Dim sScenarioName As String
-    sScenarioName = gMRUList(0, index)
+    sScenarioName = gMRUList(0, Index)
     Dim tmpStr As String
     CleanAndRestart
     
@@ -830,8 +884,8 @@ Private Sub tspMainUI_Click()
         fraMainUI(ii).Visible = False
     Next ii
     
-    fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
-    fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
+    fraMainUI(tspMainUI.SelectedItem.Index - 1).Visible = True
+    fraMainUI(tspMainUI.SelectedItem.Index - 1).Move 600, 840
     
     RenameFormWindow
 End Sub
@@ -976,7 +1030,7 @@ Private Sub staCombo_LostFocus()
 End Sub
 
 '***********************************************************
-' raw-tick lost ficus notification
+' raw-tick lost focus notification
 '***********************************************************
 Private Sub rtCombo_LostFocus()
   Dim strVal As String
@@ -986,4 +1040,48 @@ Private Sub rtCombo_LostFocus()
      rtCombo.Text = gstrRawTick
   End If
 End Sub
+
+'***********************************************************
+' start-stop
+'***********************************************************
+Private Sub startstopCommand_Click()
+  Dim val As Integer
+  
+  If compnameText.Text = "" Then
+    MsgBox "ERROR :: Null computer name"
+    Exit Sub
+  End If
+  
+  If pidText.Text = "" Then
+    MsgBox "ERROR :: Null pid value"
+    Exit Sub
+  End If
+  
+  If starstopBool = True Then
+    'check computer name
+    val = CkeckComputer
+    If val = 0 Then
+      startstopCommand.Caption = "Stop"
+      starstopBool = False
+      'start profiling
+      DoProfiling ("START")
+    End If
+  Else
+    'stop profiling
+    DoProfiling ("STOP")
+    startstopCommand.Caption = "Start"
+    starstopBool = True
+  End If
+End Sub
+
+Private Sub flushproCommand_Click()
+  'flush profiling
+  DoProfiling ("FLUSH")
+End Sub
+
+Private Sub queryLV_Click()
+  Dim lvValue As String
+  SetValueFromLV
+End Sub
+
 
