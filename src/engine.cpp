@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 12:07:07 dhruva>
+// Time-stamp: <2003-11-17 12:48:37 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -256,8 +256,11 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
         tc++;
       }
       continue;
-    }else if(!ptc->ExeProcStatus())
+    }else if(!ptc->ExeProcStatus()){
+      // Keep updating the monitoring process dynamically
+      ptc->MonProcStatus(porigtc->MonProcStatus());
       continue;
+    }
 
     STARTUPINFO si={sizeof(si)};
     PROCESS_INFORMATION pi={0};
@@ -436,6 +439,12 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario,CRAMPMessaging *ioMsg){
     TestCaseInfo *ptc=(*iter);
     if(!ptc||!ptc->MonProcStatus())
       continue;
+
+    if(ptc->ExeProcStatus()){
+      GetTestCaseMemoryDetails(h_snapshot,ptc);
+      continue;
+    }
+
     lpin.clear();
     if(!GetProcessHandleFromName(ptc->TestCaseExec().c_str(),lpin))
       continue;

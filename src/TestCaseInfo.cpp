@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 12:18:58 dhruva>
+// Time-stamp: <2003-11-17 12:37:38 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -408,16 +408,6 @@ TestCaseInfo::ExeProcStatus(BOOLEAN iIsExeProc){
 BOOLEAN
 TestCaseInfo::SubProcStatus(void){
   return(b_subproc);
-}
-
-//-----------------------------------------------------------------------------
-// SubProcStatus
-//-----------------------------------------------------------------------------
-void
-TestCaseInfo::SubProcStatus(BOOLEAN iIsSubProc){
-  b_exeproc=FALSE;
-  b_subproc=iIsSubProc;
-  return;
 }
 
 //-----------------------------------------------------------------------------

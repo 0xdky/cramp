@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 10:31:23 dhruva>
+// Time-stamp: <2003-11-17 12:38:24 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -90,9 +90,8 @@ public:
   BOOLEAN ExeProcStatus(void);
   void ExeProcStatus(BOOLEAN iIsExeProc);
 
-  // Set this to flag this as a sub process
+  // Flag for sub process
   BOOLEAN SubProcStatus(void);
-  void SubProcStatus(BOOLEAN iIsSubProc);
 
   // Set this to monitor a running process
   BOOLEAN MonProcStatus(void);

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-04 18:07:58 dhruva>
+// Time-stamp: <2003-11-17 12:36:22 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -52,7 +52,8 @@ typedef enum{
   STOPONFIRSTFAILURE,
   EXECPATH,
   NUMRUNS,
-  SUBPROC,
+  EXEPROC,
+  MONPROC,
   MONINTERVAL
 }AttributeEnum;
 
@@ -93,7 +94,8 @@ ElemAttr g_ElemAttrMap[]={
   TESTCASE, "PROFILING"           ,   PROFILING           ,
   TESTCASE, "MAXRUNTIME"          ,   MAXRUNTIME          ,
   TESTCASE, "BLOCK"               ,   BLOCK               ,
-  TESTCASE, "SUBPROC"             ,   SUBPROC             ,
+  TESTCASE, "EXEPROC"             ,   EXEPROC             ,
+  TESTCASE, "MONPROC"             ,   MONPROC             ,
   0,0};
 
 //-----------------------------------------------------------------------------
@@ -399,9 +401,17 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
         case EXECPATH:
           pChild->TestCaseExec((*from).attrvalue);
           break;
-        case SUBPROC:
+        case MONPROC:
           if(!stricmp((*from).attrvalue,"TRUE"))
-            pChild->SubProcStatus(TRUE);
+            pChild->MonProcStatus(TRUE);
+          else if(!stricmp((*from).attrvalue,"FALSE"))
+            pChild->MonProcStatus(FALSE);
+          break;
+        case EXEPROC:
+          if(!stricmp((*from).attrvalue,"TRUE"))
+            pChild->ExeProcStatus(TRUE);
+          else if(!stricmp((*from).attrvalue,"FALSE"))
+            pChild->ExeProcStatus(FALSE);
           break;
         case NUMRUNS:
         {
