@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:48:09 dhruva>
+// Time-stamp: <2003-10-14 12:12:05 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -77,7 +77,11 @@ CRAMPServerMessaging::Process(void){
   prem=g_pScenario->Remote();
   if(!prem)
     return(FALSE);
-  prem->AddLog(Message());
+  std::string &msg=Message();
+  if(!msg.length())
+    return(FALSE);
+  if(std::string::npos==msg.find(GetLocalHostName()))
+    prem->AddLog(Message());
   return(TRUE);
 }
 
