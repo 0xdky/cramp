@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-14 17:03:52 dky>
+// Time-stamp: <2004-03-15 17:09:58 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -27,6 +27,10 @@
 
 #ifndef MB2BYTE
 #define MB2BYTE 1048576
+#endif
+
+#ifndef CRAMP_MAX_SYMERROR
+#define CRAMP_MAX_SYMERROR 10
 #endif
 
 // The only permitted GLOBAL for the profiler library
@@ -162,6 +166,7 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
 
     BOOL ret=FALSE;
     HANDLE h_proc=0;
+    static unsigned int error_counter=0;
 
     do{
         CRAMP_CS csf(&g_CRAMP_Profiler.g_cs_fun);
@@ -230,18 +235,24 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         // Getting the final symbol name
         if(FALSE==match){
             strcpy(undName,"<unknown symbol>");
-            char filename[MAX_PATH];
-            sprintf(filename,"%s/cramp_symerror#%d.log",
-                    g_CRAMP_Profiler.logpath,
-                    g_CRAMP_Profiler.g_pid);
-            FILE *f_symlog=fopen(filename,"a+");
-            if(f_symlog){
-                fprintf(f_symlog,"%ld:%s\n",
-                        (DWORD)mbi.AllocationBase,
-                        moduleName);
-                SymEnumerateModules(h_proc,SymErrorEnumModCB,f_symlog);
-                fclose(f_symlog);
-            }
+            do{
+                if(error_counter>=CRAMP_MAX_SYMERROR)
+                    break;
+
+                char filename[MAX_PATH];
+                sprintf(filename,"%s/cramp_symerror#%d.log",
+                        g_CRAMP_Profiler.logpath,
+                        g_CRAMP_Profiler.g_pid);
+                FILE *f_symlog=fopen(filename,"a+");
+                if(f_symlog){
+                    fprintf(f_symlog,"%ld:%s\n",
+                            (DWORD)mbi.AllocationBase,
+                            moduleName);
+                    SymEnumerateModules(h_proc,SymErrorEnumModCB,f_symlog);
+                    fclose(f_symlog);
+                    error_counter++;
+                }
+            }while(0);
         }else{
             if(0==UnDecorateSymbolName(pSymbol->Name,
                                        undName,
