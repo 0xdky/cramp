@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 12:53:27 dhruva>
+// Time-stamp: <2003-10-23 13:49:38 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -25,15 +25,8 @@ long g_l_profile=0;
 long g_l_stoplogging=0;
 long g_l_calldepthlimit=10;
 
-FILE *g_f_logfile=0;
-FILE *g_f_callfile=0;
-__int64 g_u_counter=0;
 std::queue<std::string> g_LogQueue;
 std::hash_map<unsigned int,SIZE_T> g_hFuncCalls;
-
-// Berkeley database
-// Hash of function address and funcinfo structure
-DB *g_pdb_funcinfo=0;
 
 CRITICAL_SECTION g_cs_log;
 CRITICAL_SECTION g_cs_prof;
@@ -46,7 +39,112 @@ void CALLBACK FlushLogCB(void *,BOOLEAN);
 
 BOOL OnProcessStart(void);
 BOOL OnProcessEnd(void);
-void GetFunctionDetails(void);
+
+//-----------------------------------------------------------------------------
+// CRAMP_DumpFunctionInfo
+//-----------------------------------------------------------------------------
+extern "C" __declspec(dllexport)
+  void CRAMP_DumpFunctionInfo(void){
+  FILE *fFuncInfo=0;
+  char filename[256];
+  sprintf(filename,"%s/cramp_funcinfo#%d.log",
+          logpath,
+          GetCurrentProcessId());
+
+  fFuncInfo=fopen(filename,"wc");
+  if(!fFuncInfo)
+    return;
+
+  HANDLE h_proc=0;
+  do{
+    h_proc=GetCurrentProcess();
+    if(!h_proc)
+      break;
+
+    SymInitialize(h_proc,NULL,FALSE);
+
+    char msg[MAX_PATH*4];
+    TCHAR moduleName[MAX_PATH];
+    TCHAR modShortNameBuf[MAX_PATH];
+    MEMORY_BASIC_INFORMATION mbi;
+    BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL)+1024];
+    PIMAGEHLP_SYMBOL pSymbol=(PIMAGEHLP_SYMBOL)&symbolBuffer[0];
+
+    // Block the modification of hash
+    EnterCriticalSection(&g_cs_prof);
+
+    std::queue<std::string> q_funcinfo;
+    std::hash_map<unsigned int,SIZE_T>::iterator iter=g_hFuncCalls.begin();
+    for(;iter!=g_hFuncCalls.end();iter++){
+      unsigned int addr=(*iter).first;
+      VirtualQuery((void *)addr,&mbi,sizeof(mbi));
+      GetModuleFileName((HMODULE)mbi.AllocationBase,
+                        moduleName,MAX_PATH);
+      _splitpath(moduleName,NULL,NULL,modShortNameBuf,NULL);
+
+      // Following not per docs, but per example...
+      memset(pSymbol,0,sizeof(PIMAGEHLP_SYMBOL));
+      pSymbol->SizeOfStruct=sizeof(symbolBuffer);
+      pSymbol->MaxNameLength=1023;
+      pSymbol->Address=0;
+      pSymbol->Flags=0;
+      pSymbol->Size=0;
+
+      DWORD symDisplacement=0;
+      if(!SymLoadModule(h_proc,
+                        NULL,
+                        moduleName,
+                        NULL,
+                        (DWORD)mbi.AllocationBase,
+                        0))
+        continue;
+
+      SymSetOptions(SymGetOptions()&~SYMOPT_UNDNAME);
+      char undName[1024];
+      if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
+        // Couldn't retrieve symbol (no debug info?)
+        strcpy(undName,"<unknown symbol>");
+      }
+      else
+      {
+        // Unmangle name, throwing away decorations
+        // that don't affect uniqueness:
+        if(0==UnDecorateSymbolName(pSymbol->Name, undName,
+                                   sizeof(undName),
+                                   UNDNAME_NO_MS_KEYWORDS        |
+                                   UNDNAME_NO_ACCESS_SPECIFIERS  |
+                                   UNDNAME_NO_FUNCTION_RETURNS   |
+                                   UNDNAME_NO_ALLOCATION_MODEL   |
+                                   UNDNAME_NO_ALLOCATION_LANGUAGE|
+                                   UNDNAME_NO_MEMBER_TYPE))
+          strcpy(undName,pSymbol->Name);
+      }
+      SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
+      sprintf(msg,"%08X|%s|%s|%ld",
+              addr,modShortNameBuf,undName,(*iter).second);
+      q_funcinfo.push(msg);
+    }
+
+    // Unlock the hash
+    LeaveCriticalSection(&g_cs_prof);
+
+    while(!q_funcinfo.empty()){
+      fprintf(fFuncInfo,"%s\n",q_funcinfo.front().c_str());
+      q_funcinfo.pop();
+    }
+
+  }while(0);
+
+  if(h_proc){
+    SymCleanup(h_proc);
+    CloseHandle(h_proc);
+    h_proc=0;
+  }
+
+  fclose(fFuncInfo);
+  fFuncInfo=0;
+  return;
+}
 
 //-----------------------------------------------------------------------------
 // CRAMP_EnableProfile
@@ -136,34 +234,6 @@ extern "C" __declspec(dllexport)
 }
 
 //-----------------------------------------------------------------------------
-// DllMain
-//-----------------------------------------------------------------------------
-BOOL WINAPI DllMain(HINSTANCE hinstDLL,
-                    DWORD fdwReason,
-                    LPVOID lpvReserved){
-  static BOOL valid=FALSE;
-
-  switch (fdwReason)
-  {
-    case DLL_PROCESS_ATTACH:
-      valid=OnProcessStart();
-    case DLL_THREAD_ATTACH:
-      if(valid)
-        CallMonitor::threadAttach(new CallMonLOG());
-      break;
-    case DLL_PROCESS_DETACH:
-      if(valid)
-        OnProcessEnd();
-    case DLL_THREAD_DETACH:
-      if(valid)
-        CallMonitor::threadDetach();
-      break;
-  }
-  return(TRUE);
-}
-//End of file
-
-//-----------------------------------------------------------------------------
 // OnProcessStart
 //-----------------------------------------------------------------------------
 BOOL
@@ -219,19 +289,11 @@ OnProcessStart(void){
 //-----------------------------------------------------------------------------
 BOOL
 OnProcessEnd(void){
-  BOOL valid=FALSE;
-
-  // Close the database
-  if(g_pdb_funcinfo)
-    g_pdb_funcinfo->close(g_pdb_funcinfo,0);
-  g_pdb_funcinfo=0;
-
+  InterlockedExchange(&g_l_stoplogging,1);
+  CRAMP_DumpFunctionInfo();
   DeleteCriticalSection(&g_cs_log);
   DeleteCriticalSection(&g_cs_prof);
-  valid=TRUE;
-  InterlockedExchange(&g_l_stoplogging,1);
-  GetFunctionDetails();
-  return(valid);
+  return(TRUE);
 }
 
 //-----------------------------------------------------------------------------
@@ -290,102 +352,28 @@ DumpLogsTH(void){
 }
 
 //-----------------------------------------------------------------------------
-// GetFunctionDetails
+// DllMain
 //-----------------------------------------------------------------------------
-void
-GetFunctionDetails(void){
-  FILE *fFuncInfo=0;
-  char filename[256];
-  sprintf(filename,"%s/cramp_funcinfo#%d.log",
-          logpath,
-          GetCurrentProcessId());
+BOOL WINAPI DllMain(HINSTANCE hinstDLL,
+                    DWORD fdwReason,
+                    LPVOID lpvReserved){
+  static BOOL valid=FALSE;
 
-  fFuncInfo=fopen(filename,"wc");
-  if(!fFuncInfo)
-    return;
-
-  HANDLE h_proc=0;
-  do{
-    h_proc=GetCurrentProcess();
-    if(!h_proc)
+  switch (fdwReason)
+  {
+    case DLL_PROCESS_ATTACH:
+      valid=OnProcessStart();
+    case DLL_THREAD_ATTACH:
+      if(valid)
+        CallMonitor::threadAttach(new CallMonLOG());
       break;
-
-    SymInitialize(h_proc,NULL,FALSE);
-
-    char msg[MAX_PATH*4];
-    TCHAR moduleName[MAX_PATH];
-    TCHAR modShortNameBuf[MAX_PATH];
-    MEMORY_BASIC_INFORMATION mbi;
-    BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL)+1024];
-    PIMAGEHLP_SYMBOL pSymbol=(PIMAGEHLP_SYMBOL)&symbolBuffer[0];
-
-    std::queue<std::string> q_funcinfo;
-    std::hash_map<unsigned int,SIZE_T>::iterator iter=g_hFuncCalls.begin();
-
-    for(;iter!=g_hFuncCalls.end();iter++){
-      unsigned int addr=(*iter).first;
-      VirtualQuery((void *)addr,&mbi,sizeof(mbi));
-      GetModuleFileName((HMODULE)mbi.AllocationBase,
-                        moduleName,MAX_PATH);
-      _splitpath(moduleName,NULL,NULL,modShortNameBuf,NULL);
-
-      // Following not per docs, but per example...
-      memset(pSymbol,0,sizeof(PIMAGEHLP_SYMBOL));
-      pSymbol->SizeOfStruct=sizeof(symbolBuffer);
-      pSymbol->MaxNameLength=1023;
-      pSymbol->Address=0;
-      pSymbol->Flags=0;
-      pSymbol->Size=0;
-
-      DWORD symDisplacement=0;
-      if(!SymLoadModule(h_proc,
-                        NULL,
-                        moduleName,
-                        NULL,
-                        (DWORD)mbi.AllocationBase,
-                        0))
-        continue;
-
-      SymSetOptions(SymGetOptions()&~SYMOPT_UNDNAME);
-      char undName[1024];
-      if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
-        // Couldn't retrieve symbol (no debug info?)
-        strcpy(undName,"<unknown symbol>");
-      }
-      else
-      {
-        // Unmangle name, throwing away decorations
-        // that don't affect uniqueness:
-        if(0==UnDecorateSymbolName(pSymbol->Name, undName,
-                                   sizeof(undName),
-                                   UNDNAME_NO_MS_KEYWORDS        |
-                                   UNDNAME_NO_ACCESS_SPECIFIERS  |
-                                   UNDNAME_NO_FUNCTION_RETURNS   |
-                                   UNDNAME_NO_ALLOCATION_MODEL   |
-                                   UNDNAME_NO_ALLOCATION_LANGUAGE|
-                                   UNDNAME_NO_MEMBER_TYPE))
-          strcpy(undName,pSymbol->Name);
-      }
-      SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
-      sprintf(msg,"%08X|%s|%s|%ld",
-              addr,modShortNameBuf,undName,(*iter).second);
-      q_funcinfo.push(msg);
-    }
-
-    while(!q_funcinfo.empty()){
-      fprintf(fFuncInfo,"%s\n",q_funcinfo.front().c_str());
-      q_funcinfo.pop();
-    }
-
-  }while(0);
-
-  if(h_proc){
-    SymCleanup(h_proc);
-    CloseHandle(h_proc);
-    h_proc=0;
+    case DLL_PROCESS_DETACH:
+      if(valid)
+        OnProcessEnd();
+    case DLL_THREAD_DETACH:
+      if(valid)
+        CallMonitor::threadDetach();
+      break;
   }
-
-  fclose(fFuncInfo);
-  fFuncInfo=0;
-  return;
+  return(TRUE);
 }
