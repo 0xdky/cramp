@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 10:58:06 dhruva>
+// Time-stamp: <2003-10-17 18:11:36 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler
@@ -98,11 +98,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
           DeleteCriticalSection(&g_cs_prof);
           break;
         }
+
+#ifdef CRAMP_CALLGRAPH
         if(!InitializeCriticalSectionAndSpinCount(&g_cs_call,4000L)){
           DeleteCriticalSection(&g_cs_log);
           DeleteCriticalSection(&g_cs_prof);
           break;
         }
+#endif
 
         // Set output file handles
         char filename[256];
@@ -118,6 +121,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
           break;
         }
 
+#ifdef CRAMP_CALLGRAPH
         sprintf(filename,"%s/cramp_call#%d.log",
                 getenv("CRAMP_LOGPATH"),
                 GetCurrentProcessId());
@@ -130,6 +134,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
           DeleteCriticalSection(&g_cs_prof);
           break;
         }
+#endif
 
         // Set this if all succeeds
         valid=TRUE;
@@ -143,11 +148,15 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
         fflush(g_f_logfile);
         fclose(g_f_logfile);
         g_f_logfile=0;
+        DeleteCriticalSection(&g_cs_log);
+
+#ifdef CRAMP_CALLGRAPH
         fflush(g_f_callfile);
         fclose(g_f_callfile);
         g_f_callfile=0;
-        DeleteCriticalSection(&g_cs_log);
         DeleteCriticalSection(&g_cs_call);
+#endif
+
         DeleteCriticalSection(&g_cs_prof);
       }
     case DLL_THREAD_DETACH:

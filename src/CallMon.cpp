@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 10:50:15 dhruva>
+// Time-stamp: <2003-10-17 18:08:04 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "CallMon.h"
+#include "CallMonLOG.h"
+#include "ProfileLimit.h"
 
 using namespace std;
 
@@ -241,11 +243,12 @@ void CallMonitor::enterProcedure(ADDR parentFramePtr,
   ci.origRetAddr = *retAddrPtr;
   ci.entryTime = entryTime;
 
+#ifdef CRAMP_CALLGRAPH
   EnterCriticalSection(&g_cs_prof);
   getFuncInfo(ci.funcAddr,ci.modl,ci.func);
   LeaveCriticalSection(&g_cs_prof);
-
-  logEntry(ci);  // Log procedure entry event
+  logEntry(ci);
+#endif
 
   // Redirect eventual return to local thunk
   *retAddrPtr = (ADDR)_pexitThunk;
@@ -269,10 +272,34 @@ void CallMonitor::exitProcedure(ADDR parentFramePtr,
     *retAddrPtr = ci.origRetAddr;
     if (ci.parentFrame==parentFramePtr)
     {
+
+#ifndef CRAMP_CALLGRAPH
+      BOOLEAN add=FALSE;
+      do{
+        ProfileLimit *ppl=CallMonLOG::GetProfileLimit();
+        if(!ppl)
+          break;
+        ProfileData &ppd=ppl->GetLeastEntry();
+        if((ci.endTime-ci.startTime)<ppd._ticks)
+          break;
+        EnterCriticalSection(&g_cs_prof);
+        getFuncInfo(ci.funcAddr,ci.modl,ci.func);
+        LeaveCriticalSection(&g_cs_prof);
+        add=TRUE;
+      }while(0);
+      if(add)
+        logExit(ci,true);
+#else
       logExit(ci,true); // Record normal exit
+#endif
       callInfoStack.pop_back();
       return;
     }
+#ifndef CRAMP_CALLGRAPH
+    EnterCriticalSection(&g_cs_prof);
+    getFuncInfo(ci.funcAddr,ci.modl,ci.func);
+    LeaveCriticalSection(&g_cs_prof);
+#endif
     logExit(ci,false);    // Record exceptional exit
     callInfoStack.pop_back();
   }
