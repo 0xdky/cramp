@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2003-12-16 09:49:26 dhruva>
+;; Time-stamp: <2004-01-05 14:11:24 dhruva>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -14,7 +14,8 @@
 !define PRODUCT_PUBLISHER "Delmia Solutions Pvt Ltd"
 !define PRODUCT_WEB_SITE "http://www.delmia.com/"
 !define PRODUCT_DIR_REGKEY "Software\DELMIA\${PRODUCT_NAME}"
-!define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+!define PRODUCT_UNINST_KEY \
+        "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 !define ENV_KEY "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 
@@ -118,6 +119,7 @@ Section "CRAMP Profiler" SEC02
   SetOutPath "$INSTDIR\bin"
   File "..\bin\libCRAMP.dll"
   File "..\scripts\profileDB.pl"
+  File "..\scripts\profileDBProto.pl"
   File "..\scripts\querysort.pl"
 
   SetOutPath "$INSTDIR\lib"
@@ -136,7 +138,6 @@ Section "CRAMP Profiler" SEC02
 
 FileExist:
   FileClose $R0
-  pop $R0
   goto RegEntry
 
 CreateLink:
@@ -149,6 +150,8 @@ RegEntry:
   WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_CALLDEPTH" 0
   WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_EXCLUSION" 1
   WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_MAXCALLLIMIT" 0
+
+  pop $R0
 SectionEnd
 
 Section "STAF" SEC03
@@ -167,7 +170,23 @@ Section "STAF" SEC03
   WriteRegExpandStr HKLM "${ENV_KEY}" "STAF_PATH" "$R0\TOOLS\STAF"
   WriteRegExpandStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
                     "STAF Server" "%STAF_PATH%\bin\STAFProc.exe"
+
+
+  FileOpen $R0 $INSTDIR\TOOLS\STAF\bin\stafpool.cfg w
+  ifErrors StafError
+
+  push $R1
+  ReadRegStr $R1 HKLM \
+             "SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName" \
+             ComputerName
+  StrCpy $R1 "$R1$\n"
+  FileWrite $R0 $R1
+  pop $R1
+  FileClose $R0
+
+StafError:
   pop $R0
+
 SectionEnd
 
 Section "PERL" SEC04
@@ -213,7 +232,8 @@ SectionEnd
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC01} "CRAMP Win32 test engine"
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC02} "CRAMP Win32 profiler"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SEC03} "Software Test Automation Framework"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SEC03} \
+                                    "Software Test Automation Framework"
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC04} "PERL - 5.9.0 (+ extra modules)"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
