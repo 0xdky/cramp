@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:09:52 dhruva>
+// Time-stamp: <2003-10-14 13:13:37 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -115,15 +115,18 @@ WINAPI WinMain(HINSTANCE hinstExe,
     h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,
                              (LPVOID)g_pScenario,
                              0,NULL);
+    DEBUGCHK(h_arr[2]);
     h_arr[3]=chBEGINTHREADEX(NULL,0,MailSlotServerTH,
                              (LPVOID)pSlotMsg,
                              0,NULL);
-    h_arr[4]=chBEGINTHREADEX(NULL,0,MultiThreadedPipeServerTH,
-                             (LPVOID)pPipeMsg,
-                             0,NULL);
-    DEBUGCHK(h_arr[2]);
     DEBUGCHK(h_arr[3]);
-    DEBUGCHK(h_arr[4]);
+
+    // Do not use PIPE, some problem
+    // h_arr[4]=chBEGINTHREADEX(NULL,0,MultiThreadedPipeServerTH,
+    //                          (LPVOID)pPipeMsg,
+    //                          0,NULL);
+    // DEBUGCHK(h_arr[4]);
+
     SetEvent(h_event);          // So that threads can resume
 
     sprintf(msg,"MESSAGE|OKAY|SCENARIO|File: %s",scenario);
@@ -135,16 +138,10 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
     // Kill the threads
     DEBUGCHK(ResetEvent(h_event));
-    WaitForSingleObject(h_event,1000);
     // Post msg to terminate job monitoring thread and wait for termination
     PostQueuedCompletionStatus(g_hIOCP,0,COMPKEY_TERMINATE,NULL);
     WaitForMultipleObjects(2,h_arr,TRUE,INFINITE);
-
-    // Close the thread handles
-    // CloseHandle(h_arr[2]);
-    // CloseHandle(h_arr[3]);
-    // CloseHandle(h_arr[4]);
-    // h_arr[2]=h_arr[3]=h_arr[4]=0;
+    TerminateThread(h_arr[3],0);
 
     // Clean up everything properly
     CloseHandle(g_hIOCP);

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:05:00 dhruva>
+// Time-stamp: <2003-10-14 13:08:38 dhruva>
 //-----------------------------------------------------------------------------
 // File : ipcmsg.h
 // Desc : Header for messaging object for IPC
@@ -18,7 +18,7 @@ public:
   // For server to start threads
   CRAMPMessaging();
   // For client to write to server
-  CRAMPMessaging(const char *iServer,BOOLEAN isAPipe=TRUE);
+  CRAMPMessaging(const char *iServer,BOOLEAN isAPipe=FALSE);
   virtual ~CRAMPMessaging();
 
   // Message
