@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-02 11:44:58 dhruva>
+// Time-stamp: <2003-11-03 18:41:39 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -45,12 +45,14 @@ typedef struct{
   long g_l_profile;
   long g_l_stoplogging;
   long g_l_maxcalllimit;
+  long g_l_logsizelimit;
   long g_l_calldepthlimit;
 
   std::queue<std::string> g_LogQueue;
   std::list<std::string> g_FilterList;
   std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
 
+  HANDLE g_h_logsizemonTH;
   CRITICAL_SECTION g_cs_log;
   CRITICAL_SECTION g_cs_prof;
 
