@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-02-11 18:35:26 sjm>
+// Time-stamp: <2004-02-12 12:37:54 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -58,6 +58,10 @@ extern "C" __declspec(dllexport)
   std::hash_map<unsigned int,FuncInfo>::iterator iter;
   iter=g_CRAMP_Profiler.g_hFuncCalls.begin();
   for(;iter!=g_CRAMP_Profiler.g_hFuncCalls.end();iter++){
+    // Ignore filtered methods
+    if((*iter).second._filtered)
+      continue;
+
     if(f_stat)
       fprintf(f_stat,"%08X|%d|%I64d|%I64d|%I64d\n",
               (*iter).first,
