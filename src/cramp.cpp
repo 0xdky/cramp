@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-02 18:43:44 dhruva>
+// Time-stamp: <2003-10-03 15:26:41 dhruva>
 //-----------------------------------------------------------------------------
 // File  : cramp.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -202,6 +202,7 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
 
     if(blocked){
       ResumeThread(pi.hThread);
+      CloseHandle(pi.hThread);
       WaitForSingleObject(pi.hProcess,INFINITE);
     }else{
       ppi[psz]=pi;
@@ -219,8 +220,10 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
     for(cc=psz;cc<numgroups;cc++)
       ptharr[cc]=tharr[cc];
 
-    for(cc=0;cc<psz;cc++)
+    for(cc=0;cc<psz;cc++){
       ResumeThread(ppi[cc].hThread);
+      CloseHandle(ppi[cc].hThread);
+    }
 
     dwret=WaitForMultipleObjects(psz+numgroups,ptharr,TRUE,INFINITE);
 

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-02 18:24:24 dhruva>
+// Time-stamp: <2003-10-03 15:48:26 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -13,6 +13,19 @@
 #include "cramp.h"
 #include "TestCaseInfo.h"
 #include <algorithm>
+
+//-----------------------------------------------------------------------------
+// ApplyDelete
+//  Helper method
+//-----------------------------------------------------------------------------
+inline
+void ApplyDelete(TestCaseInfo *ipTC){
+  if(!ipTC)
+    return;
+  ::delete ipTC;
+  ipTC=0;
+  return;
+}
 
 //-----------------------------------------------------------------------------
 // Init
@@ -92,8 +105,9 @@ TestCaseInfo::~TestCaseInfo(){
   if(GroupStatus()||PseudoGroupStatus()){
     l_tci.clear();
   }else{
-    if(pi_procinfo.hThread)
-      CloseHandle(pi_procinfo.hThread);
+    // Do not check for thread, it is closed after creation
+    // to avoid holding on to threads which have spawned other
+    // threads and want to die
     if(pi_procinfo.hProcess)
       CloseHandle(pi_procinfo.hProcess);
   }
@@ -136,18 +150,6 @@ TestCaseInfo
   TestCaseInfo *pScenario=0;
   pScenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
   return(pScenario);
-}
-
-//-----------------------------------------------------------------------------
-// ApplyDelete
-//-----------------------------------------------------------------------------
-inline
-void ApplyDelete(TestCaseInfo *ipTC){
-  if(!ipTC)
-    return;
-  ::delete ipTC;
-  ipTC=0;
-  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -294,6 +296,7 @@ TestCaseInfo::NumberOfRuns(SIZE_T iNumberOfRuns){
       nptc=AddGroup(0,BlockStatus());
     else
       nptc=AddTestCase(0,BlockStatus());
+    DEBUGCHK(nptc);
     nptc->ReferStatus(TRUE);
     nptc->Reference(this);
   }

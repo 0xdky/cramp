@@ -1,8 +1,9 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-02 16:50:33 dhruva>
+// Time-stamp: <2003-10-03 15:49:32 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
+// Usage: Include this in all CRAMP source files
 //-----------------------------------------------------------------------------
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
@@ -38,6 +39,10 @@
 // Courtesy: Jeffrey Richter
 #ifdef _X86_
 #define DebugBreak() _asm { int 3 }
+#endif
+
+#ifndef DEBUGCHK
+#define DEBUGCHK(expr) if(!expr) DebugBreak()
 #endif
 
 typedef unsigned (__stdcall *PTHREAD_START) (void *);
