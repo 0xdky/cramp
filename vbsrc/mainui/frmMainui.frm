@@ -115,7 +115,7 @@ Begin VB.Form frmMainui
          Begin VB.CommandButton preCommand 
             Caption         =   "Previous"
             Height          =   288
-            Left            =   5760
+            Left            =   1200
             TabIndex        =   46
             Top             =   240
             Width           =   972
@@ -123,17 +123,17 @@ Begin VB.Form frmMainui
          Begin VB.CommandButton nextCommand 
             Caption         =   "Next"
             Height          =   288
-            Left            =   4560
+            Left            =   3840
             TabIndex        =   45
             Top             =   240
             Width           =   972
          End
          Begin VB.TextBox listitemText 
             Height          =   288
-            Left            =   3360
+            Left            =   5760
             TabIndex        =   44
             Top             =   240
-            Width           =   972
+            Width           =   951
          End
          Begin MSComctlLib.ListView queryLV 
             Height          =   3132
@@ -154,29 +154,64 @@ Begin VB.Form frmMainui
             Appearance      =   1
             NumItems        =   0
          End
-         Begin VB.Label Label1 
+         Begin VB.Label maxLabel 
+            AutoSize        =   -1  'True
+            Height          =   192
+            Left            =   3050
+            TabIndex        =   50
+            Top             =   480
+            Width           =   36
+         End
+         Begin VB.Label deshLabel 
+            Alignment       =   2  'Center
+            AutoSize        =   -1  'True
+            Caption         =   "-"
+            Height          =   192
+            Left            =   2916
+            TabIndex        =   49
+            Top             =   480
+            Width           =   60
+         End
+         Begin VB.Label miniLabel 
+            Alignment       =   1  'Right Justify
+            AutoSize        =   -1  'True
+            Height          =   192
+            Left            =   2800
+            TabIndex        =   48
+            Top             =   480
+            Width           =   51
+         End
+         Begin VB.Label totalLabel 
+            Alignment       =   2  'Center
+            Height          =   252
+            Left            =   120
+            TabIndex        =   47
+            Top             =   480
+            Width           =   852
+         End
+         Begin VB.Label itemrangeLabel 
             Caption         =   "Item range : "
             Height          =   252
-            Left            =   2520
+            Left            =   4920
             TabIndex        =   43
             Top             =   240
             Width           =   852
          End
          Begin VB.Label totLabel 
-            Caption         =   "Total items :"
-            Height          =   492
-            Left            =   1440
+            Caption         =   "Total items:"
+            Height          =   204
+            Left            =   120
             TabIndex        =   42
             Top             =   240
-            Width           =   972
+            Width           =   852
          End
          Begin VB.Label rngLabel 
-            Caption         =   "Visible items : "
-            Height          =   492
-            Left            =   120
+            Caption         =   "Visible items:"
+            Height          =   204
+            Left            =   2520
             TabIndex        =   41
             Top             =   240
-            Width           =   1452
+            Width           =   972
          End
       End
       Begin VB.Frame Frame2 
@@ -1330,7 +1365,7 @@ End Sub
 '***********************************************************
 ' pop up menu when right click in the listview
 '***********************************************************
-Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
   If queryLV.ColumnHeaders.Count > 0 Then
     If Button = vbRightButton Then
       PopupMenu mnuLVRigCL

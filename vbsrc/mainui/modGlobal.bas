@@ -1078,11 +1078,13 @@ Public Sub HideShowNextPre()
     frmMainui.preCommand.Enabled = False
   End If
 
-  'set range lable
-  frmMainui.rngLabel.Caption = "Visible items : " & Chr(13) & gDicCountLower & " - " _
-                               & gDicCountLower + frmMainui.queryLV.ListItems.Count
+  'set mini lable
+  frmMainui.miniLabel.Caption = gDicCountLower
+  'set max lable
+  frmMainui.maxLabel.Caption = gDicCountLower + frmMainui.queryLV.ListItems.Count
   'set total lable
-  frmMainui.totLabel.Caption = "Total items : " & Chr(13) & gobjDic.Count
+  frmMainui.totalLabel.Caption = gobjDic.Count
+  
 End Sub
 
 '***********************************************************
