@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-03 13:54:42 dky>
+// Time-stamp: <2004-03-03 14:20:34 dky>
 //-----------------------------------------------------------------------------
 // File  : noconsole.cpp
 // Usage : noconsole.exe COMMAND [ARGUMENTS ....]
@@ -28,14 +28,19 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
     PROCESS_INFORMATION pi={0};
     STARTUPINFO sui={sizeof(STARTUPINFO)};
-    return(!CreateProcess(NULL,
-                          argv,
-                          NULL,
-                          NULL,
-                          FALSE,
-                          CREATE_NO_WINDOW,
-                          NULL,
-                          NULL,
-                          &sui,
-                          &pi));
+    if(!CreateProcess(NULL,
+                      argv,
+                      NULL,
+                      NULL,
+                      FALSE,
+                      CREATE_NO_WINDOW,
+                      NULL,
+                      NULL,
+                      &sui,
+                      &pi))
+        return(1);
+    WaitForSingleObject(pi.hProcess,INFINITE);
+    DWORD pstat=0;
+    GetExitCodeProcess(pi.hProcess,&pstat);
+    return(pstat);
 }
