@@ -962,19 +962,19 @@ Select Case strVal
                      gstrSpace & frmMainui.tableCombo.Text
 End Select
 
+'disable run button when respective db file is not there
+If frmMainui.actionCombo.Text = "QUERY" And frmMainui.staCombo.Text = "THREADS" _
+   And frmMainui.threadCombo.Text = "" Or frmMainui.queryText.Text = "" Then
+  frmMainui.queryCommand.Enabled = False
+Else
+  frmMainui.queryCommand.Enabled = True
+End If
+
 'MsgBox queryText
 If frmMainui.queryCommand.Enabled = True Then
   frmMainui.queryText.Text = queryText
   queryText = ""
 End If
-
-'disable run button when respective db file is not there
-'If frmMainui.staCombo.Text = "THREADS" And frmMainui.threadCombo.Text = "" _
-'   Xor frmMainui.queryText.Text = "" Then
-'  frmMainui.queryCommand.Enabled = False
-'Else
-'  frmMainui.queryCommand.Enabled = True
-'End If
 
 End Sub
 '***********************************************************
@@ -1295,7 +1295,8 @@ End Sub
 '***********************************************************
 ' create dictionary
 '***********************************************************
-Public Sub CreateDictionary()
+Public Function CreateDictionary() As Boolean
+
   Dim strQuery As String
   Dim I As Long
   Dim MyFileStream
@@ -1322,15 +1323,7 @@ Public Sub CreateDictionary()
     Loop
     'Close file
     MyFileStream.Close
-    'save previous query
-    If gSPrevQuery <> gPrevQuery Then
-      gSPrevQuery = gPrevQuery
-      frmMainui.backCommand.Enabled = True
-    End If
-    'save current query
-    If gPrevQuery <> frmMainui.queryText.Text Then
-      gPrevQuery = frmMainui.queryText.Text
-    End If
+    CreateDictionary = True
   Else
     'MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
     'clean up ui
@@ -1341,12 +1334,13 @@ Public Sub CreateDictionary()
     frmMainui.totalLabel.Caption = gobjDic.Count
     'add-remove ADDR
     AddRemAddrInSTACB
+    CreateDictionary = False
   End If
   
   I = 0
   gIsFileExist = False
   gFileSize = 0
-End Sub
+End Function
 '***********************************************************
 ' hide-show of next and previous button
 '***********************************************************
@@ -1378,6 +1372,7 @@ End Sub
 '***********************************************************
 Public Sub GetStackForGivenPosition()
   Dim ss As Long
+  Dim strTmp As Boolean
   Dim colname As String
   Dim strPosi As String
   Dim strThre As String
@@ -1448,7 +1443,8 @@ Public Sub GetStackForGivenPosition()
       colname = .queryText.Text
                     
       RunPerlScriptWithCP
-      CreateDictionary
+      strTmp = CreateDictionary
+      StorePreviousQuery (strTmp)
       gDicCountLower = 0
       gDicCountUpper = .listitemText.Text
       SetValueInListView
@@ -1493,6 +1489,8 @@ Public Sub AddRemAddrInSTACB()
   Dim Value As String
   Dim found As Boolean
   
+  On Error Resume Next
+  
   ss = 0
   Value = "ADDR"
   found = True
@@ -1522,6 +1520,7 @@ End Sub
 ' save LV info into excel sheet
 '***********************************************************
 Public Sub SaveLVInfoToExcel()
+  On Error Resume Next
   With frmMainui
     .dlgSelect.Flags = cdlOFNOverwritePrompt
     .dlgSelect.Filter = "XLS Files (*.xls)|*.xls"
@@ -1615,10 +1614,25 @@ Public Sub SaveIntoExcel(excelfilename As String)
   
   Screen.MousePointer = vbDefault
 End Sub
+Public Sub StorePreviousQuery(strQuery As Boolean)
+If strQuery = True Then
+  'save previous query
+  If gSPrevQuery <> gPrevQuery Then
+    gSPrevQuery = gPrevQuery
+    frmMainui.backCommand.Enabled = True
+  End If
+    'save current query
+    If gPrevQuery <> frmMainui.queryText.Text Then
+      gPrevQuery = frmMainui.queryText.Text
+  End If
+End If
+End Sub
+
 '***********************************************************
 ' cleaning up globals
 '***********************************************************
 Public Sub CleanUp()
+  On Error Resume Next
   'clean up dictionary
   If gobjDic.Count > 0 Then
     gobjDic.removeAll

@@ -1356,25 +1356,23 @@ End Sub
 Private Sub queryCommand_Click()
 Screen.MousePointer = vbHourglass
 
-If Me.threadCombo.Text = "" Then
-  MsgBox "ERROR :: Wrong query arguments passed. No value in the thread combo box."
-  Screen.MousePointer = vbDefault
-  Exit Sub
-End If
-
 'while dumping do not load any thing in the LV
 If Me.actionCombo.Text = "DUMP" Then
   MsgBox "Dumping of database will take time."
-  'run perl script
-  RunPerlScriptWithCP
+End If
+
+Dim strTmp As Boolean
+'run perl script
+RunPerlScriptWithCP
+'store query.psf file into the dictionary
+strTmp = CreateDictionary
+StorePreviousQuery (strTmp)
+
+If Me.actionCombo.Text = "DUMP" Then
   Screen.MousePointer = vbDefault
   Exit Sub
 End If
 
-'run perl script
-RunPerlScriptWithCP
-'store query.psf file into the dictionary
-CreateDictionary
 gDicCountLower = 0
 gDicCountUpper = listitemText.Text
 'set query.psf output into the listview
@@ -1621,6 +1619,7 @@ End Sub
 '***********************************************************
 Private Sub queryLV_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
   
+  Dim strTmp As Boolean
   DoEvents
   
   With Me.queryLV
@@ -1635,7 +1634,7 @@ Private Sub queryLV_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
   
     'sort
     RunPerlScriptWithCP ColumnHeader.index - 1, imgIconNo
-    CreateDictionary
+    strTmp = CreateDictionary
     SetValueInListView
   
     'show icon on header
@@ -1764,7 +1763,8 @@ If gSPrevQuery <> "" Then
   'run perl script
   RunPerlScriptWithCP
   'store query.psf file into the dictionary
-  CreateDictionary
+  Dim strTmp As Boolean
+  strTmp = CreateDictionary
   gDicCountLower = 0
   gDicCountUpper = listitemText.Text
   'set query.psf output into the listview
