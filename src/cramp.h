@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-03 15:49:32 dhruva>
+// Time-stamp: <2003-10-07 11:59:28 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -16,25 +16,15 @@
 
 // Windows definitions
 #include <Windows.h>
-
-// Process related
-#include <process.h>
-#include <basetsd.h>
-#include <psapi.h>
+#include <string>
 
 //------------------------ MACROS AND DEFINED ---------------------------------
+#define JOB_NAME "CRAMP_JOB"
+
 #define BARF() do{                                  \
     fprintf(g_LogFile,"%d:%s\n",__LINE__,__FILE__); \
     fflush(g_LogFile);                              \
   }while(0)
-
-#define COMPKEY_TERMINATE  ((UINT_PTR) 0)
-#define COMPKEY_STATUS     ((UINT_PTR) 1)
-#define COMPKEY_JOBOBJECT  ((UINT_PTR) 2)
-
-// User defined Unique ID's cannot be greater than this
-#define AUTO_UNIQUE_BASE 55555
-#define JOB_NAME "CRAMP_JOB"
 
 // Courtesy: Jeffrey Richter
 #ifdef _X86_
@@ -44,16 +34,18 @@
 #ifndef DEBUGCHK
 #define DEBUGCHK(expr) if(!expr) DebugBreak()
 #endif
-
-typedef unsigned (__stdcall *PTHREAD_START) (void *);
-#define chBEGINTHREADEX(psa, cbStack, pfnStartAddr,         \
-                        pvParam, fdwCreate, pdwThreadId)    \
-  ((HANDLE)_beginthreadex(                                  \
-    (void *)        (psa),                                  \
-    (unsigned)      (cbStack),                              \
-    (PTHREAD_START) (pfnStartAddr),                         \
-    (void *)        (pvParam),                              \
-    (unsigned)      (fdwCreate),                            \
-    (unsigned *)    (pdwThreadId)))
-
 //------------------------ MACROS AND DEFINED ---------------------------------
+
+//-----------------------------------------------------------------------------
+// Class: CRAMPException
+// Desc : A generic CRAMP exception class. Derive all cramp exceptions from
+//        CRAMPException.
+//-----------------------------------------------------------------------------
+class CRAMPException{
+public:
+  CRAMPException(){};
+  ~CRAMPException(){};
+
+  SIZE_T _error;
+  std::string _message;
+};

@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-06 12:45:37 dhruva>
+## Time-stamp: <2003-10-07 12:05:51 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -53,7 +53,7 @@ P_CCFLAGS=$(CFLAGS) $(NOLOGO) $(CPP_DEBUG) /GX
 P_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
 
 # Add new files here
-COBJS=$(OBJDIR)/cramp.obj $(OBJDIR)/TestCaseInfo.obj $(OBJDIR)/XMLParse.obj
+COBJS=$(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj $(OBJDIR)/XMLParse.obj
 POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj
 OBJS=$(COBJS) $(POBJS) $(XOBJS)
 
@@ -63,7 +63,7 @@ cramp: dirs engine library test
 remake: clean cramp
 
 # Dependancy to force a re-build
-DEPS=$(MAKEFILE)
+DEPS=$(MAKEFILE) $(SRCDIR)/cramp.h
 
 # Rebuild on changes to makefile
 $(MAKEFILE):
@@ -77,19 +77,21 @@ engine: dirs $(COBJS)
     @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(COBJS) psapi.lib shell32.lib \
              $(XML_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
 # Compiling
-$(OBJDIR)/cramp.obj: $(SRCDIR)/cramp.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/cramp.cpp \
-             /Fo$(OBJDIR)/cramp.obj
+$(OBJDIR)/engine.obj: $(SRCDIR)/engine.cpp
+    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/engine.cpp \
+             /Fo$(OBJDIR)/engine.obj
 $(OBJDIR)/TestCaseInfo.obj: $(SRCDIR)/TestCaseInfo.cpp
     @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/TestCaseInfo.cpp \
              /Fo$(OBJDIR)/TestCaseInfo.obj
 $(OBJDIR)/XMLParse.obj: $(SRCDIR)/XMLParse.cpp
     @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/XMLParse.cpp \
              /Fo$(OBJDIR)/XMLParse.obj
-$(SRCDIR)/cramp.cpp: $(SRCDIR)/cramp.h
+$(SRCDIR)/engine.cpp: $(SRCDIR)/engine.h
 $(SRCDIR)/TestCaseInfo.cpp: $(SRCDIR)/TestCaseInfo.h
 $(SRCDIR)/XMLParse.cpp: $(SRCDIR)/XMLParse.h
-$(SRCDIR)/cramp.h: $(DEPS)
+
+$(SRCDIR)/cramp.h:
+$(SRCDIR)/engine.h: $(DEPS)
 $(SRCDIR)/TestCaseInfo.h: $(DEPS)
 $(SRCDIR)/XMLParse.h: $(DEPS)
 

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-07 10:25:29 dhruva>
+// Time-stamp: <2003-10-07 11:50:40 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -19,7 +19,8 @@
 //  Helper method
 //-----------------------------------------------------------------------------
 inline
-void ApplyDelete(TestCaseInfo *ipTC){
+void
+ApplyDelete(TestCaseInfo *ipTC){
   if(!ipTC)
     return;
   ::delete ipTC;
@@ -61,6 +62,7 @@ TestCaseInfo::TestCaseInfo(){
 //-----------------------------------------------------------------------------
 // TestCaseInfo
 //  Do not change the order of the code here
+//  Throws an exception of SIZE_T on error
 //-----------------------------------------------------------------------------
 TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
                            const char *iUniqueID,
@@ -73,19 +75,18 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   b_block=iBlock;
   b_group=iGroup;
   p_pgroup=ipParentGroup;
-
-  // Adding group/testcase to group. Scenerio does not have parent!
-  if(p_pgroup){
-    p_pgroup->l_tci.push_back(this);
-    p_scenario=p_pgroup->Scenario();
-  }else{
-    p_scenario=this;
-  }
+  p_scenario=(p_pgroup)?p_pgroup->Scenario():this;
 
   // Very important phase... Setting UID, establish links
   if(0!=u_uid){
     TestCaseInfo *ptc=FindTCFromUID(u_uid);
     if(ptc){
+      if(!IsReferenceValid(ptc)){
+        CRAMPException excep;
+        excep._message="ERROR: Cyclic dependency!";
+        excep._error=u_uid;
+        throw(excep);
+      }
       ReferStatus(TRUE);
       Reference(ptc);
     }
@@ -93,10 +94,12 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
     u_uid=AUTO_UNIQUE_BASE+Scenario()->l_gc.size();
   }
 
-  // Add this at end or you will find it!
-  // and create an infinite RECURSIVE link!!
-  if(ipParentGroup)
+  // Adding group/testcase to group. Scenerio does not have parent!
+  // Add this at end or you will find it and create a CYCLIC link!!
+  if(p_pgroup){
+    p_pgroup->l_tci.push_back(this);
     p_scenario->l_gc.push_back(this);
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -149,7 +152,12 @@ TestCaseInfo
 *TestCaseInfo::CreateScenario(const char *iUniqueID,
                               BOOLEAN iBlock){
   TestCaseInfo *pScenario=0;
-  pScenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
+  try{
+    pScenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
+  }
+  catch(CRAMPException excep){
+    DEBUGCHK(0);
+  }
   return(pScenario);
 }
 
@@ -176,7 +184,12 @@ TestCaseInfo
   if(!GroupStatus()&&!PseudoGroupStatus())
     return(0);
   TestCaseInfo *pTCG=0;
-  pTCG=new TestCaseInfo(this,iUniqueID,TRUE,iBlock);
+  try{
+    pTCG=new TestCaseInfo(this,iUniqueID,TRUE,iBlock);
+  }
+  catch(CRAMPException excep){
+    DEBUGCHK(0);
+  }
   return(pTCG);
 }
 
@@ -188,7 +201,12 @@ TestCaseInfo
   if(!GroupStatus()&&!PseudoGroupStatus())
     return(0);
   TestCaseInfo *pTC=0;
-  pTC=new TestCaseInfo(this,iUniqueID,FALSE,iBlock);
+  try{
+    pTC=new TestCaseInfo(this,iUniqueID,FALSE,iBlock);
+  }
+  catch(CRAMPException excep){
+    DEBUGCHK(0);
+  }
   return(pTC);
 }
 
@@ -447,4 +465,25 @@ TestCaseInfo
     }
   }
   return(ptc);
+}
+
+//-----------------------------------------------------------------------------
+// IsReferenceValid
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::IsReferenceValid(TestCaseInfo *ipGroup){
+  if(!ipGroup||!ipGroup->GroupStatus())
+    return(FALSE);
+  BOOLEAN ret=TRUE;
+  ListOfTestCaseInfo l_tc=ipGroup->GetListOfTCI();
+  ListOfTestCaseInfo::iterator iter=l_tc.begin();
+  for(;TRUE==ret&&iter!=l_tc.end();iter++){
+    TestCaseInfo *ptc=(*iter);
+    if(ptc->GroupStatus())
+      if(UniqueID()==ptc->UniqueID())
+        ret=FALSE;
+      else
+        ret=IsReferenceValid(ptc);
+  }
+  return(ret);
 }

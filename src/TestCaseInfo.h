@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-02 15:59:04 dhruva>
+// Time-stamp: <2003-10-07 11:48:08 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -117,6 +117,7 @@ private:
 
 private:
   TestCaseInfo();
+  // Throws an exception of type CRAMPException on error
   TestCaseInfo(TestCaseInfo *ipParent,
                const char *iUniqueID=0,
                BOOLEAN iGroup=FALSE,
@@ -129,5 +130,6 @@ private:
   void GroupStatus(BOOLEAN iIsGroup);
   void ReferStatus(BOOLEAN iIsReference);
   TestCaseInfo *FindTCFromUID(SIZE_T iuid);
+  BOOLEAN IsReferenceValid(TestCaseInfo *ipGroup);
 };
 typedef std::list<TestCaseInfo *> ListOfTestCaseInfo;
