@@ -2,7 +2,10 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2003-11-26 13:31:57 dhruva>
+;; Time-stamp: <2003-11-27 15:37:07 dhruva>
+;;-----------------------------------------------------------------------------
+;; mm-dd-yyyy  History                                                     user
+;; 11-26-2003  Cre                                                          dky
 ;;-----------------------------------------------------------------------------
 
 ; HM NIS Edit Wizard helper defines
@@ -13,6 +16,7 @@
 !define PRODUCT_DIR_REGKEY "Software\DELMIA\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_KEY "Software\DELMIA\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
+!define ENV_KEY "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 
 ; MUI 1.67 compatible ------
 !include "MUI.nsh"
@@ -54,6 +58,14 @@ ShowUnInstDetails show
 
 Function .onInit
   SetShellVarContext all
+  ClearErrors
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "PERM" "1"
+  ifErrors relog cont
+relog:
+   MessageBox MB_ICONINFORMATION|MB_OK \
+              "Insufficient previlages! Login as administrator and retry"
+   Abort
+cont:
 FunctionEnd
 
 Section "!CRAMP Engine" SEC01
@@ -82,18 +94,18 @@ Section "!CRAMP Engine" SEC01
 
   CreateDirectory "$SMPROGRAMS\CRAMP\docs"
   CreateShortCut "$SMPROGRAMS\CRAMP\docs\CRAMP.lnk" "$INSTDIR\docs\CRAMP.ppt"
-  CreateShortCut "$SMPROGRAMS\CRAMP\docs\Test Baseclass.lnk" "$INSTDIR\docs\DPEBaseClass.ppt"
-  CreateShortCut "$SMPROGRAMS\CRAMP\docs\CAA Interfaces.lnk" "$INSTDIR\docs\CAAV5ItfDoc.ppt"
+  CreateShortCut "$SMPROGRAMS\CRAMP\docs\Test Baseclass.lnk" \
+                 "$INSTDIR\docs\DPEBaseClass.ppt"
+  CreateShortCut "$SMPROGRAMS\CRAMP\docs\CAA Interfaces.lnk" \
+                 "$INSTDIR\docs\CAAV5ItfDoc.ppt"
 
   push $R0
   push $R1
   GetFullPathName /SHORT $R0 $INSTDIR
   GetFullPathName /SHORT $R1 $TEMP
 
-  WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                    "CRAMP_PATH" $R0
-  WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                    "CRAMP_LOGPATH" $R1
+  WriteRegExpandStr HKLM ENV_KEY "CRAMP_PATH" $R0
+  WriteRegExpandStr HKLM ENV_KEY "CRAMP_LOGPATH" $R1
 
   pop $R1
   pop $R0
@@ -127,14 +139,10 @@ CreateLink:
   goto RegEntry
 
 RegEntry:
-  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-              "CRAMP_PROFILE_LOGSIZE" 500
-  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-              "CRAMP_PROFILE_CALLDEPTH" 0
-  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-              "CRAMP_PROFILE_EXCLUSION" 1
-  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-              "CRAMP_PROFILE_MAXCALLLIMIT" 0
+  WriteRegStr HKLM ENV_KEY "CRAMP_PROFILE_LOGSIZE" 500
+  WriteRegStr HKLM ENV_KEY "CRAMP_PROFILE_CALLDEPTH" 0
+  WriteRegStr HKLM ENV_KEY "CRAMP_PROFILE_EXCLUSION" 1
+  WriteRegStr HKLM ENV_KEY "CRAMP_PROFILE_MAXCALLLIMIT" 0
 SectionEnd
 
 Section "STAF" SEC03
@@ -143,13 +151,14 @@ Section "STAF" SEC03
   File /r "\Applications\AutoTest\STAF\bin\*"
 
   CreateDirectory "$SMPROGRAMS\CRAMP"
-  CreateShortCut "$SMPROGRAMS\CRAMP\STAF Server.lnk" "$INSTDIR\TOOLS\STAF\bin\STAFProc.exe" "" \
-                 "$INSTDIR\TOOLS\STAF\bin\STAFProc.ico" "" SW_SHOWMINIMIZED "" "STAF RPC server"
+  CreateShortCut "$SMPROGRAMS\CRAMP\STAF Server.lnk" \
+                 "$INSTDIR\TOOLS\STAF\bin\STAFProc.exe" "" \
+                 "$INSTDIR\TOOLS\STAF\bin\STAFProc.ico" "" \
+                 SW_SHOWMINIMIZED "" "STAF RPC server"
 
   push $R0
   GetFullPathName /SHORT $R0 $INSTDIR
-  WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                    "STAF_PATH" "$R0\TOOLS\STAF"
+  WriteRegExpandStr HKLM ENV_KEY "STAF_PATH" "$R0\TOOLS\STAF"
   WriteRegExpandStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
                     "STAF Server" "%STAF_PATH%\bin\STAFProc.exe"
   pop $R0
@@ -166,7 +175,8 @@ Section "PERL" SEC04
 SectionEnd
 
 Section -AdditionalIcons
-  WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
+  WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" \
+              "URL" "${PRODUCT_WEB_SITE}"
 
   CreateShortCut "$SMPROGRAMS\CRAMP\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
   CreateShortCut "$SMPROGRAMS\CRAMP\Uninstall.lnk" "$INSTDIR\uninst.exe"
@@ -176,13 +186,20 @@ Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
 
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\bin\CRAMP.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\bin\CRAMP.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
+              "DisplayName" "$(^Name)"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
+              "UninstallString" "$INSTDIR\uninst.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
+              "DisplayIcon" "$INSTDIR\bin\CRAMP.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
+              "DisplayVersion" "${PRODUCT_VERSION}"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
+              "URLInfoAbout" "${PRODUCT_WEB_SITE}"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
+              "Publisher" "${PRODUCT_PUBLISHER}"
 
+  # To refresh the environment variables
   SetRebootFlag true
 SectionEnd
 
@@ -197,13 +214,23 @@ SectionEnd
 Function un.onUninstSuccess
   HideWindow
   IfRebootFlag end
-  MessageBox MB_ICONINFORMATION|MB_OK "$(^Name) was successfully removed from your computer."
+  MessageBox MB_ICONINFORMATION|MB_OK \
+             "$(^Name) was successfully removed from your computer."
 end:
 FunctionEnd
 
 Function un.onInit
   SetShellVarContext all
-  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "Are you sure you want to completely remove $(^Name) and all of its components?" IDYES +2
+  ClearErrors
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "PERM" "0"
+  ifErrors relog cont
+relog:
+   MessageBox MB_ICONINFORMATION|MB_OK \
+              "Insufficient previlages! Login as administrator and retry"
+   Abort
+cont:
+  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 \
+             "Are you sure you want to completely uninstall $(^Name)?" IDYES +2
   Abort
 FunctionEnd
 
@@ -219,38 +246,28 @@ Section Uninstall
   RMDir  /REBOOTOK "$SMPROGRAMS\CRAMP"
   RMDir  /REBOOTOK "$INSTDIR"
 
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "STAF_PATH"
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "CRAMP_PATH"
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "CRAMP_LOGPATH"
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "CRAMP_DEBUG"
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "CRAMP_PROFILE"
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "CRAMP_PROFILE_LOGSIZE"
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "CRAMP_PROFILE_CALLDEPTH"
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "CRAMP_PROFILE_EXCLUSION"
-  DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                 "CRAMP_PROFILE_MAXCALLLIMIT"
+  DeleteRegValue HKLM ENV_KEY "STAF_PATH"
+  DeleteRegValue HKLM ENV_KEY "CRAMP_PATH"
+  DeleteRegValue HKLM ENV_KEY "CRAMP_LOGPATH"
+  DeleteRegValue HKLM ENV_KEY "CRAMP_DEBUG"
+  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE"
+  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE_LOGSIZE"
+  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE_CALLDEPTH"
+  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE_EXCLUSION"
+  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE_MAXCALLLIMIT"
   DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
                  "STAF Server"
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
+  DeleteRegValue HKLM "${PRODUCT_DIR_REGKEY}" "PERM"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 
   IfRebootFlag RestartMsg end
 
 RestartMsg:
   MessageBox MB_ICONINFORMATION|MB_SETFOREGROUND|MB_YESNO|MB_DEFBUTTON2 \
-             "Reboot to complete $(^Name) uninstallation?" IDYES Restart IDNO end
-
-Restart:
+             "Reboot to complete $(^Name) uninstallation?" IDYES boot IDNO end
+boot:
   Reboot
-
 end:
   SetAutoClose true
 SectionEnd
