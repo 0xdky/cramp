@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-04 10:01:19 dhruva>
+// Time-stamp: <2003-11-04 11:29:37 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -264,18 +264,19 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
                             ADDR funcAddr,
                             ADDR *retAddrPtr,
                             const TICKS &entryTime){
-
-  // Stuff to be done for NON FIRST CALL
-  long deep=callInfoStack.size();
-  if(deep){
-    // Max call depth has reached
-    InterlockedCompareExchange(&deep,0,g_CRAMP_Profiler.g_l_calldepthlimit);
-    if(!deep)
-      return;
-  }
-
+  long deep=0;
   BOOLEAN filtered=FALSE;
   do{
+    deep=callInfoStack.size();
+    if(deep){
+      // Max call depth has reached
+      InterlockedCompareExchange(&deep,0,g_CRAMP_Profiler.g_l_calldepthlimit);
+      if(!deep){
+        filtered=TRUE;
+        break;
+      }
+    }
+
     std::hash_map<ADDR,FuncInfo>::iterator iter;
     EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
