@@ -22,7 +22,7 @@ Begin VB.Form frmMainui
       Width           =   7450
       Begin VB.Label Label1 
          AutoSize        =   -1  'True
-         Caption         =   "Under Construction ..."
+         Caption         =   "Developing"
          BeginProperty Font 
             Name            =   "MS Sans Serif"
             Size            =   13.5
