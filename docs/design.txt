@@ -1,0 +1,145 @@
+                     -*-mode:text;indent-tabs-mode:nil-*-
+-------------------------------------------------------------------------------
+                             CRAMP design document
+                   Time-stamp: <2003-10-21 17:27:28 dhruva>
+-------------------------------------------------------------------------------
+Name:
+        CRAMP, it is a recursive acronym along the same lines of GNU. CRAMP
+stands for C[ramp] R[uns] A[nd] M[onitors] P[rocesses].
+
+Introduction:
+        CRAMP is a tool kit to aid developers on Win32 platform to perform
+runtime tests on a client-server application. CRAMP does function profiling,
+running complex test scenarios, performing runtime memory/performance checks
+(does not do memory leak and such microscopic analyses) and reporting. The tool
+is divided in to 3 main catagories. The profiling library, engine and the base
+class implementation for writing test cases. Profiling library is independent
+of the other two.
+
+-------------------------------------------------------------------------------
+                            CRAMP profiling library
+-------------------------------------------------------------------------------
+      The CRAMP profiling library enables a function level profiling to get the
+time spent in each function call along with the thread Id. The library is
+thread safe. The source code that needs profiling must be compiled using the
+Microsoft C/C++ compiler using the special compiler option "/Gh". The library
+uses the method "_penter(void)" which the compiler adds to each function call
+with the special option. This is a hook function provided at the entry of every
+function compiled by "/Gh" option. The CRAMP library provides the implementatio
+for the hook function. The resulting object files must be linked with the
+CRAMP library "libCRAMP.lib". The CRAMP library's accompanying DLL must be in
+the path so that it is found at runtime.
+
+CRAMP library, getting started:
+      1. Copy libCRAMP.lib to a folder in the build LIBPATH.
+      2. Copy libCRAMP.dll to a folder in the PATH.
+      3. Copy libCRAMP.h to a folder in build INCLUDE.
+      4. Modify the build environment by adding "/Gh" option for compilation
+         and add libCRAMP.lib under additional libraries for linking.
+      5. Rebuild the sources.
+      6. Set the environment variable "CRAMP_LOGPATH" to point to a folder
+         for log generation. The log files can be quite large, make sure you
+         have enough disk space and write permission.
+      7. Set environment "CRAMP_PROFILE" to enable profiling globally.
+      8. If you decide to perform a controlled profiling, the CRAMP library
+         exposes 2 methods to enable and disable profiling with in a process.
+         Include libCRAMP.h and use "CRAMP_EnableProfile()" to enable profiling
+         and "CRAMP_DisableProfile()" to stop profiling. However, the function
+         in which you make these calls will not get affected as you are already
+         inside the function.
+         Example: Assuming "CRAMP_PROFILE" is set
+                funcA(void){
+                        CRAMP_DisableProfile();
+                        funcB();
+                        CRAMP_EnableProfile();
+                        funcC();
+                        }
+                funcA will get profiled as the call to disable profiling does
+                not sandwich or wrap the call the funcA. Profiling is disabled
+                only for "funcB".
+      9. Log file will be generated in folder pointed by "CRAMP_LOGPATH". If
+         it is not set, then in the current folder. The log file name will be
+         "cramp_profile#PID.log", where PID is the process ID of the profiled
+         process. The syntax of the log file is as follows:
+         Thread ID|Func Name|Func Address|Return status|Time in MS|Ticks
+         This is subject to change. We are evaluating the option of using
+         Berkeley DB for storing the log information.
+     10. Call graph generation could be explored in the near future.
+
+Some optimizations:
+     The function information is cached in a Berkeley DB hash table. Hash table
+was used to enable fast access to information. Berkeley DB uses memory mapped
+files and hence the process memory footprint is within limits.
+     The log file size being the main bottleneck in the tool, we have provided
+an environment variable to limit the number of functions per thread in the
+final log file. Set "CRAMP_PROFILE_LIMIT" to a resonable number. By default,
+it is 500. The top 500 time consuming function call per thread will get dumped
+in the log file when the thread exits.
+Rationale (Personal view):
+     An iterative approach would be best to fix performance issues. Fix the top
+CPU/time consuming functions, rerun the profiling to fine tune the performance.
+Instead of getting overwhelmed by a large profile data, this would be a better
+approach. With this approach, the performance of the CRAMP profiler would be
+better at there will not be too many IO and the memory footprint will be less.
+
+-------------------------------------------------------------------------------
+                                 CRAMP engine
+-------------------------------------------------------------------------------
+        The engine is the main tool to run test cases in various complex
+combinations. This is similar to the V5 MkODT tool in concept. The engine can
+run ONLY batch or console mode test clients. This does not support recording of
+user interactions for replay (as done in MkODT or WinRunner). The engine is a
+Win32 executable named "CRAMP.exe". This currently takes 1 command line
+agrument and that is the input file defining the test cases to be run. The
+input file must be in XML format.
+
+Some terminologies:
+     The engine can be used to run a combination of test cases either parallely
+or sequentially. We call it blocked (sequential) or non-blocked run. We call
+this ordered or pre defined combination of test cases a SCENARIO. A scenario
+is the top level entity which can contain test cases or group of test cases.
+Hence, SCENARIO is a top group. A group can contain groups and test cases.
+       The key entities are SCENARIO, GROUP and TESTCASE. In the XML file,
+you will these elements and their attributes. A UI is being developed to enable
+easy creation and edition of scenario files. There will be a seperate document
+describing the various attributes of the scenario file.
+
+CRAMP engine features:
+      1. Can run blocked and non blocked processes. This will help in stress
+         testing.
+      2. Can monitor the test case and also processes spawned by the test case.
+      3. Monitor the process memory details, loaded modules in the process and
+         their virtual memory status.
+      4. Can specify the time interval to collect the memory logs.
+      5. Gets the return code of each process.
+      6. Can provide a maximun duration for which the process could run. Useful
+         for testing clients.
+      7. Can monitor already running processes. Useful for monitoring servers.
+      8. Can monitor remote processes (needs further work) and communicate
+         across computers using Mail Slots.
+      9. You CANNOT RUN MULTIPLE cramp sessions on the same computer.
+
+Implementation details:
+      The source is divided as follows:
+      1. Parse the scenario file (XML) and prepare an internal tree.
+      2. Class to build an internal tree from the scenario file in XML format.
+      3. The actual engine to run processes and monitor.
+      4. Inter process (between computers) comminication.
+
+XML parsing:
+    Xerces library is used for parsing the XML file. There is an internal list
+of valid attributes for each entity (SCENARIO,GROUP and TESTCASE). Any other
+attribute is just ignored. Additions of attributes must be done at source code
+level by adding it in an ENUM and an array (XMLParse.cpp). Add extra case to
+handle the attribute in the same file. For each entity, an equivalent internal
+entity is created. The internal tree is almost identical to the DOM tree. We
+need to evaluate if we can use the same DOM tree structure.
+
+Internal tree:
+    During the parsing of XML file (root element must be SCENARIO), the
+scenario entity is created. Using the parent child relation as in an XML doc,
+the internal tree is populated. Using same IDs, you can buid a reference across
+groups and test cases. We plan to change this to use the defauls IDREFS from
+XML. The tree element cannot be deleted as the operator is overloaded. This
+is done to make it thread safe and maintain a proper state of the tree. Actual
+deletion of tree elements is done by deleting the scenario.
