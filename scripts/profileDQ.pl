@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-28 19:07:50 dky>
+## Time-stamp: <2004-03-01 11:01:16 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -32,23 +32,23 @@ use DB_File;
 use BerkeleyDB;
 
 # Global variables
-my $g_pid;
-my $f_logdb;
-my $f_logtxt;
-my $f_logfin;
-my $f_filter;
-my $f_logstat;
-my $f_queryout;
-my $g_append=0;
-my $cramplogdir=".";
-my $progname=$0;
+my $g_pid;                      # Process ID of the profiled program
+my $f_logdb;                    # Berkeley DB file
+my $f_logtxt;                   # Profiler stack log file
+my $f_logfin;                   # Profiler unique function list
+my $f_filter;                   # Filter file
+my $f_logstat;                  # Profiler summary/statistics file
+my $f_queryout;                 # QUERY results
+my $g_append=0;                 # Flag to determine appending of query results
+my $cramplogdir=".";            # Env variable for profile log folder
+my $progname=$0;                # Current PERL script name
 
-my $g_exclude=!exists($ENV{'CRAMP_PROFILE_INCLUSION'});
-my $g_filterstring=0;
-my %g_filteredhash=();
+my $g_exclude=!exists($ENV{'CRAMP_PROFILE_INCLUSION'}); # Filter option
+my $g_filterstring=0;           # Filter string for regexp comparison
+my %g_filteredhash=();          # Hash of addressed to be removed
 
-my @g_TIDs=();
-my $g_BUFFER_LIMIT=50000;
+my @g_TIDs=();                  # Caching thread ID's in a single call
+my $g_BUFFER_LIMIT=50000;       # Number of lines read from profile log
 
 $progname=~s,.*/,,;
 ##-----------------------------------------------------------------------------
@@ -68,7 +68,8 @@ output: Results are written or appended to query.psf";
 }
 
 ##-----------------------------------------------------------------------------
-##  PrintTime
+## PrintTime
+##  A debug print utility function which can be used for script profiling
 ##-----------------------------------------------------------------------------
 sub PrintTime{
   if (!exists($ENV{'CRAMP_DEBUG'})) {
@@ -178,6 +179,7 @@ sub CallStackSort{
 
 ##-----------------------------------------------------------------------------
 ## GetCallStack
+##  Generate call stack from return stack!
 ##-----------------------------------------------------------------------------
 sub GetCallStack{
   my $topfunc=pop(@_);
@@ -203,6 +205,7 @@ sub GetCallStack{
 
 ##-----------------------------------------------------------------------------
 ## WriteResults
+##  Write QUERY results to query.psf
 ##-----------------------------------------------------------------------------
 sub WriteResults{
   if (g_append) {
@@ -227,6 +230,7 @@ sub WriteResults{
 
 ##-----------------------------------------------------------------------------
 ## ProcessArgs
+##  Entry function, aka main
 ##-----------------------------------------------------------------------------
 sub ProcessArgs{
   chomp(@ARGV);
@@ -393,6 +397,7 @@ sub ProcessArgs{
 
 ##-----------------------------------------------------------------------------
 ## DumpLogsToDB
+##  Dumping various tables in Berkeley DB
 ##-----------------------------------------------------------------------------
 sub DumpLogsToDB{
   my @curr=();
@@ -430,6 +435,7 @@ sub DumpLogsToDB{
 
 ##-----------------------------------------------------------------------------
 ## UpdateDB
+##  Dump only if change in time stamp of log files versus DB file
 ##-----------------------------------------------------------------------------
 sub UpdateDB{
   if (-f $f_logdb) {
@@ -563,7 +569,7 @@ sub AddRawLogs{
 
 ##-----------------------------------------------------------------------------
 ## GetRawValuesFromIDs
-##  0 => Thread ID, 1 => List Of IDs (empty for all)
+##  0 => Thread ID, 1 => Offset, 2 => List Of IDs (empty for all)
 ##-----------------------------------------------------------------------------
 sub GetRawValuesFromIDs{
   my ($tid,$off,@idx)=@_;
@@ -604,6 +610,7 @@ sub GetRawValuesFromIDs{
 
 ##-----------------------------------------------------------------------------
 ## AddThreadIDs
+##  Add a list/record of threads from profile log file
 ##-----------------------------------------------------------------------------
 sub AddThreadIDs{
   my @tie_TID=();
@@ -664,6 +671,7 @@ sub GetThreadIDs{
 
 ##-----------------------------------------------------------------------------
 ## AddAddrSortedData
+##  Address sorted table for getting instances of a given function in thread
 ##-----------------------------------------------------------------------------
 sub AddAddrSortedData{
   foreach (GetThreadIDs()) {
@@ -728,6 +736,7 @@ sub AddAddrSortedData{
 
 ##-----------------------------------------------------------------------------
 ## GetAddrSortedData
+##  Getting all instances of a given function in a thread
 ##-----------------------------------------------------------------------------
 sub GetAddrSortedData{
   my ($tid,$key,$max)=@_;
@@ -779,6 +788,7 @@ sub GetAddrSortedData{
 
 ##-----------------------------------------------------------------------------
 ## AddTickSortedData
+##  Dump tick sorted information on a thread basis
 ##-----------------------------------------------------------------------------
 sub AddTickSortedData{
   my $db;
@@ -976,6 +986,7 @@ sub MakeFilterString{
     chomp();
     if (length($_)) {
       s/\s//g;
+      $_="\\b$_\\b";
       $filterhash{$_}=1;
     }
   }
@@ -994,6 +1005,7 @@ sub MakeFilterString{
 
 ##-----------------------------------------------------------------------------
 ## ApplyFilterOnFuncInfo
+##  Important function which makes a hash of functions to be removed
 ##-----------------------------------------------------------------------------
 sub ApplyFilterOnFuncInfo{
   open(I_FUNC,"<$f_logfin")
@@ -1002,32 +1014,42 @@ sub ApplyFilterOnFuncInfo{
     || return 1;
 
   my $addr;
-  my $modified=0;
+  my $orig;
   while (<I_FUNC>) {
     chomp();
-    if (/$g_filterstring/o) {
-      $addr=$_;
-      $addr=~s/\|.+//g;
-      if (!$g_exclude) {
-        print O_FUNC "$_\n";
+    $orig=$_;
+    $addr=$_;
+    s/[\(\<]+.+//g;
+    s/\|[0-9]+$//g;
+    $addr=~s/\|.+//g;
+    if ($g_exclude) {
+      if (/$g_filterstring/o) {
+        $g_filteredhash{$addr}=1;
+      } else {
+        print O_FUNC "$orig\n";
       }
-      $g_filteredhash{$addr}=1;
     } else {
-      $modified=1;
+      if (/$g_filterstring/o) {
+        print O_FUNC "$orig\n";
+      } else {
+        $g_filteredhash{$addr}=1;
+      }
     }
   }
   close(O_FUNC);
   close(I_FUNC);
 
-  if (!$modified || 0==scalar(keys(%g_filteredhash))) {
+  if (0==scalar(keys(%g_filteredhash))) {
     return 1;
   }
-
+  exit 0;
   return 0;
 }
 
 ##-----------------------------------------------------------------------------
 ## ApplyFilterOnProfile
+##  Applies the hash of functions to be removed from ApplyFilterOnFuncInfo on
+##  profile log file
 ##-----------------------------------------------------------------------------
 sub ApplyFilterOnProfile{
   open(I_PROF,"<$f_logtxt")
@@ -1041,11 +1063,7 @@ sub ApplyFilterOnProfile{
     chomp();
     $_=~/^([0-9]+)(\|)([0-9a-fA-F]+)/;
     $addr=$3;
-    $filtered=exists($g_filteredhash{$addr});
-
-    if ($g_exclude && !$filtered) {
-      print O_PROF "$_\n";
-    } elsif (!$g_exclude && $filtered) {
+    if (!exists($g_filteredhash{$addr})) {
       print O_PROF "$_\n";
     }
   }
@@ -1057,6 +1075,8 @@ sub ApplyFilterOnProfile{
 
 ##-----------------------------------------------------------------------------
 ## ApplyFilterOnStat
+##  Applies the hash of functions to be removed from ApplyFilterOnFuncInfo on
+##  stat log file
 ##-----------------------------------------------------------------------------
 sub ApplyFilterOnStat{
   open(I_STAT,"<$f_logstat")
@@ -1070,11 +1090,7 @@ sub ApplyFilterOnStat{
     chomp();
     $_=~/^([0-9a-fA-F]+)/;
     $addr=$1;
-    $filtered=exists($g_filteredhash{$addr});
-
-    if ($g_exclude && !$filtered) {
-      print O_STAT "$_\n";
-    } elsif (!$g_exclude && $filtered) {
+    if (!exists($g_filteredhash{$addr})) {
       print O_STAT "$_\n";
     }
   }
@@ -1086,17 +1102,24 @@ sub ApplyFilterOnStat{
 
 ##-----------------------------------------------------------------------------
 ## ApplyFilter
+##  Entry method for applying filtering. Handles multiple calls.
 ##-----------------------------------------------------------------------------
 sub ApplyFilter{
-  my $ret=1;
-  if (0==MakeFilterString()) {
-    if (0==ApplyFilterOnFuncInfo()) {
-      if (0==ApplyFilterOnProfile()) {
-        if (0==ApplyFilterOnStat()) {
-          $ret=0;
-        }
-      }
-    }
+  my $ret=0;
+
+  PrintTime("Filtering started");
+  if (MakeFilterString()) {
+    $ret=1;
+    PrintTime("MakeFilterString failed");
+  } elsif (ApplyFilterOnFuncInfo()) {
+    $ret=1;
+    PrintTime("ApplyFilterOnFuncInfo failed");
+  } elsif (ApplyFilterOnProfile()) {
+    $ret=1;
+    PrintTime("ApplyFilterOnProfile failed");
+  } elsif (ApplyFilterOnStat()) {
+    $ret=1;
+    PrintTime("ApplyFilterOnStat failed");
   }
 
   # If all goes well, overwrite the files
@@ -1112,10 +1135,6 @@ sub ApplyFilter{
       unlink("$f_logtxt.fo");
       unlink("$f_logfin.fo");
       unlink("$f_logstat.fo");
-    }
-  } else {
-    if ($ret) {
-      PrintTime("Applying filter failed!");
     }
   }
 
