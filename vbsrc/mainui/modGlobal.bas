@@ -319,6 +319,7 @@ Public Sub SetGlobalVariables()
     gDatabaseName = gTEMPDir & "\CRAMPDB#" & pid & ".mdb"
     
     If FileExists(gDatabaseName) Then
+        Set ADOXcatalog = Nothing
         DeleteFile gDatabaseName
     End If
     
