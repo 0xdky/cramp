@@ -300,7 +300,7 @@ Public Sub CopyNodeWithChildren(ByVal nodCopy As Node, _
         
         'Add the node to nodCopy
         Set nodNew = frmMainui.tvwNodes.Nodes.Add(nodCopy, tvwChild, _
-                                    "NewNode" & ii, "")
+                                    nodOrg.key & ii, "")
         'Recurse for nodChild's children
         CopyNodeWithChildren nodNew, nodChild
         

@@ -1,5 +1,5 @@
 frmMainui = 10, 0, 802, 807, , 212, 73, 863, 783, C
-modGlobal = 144, 19, 901, 750, C
+modGlobal = 144, 19, 901, 750, 
 modXMLParse = 189, -4, 872, 613, C
 modDatabase = 78, 78, 820, 756, C
 Win32 = 195, 112, 878, 635, C

@@ -14,9 +14,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   2
-      Left            =   840
+      Left            =   1200
       TabIndex        =   56
-      Top             =   840
+      Top             =   -6240
       Width           =   7450
    End
    Begin VB.Frame fraMainUI 
@@ -410,9 +410,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   0
-      Left            =   1080
+      Left            =   960
       TabIndex        =   1
-      Top             =   7920
+      Top             =   840
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -1025,16 +1025,18 @@ End Sub
 '***********************************************************
 Private Sub mnuHelp_Click()
     
-    WriteIntoDB
+    'WriteIntoDB
     
-    Dim pptPath As String
-    pptPath = App.Path & "\..\docs\CRAMP.ppt"
-    Dim ppt As Object
-    Set ppt = CreateObject("PowerPoint.Application.9")
-    ppt.Visible = True
-    ppt.Presentations.Open pptPath
-    ppt.ActivePresentation.SlideShowSettings.Run
-    Set ppt = Nothing
+    'Dim pptPath As String
+    'pptPath = App.Path & "\..\docs\CRAMP.ppt"
+    'Dim ppt As Object
+    'Set ppt = CreateObject("PowerPoint.Application.9")
+    'ppt.Visible = True
+    'ppt.Presentations.Open pptPath
+    'ppt.ActivePresentation.SlideShowSettings.Run
+    'Set ppt = Nothing
+    
+    'LoadHelp
     
 End Sub
 
@@ -1271,6 +1273,7 @@ Private Sub tvwNodes_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long,
             nodType = nodeType(tvwNodes.DropHighlight)
             If nodType = otGroup Or nodType = otScenario Then
                 Set nodDragged.Parent = tvwNodes.DropHighlight
+                SetActionButtons
             Else
                 Dim Msg, Style, Title, Response, MyString
                 Msg = "ERROR: " & "Invalid target" & Chr(13) & _

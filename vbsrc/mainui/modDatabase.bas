@@ -95,7 +95,8 @@ On Local Error Resume Next
             Case "Testcase"
                 TestcaseAttributes(gTestcaseAttCounter, 0) = sProperty
                 TestcaseAttributes(gTestcaseAttCounter, 1) = sValue
-                If sProperty = "ExecPath" Then
+                If sProperty = "ExecPath" Or _
+                   sProperty = "Argv" Then
                     tblTestcase.Columns.Append sProperty, eType, 200
                 Else
                     tblTestcase.Columns.Append sProperty, eType, 40
@@ -265,7 +266,7 @@ Public Sub WriteIntoDB()
     Dim ii As Integer
     
     Set selectedNode = gListViewNode
-    tblType = nodetype(selectedNode)
+    tblType = nodeType(selectedNode)
     tblName = ReturnTableName(tblType)
     
     'Open the connection
@@ -324,7 +325,7 @@ Public Sub RefreshData()
     Dim itmX As ListItem
     
     Set selectedNode = frmMainui.tvwNodes.SelectedItem
-    tblType = nodetype(selectedNode)
+    tblType = nodeType(selectedNode)
     tblName = ReturnTableName(tblType)
     
     'Open the connection
