@@ -322,6 +322,7 @@ Public Sub FillVarListView()
     Dim sCRAMP_PROFILE_LOGSIZE As String
     Dim sCRAMP_PROFILE_MAXCALLLIMIT As String
     Dim sCRAMP_PROFILE_INCLUSION As String
+    Dim sSTAF_PATH As String
     
 On Local Error GoTo FillVarError
 
@@ -332,6 +333,7 @@ On Local Error GoTo FillVarError
     sCRAMP_PROFILE_LOGSIZE = Environ("CRAMP_PROFILE_LOGSIZE")
     sCRAMP_PROFILE_MAXCALLLIMIT = Environ("CRAMP_PROFILE_MAXCALLLIMIT")
     sCRAMP_PROFILE_INCLUSION = Environ("CRAMP_PROFILE_INCLUSION")
+    sSTAF_PATH = Environ("STAF_PATH")
     
     Dim itmX As ListItem
     frmMainui.lvwVariables.ListItems.Clear
@@ -365,6 +367,11 @@ On Local Error GoTo FillVarError
     If sCRAMP_PROFILE_INCLUSION <> "" Then
         Set itmX = frmMainui.lvwVariables.ListItems.Add(, , "CRAMP_PROFILE_INCLUSION")
         itmX.SubItems(1) = sCRAMP_PROFILE_INCLUSION
+    End If
+    
+    If sSTAF_PATH <> "" Then
+        Set itmX = frmMainui.lvwVariables.ListItems.Add(, , "STAF_PATH")
+        itmX.SubItems(1) = sSTAF_PATH
     End If
     
     frmMainui.lvwVariables.SetFocus

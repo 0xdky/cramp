@@ -81,6 +81,15 @@ Private Sub cmdVarOk_Click()
     
     frmVarEdit.Visible = False
     frmMainui.lvwVariables.SetFocus
+    
+    Dim sSTAFCONVDIR As String
+    If txtVarName.Text = "STAF_PATH" Then
+        sSTAFCONVDIR = txtVarValue.Text & "\bin"
+        SetKeyValue "Environment", "STAFCONVDIR", _
+                        sSTAFCONVDIR, REG_SZ
+    End If
+    
     Unload Me
+    
 End Sub
 

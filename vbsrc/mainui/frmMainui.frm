@@ -21,7 +21,7 @@ Begin VB.Form frmMainui
       Width           =   7695
       Begin VB.Frame frmSettings 
          Caption         =   "CRAMP Variables"
-         Height          =   2750
+         Height          =   2985
          Left            =   600
          TabIndex        =   64
          Top             =   480
@@ -31,17 +31,18 @@ Begin VB.Form frmMainui
             Height          =   375
             Left            =   2760
             TabIndex        =   65
-            Top             =   2160
+            Top             =   2400
             Width           =   1095
          End
          Begin MSComctlLib.ListView lvwVariables 
-            Height          =   1695
+            Height          =   1935
             Left            =   360
             TabIndex        =   4
             Top             =   360
             Width           =   5925
             _ExtentX        =   10451
-            _ExtentY        =   2990
+            _ExtentY        =   3413
+            LabelEdit       =   1
             Sorted          =   -1  'True
             LabelWrap       =   -1  'True
             HideSelection   =   0   'False
