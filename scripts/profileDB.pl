@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-27 14:36:23 dhruva>
+## Time-stamp: <2003-10-27 15:56:58 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -163,7 +163,7 @@ sub UpdateDB{
             print STDERR "Error: Failed to dump logs to DB";
             exit 1;
         }
-        print STDOUT "Successfully created Berkeley DB from logs";
+        print STDOUT "\nSuccessfully created Berkeley DB from logs";
         exit 0;
     }else{
         my $update=0;
@@ -191,7 +191,7 @@ sub UpdateDB{
             }
         }
         if($update){
-            print STDOUT "Successfully updated Berkeley DB from logs";
+            print STDOUT "\nSuccessfully updated Berkeley DB from logs";
             exit 0;
         }else{
             print STDOUT "Berkeley DB is upto date";
