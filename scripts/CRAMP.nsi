@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2004-03-01 09:46:43 dky>
+;; Time-stamp: <2004-03-03 14:11:28 dky>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -88,6 +88,7 @@ Section "!CRAMP Engine" SEC01
   File "..\bin\CRAMP.exe"
   File "..\bin\CRAMPEngine.exe"
   File "..\bin\ProfileControl.exe"
+  File "..\bin\noconsole.exe"
   File "\Applications\xerces\bin\xerces-c_2_3_0.dll"
   File "..\scripts\crampstaf.pl"
   File "\tmp\CRAMP-Package\Support\*"
@@ -185,7 +186,8 @@ Section "STAF" SEC03
   WriteRegExpandStr HKLM "${ENV_KEY}" "STAF_PATH" "$R0\TOOLS\STAF"
   WriteRegExpandStr HKLM "${ENV_KEY}" "STAFCONVDIR" "%STAF_PATH%\bin"
   WriteRegExpandStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
-                    "STAF Server" "%STAF_PATH%\bin\STAFProc.exe"
+                         "STAF Server" \
+        "%CRAMP_PATH%\bin\noconsole.exe %STAF_PATH%\bin\STAFProc.exe"
 
 
   FileOpen $R0 $INSTDIR\TOOLS\STAF\bin\stafpool.cfg w
