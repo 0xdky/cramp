@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-13 14:35:19 dky>
+// Time-stamp: <2004-03-13 16:18:14 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -22,7 +22,7 @@
 #include <sys/stat.h>
 
 #include <psapi.h>
-#include <imagehlp.h>
+#include <dbghelp.h>
 
 #ifndef MB2BYTE
 #define MB2BYTE 1048576
@@ -175,17 +175,12 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         _splitpath(moduleName,NULL,NULL,modShortNameBuf,NULL);
 
         // Following not per docs, but per example...
-        DWORD symDisplacement=0;
+        unsigned __int64 symDisplacement=0;
         std::hash_map<DWORD,bool>::iterator res;
         BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL)+1024];
-        PIMAGEHLP_SYMBOL pSymbol=(PIMAGEHLP_SYMBOL)&symbolBuffer[0];
-
-        memset(pSymbol,0,sizeof(PIMAGEHLP_SYMBOL));
-        pSymbol->SizeOfStruct=sizeof(symbolBuffer);
-        pSymbol->MaxNameLength=1023;
-        pSymbol->Address=0;
-        pSymbol->Flags=0;
-        pSymbol->Size=0;
+        PSYMBOL_INFO pSymbol=(PSYMBOL_INFO)symbolBuffer;
+        pSymbol->SizeOfStruct=sizeof(SYMBOL_INFO);
+        pSymbol->MaxNameLen=sizeof(symbolBuffer)-sizeof(SYMBOL_INFO)+1;
 
         csf.enter();
         res=s_h_mod.find((DWORD)mbi.AllocationBase);
@@ -211,7 +206,7 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
 
         bool match=TRUE;
         char undName[1024];
-        match=!!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol);
+        match=!!SymFromAddr(h_proc,addr,&symDisplacement,pSymbol);
 
         // Getting the final symbol name
         if(FALSE==match)
@@ -576,8 +571,7 @@ OnProcessEnd(void){
         g_CRAMP_Profiler.g_regstudy=0;
     }
 
-    // Cleanup all debug information
-    SymEnumerateModules(GetCurrentProcess(),SymEnumModCB,NULL);
+    // Cleanup all debug information: Enumerates and unloads all loaded
     SymCleanup(GetCurrentProcess());
 
     CleanEmptyLogs();
