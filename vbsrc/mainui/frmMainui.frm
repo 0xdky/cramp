@@ -4,12 +4,12 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8136
-   ClientLeft      =   5328
+   ClientHeight    =   8130
+   ClientLeft      =   5325
    ClientTop       =   3060
    ClientWidth     =   8460
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8136
+   ScaleHeight     =   8130
    ScaleWidth      =   8460
    Begin VB.Frame fraMainUI 
       Height          =   6900
@@ -86,8 +86,8 @@ Begin VB.Form frmMainui
             TabIndex        =   31
             Top             =   240
             Width           =   6612
-            _ExtentX        =   11663
-            _ExtentY        =   5736
+            _ExtentX        =   11668
+            _ExtentY        =   5741
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
             FullRowSelect   =   -1  'True
@@ -330,8 +330,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9716
-         _ExtentY        =   4043
+         _ExtentX        =   9710
+         _ExtentY        =   4048
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -349,8 +349,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9716
-         _ExtentY        =   6160
+         _ExtentX        =   9710
+         _ExtentY        =   6165
          _Version        =   393217
          HideSelection   =   0   'False
          Style           =   7
@@ -363,8 +363,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8175
-      _ExtentX        =   14415
-      _ExtentY        =   13780
+      _ExtentX        =   14420
+      _ExtentY        =   13785
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -960,6 +960,9 @@ Private Sub pidCombo_Click()
   SetThreAndAddrCombo
   'set query text
   SetQueryText (staCombo.Text)
+  'run perl script
+  'RunPerlScript
+  RunPerlScriptWithCP
   'set list view
   SetValueInListView
 End Sub
@@ -968,8 +971,11 @@ End Sub
 ' query command control
 '***********************************************************
 Private Sub queryCommand_Click()
-  'set query.psf output into the listview
-  SetValueInListView
+'run perl script
+'RunPerlScript
+RunPerlScriptWithCP
+'set query.psf output into the listview
+SetValueInListView
 End Sub
 
 '***********************************************************
@@ -1011,7 +1017,10 @@ Private Sub runCommand_Click()
     'set threads into thread combobox and address in addr combobox
     SetThreAndAddrCombo
     'set query text
-    SetQueryText (frmMainui.staCombo.Text)
+    SetQueryText (staCombo.Text)
+    'run perl script
+    'RunPerlScript
+    RunPerlScriptWithCP
     'set list view
     SetValueInListView
   End If

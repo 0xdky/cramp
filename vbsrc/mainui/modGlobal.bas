@@ -836,7 +836,7 @@ With frmMainui
     
   'run perl script
   'RunPerlScript
-  RunPerlScriptWithCP
+  'RunPerlScriptWithCP
     
   'insert headers
   AddHeaders

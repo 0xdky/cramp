@@ -99,15 +99,16 @@ Public Sub SetThreAndAddrCombo()
         gobjFSO.DeleteFile gstrCLogPath + "querynew.psf", True
       End If
       gobjFSO.MoveFile gstrCLogPath + "query.psf", gstrCLogPath + "querynew.psf"
-      
+  
       gIsFileExist = False
       gFileSize = 0
   End If
 
-  '1756 QUERY ALL RAW 0
+  'pid QUERY ALL TICK 0
   frmMainui.queryText.Text = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace _
                            + strAll + gstrSpace + frmMainui.rtCombo.Text + gstrSpace + _
                            frmMainui.limitText.Text
+    
   'run perl script to get all the threads
   'RunPerlScript
   RunPerlScriptWithCP
@@ -176,7 +177,6 @@ Public Sub SetThreAndAddrCombo()
     If gIsFileExist <> False And gFileSize <> 0 Then
       gobjFSO.MoveFile gstrCLogPath + "querynew.psf", gstrCLogPath + "query.psf"
     End If
-    
     gIsFileExist = False
     gFileSize = 0
   End If
