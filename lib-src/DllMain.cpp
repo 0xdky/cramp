@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 12:24:26 dhruva>
+// Time-stamp: <2003-10-23 12:53:27 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -303,7 +303,6 @@ GetFunctionDetails(void){
   fFuncInfo=fopen(filename,"wc");
   if(!fFuncInfo)
     return;
-  fprintf(fFuncInfo,"Hash size:%ld\n",g_hFuncCalls.size());
 
   HANDLE h_proc=0;
   do{
