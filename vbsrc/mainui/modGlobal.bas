@@ -1078,3 +1078,9 @@ Public Sub HideShowNextPre()
   frmMainui.totLabel.Caption = "Total items : " & Chr(13) & gobjDic.Count
 End Sub
 
+Public Sub CleanUp()
+  'clean up dictionary
+  If gobjDic.Count > 0 Then
+    gobjDic.removeAll
+  End If
+End Sub
