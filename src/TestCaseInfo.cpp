@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-09 14:47:58 dhruva>
+// Time-stamp: <2003-12-09 16:37:10 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -783,8 +783,12 @@ TestCaseInfo::AddLog(DWORD iRetVal){
       strcpy(type,"SP");
     }else if(ExeProcStatus()){
       strcpy(type,"TP");
+    }else if(MonProcStatus()){
+      strcpy(type,"MP");
     }else if(u_uid==g_CRAMP_Engine.g_pScenario->u_uid){
       strcpy(type,"SC");
+    }else{
+      return;                   // If Monitoring is disabled
     }
 
     // Some sub procs are too fast to get proc handle

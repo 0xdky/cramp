@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-01 17:40:56 dhruva>
+// Time-stamp: <2003-12-09 16:33:06 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -18,6 +18,7 @@
 #include "ipc.h"
 #include "ipcmsg.h"
 #include "engine.h"
+#include "PerfCounters.h"
 #include "TestCaseInfo.h"
 #include "XMLParse.h"
 
@@ -86,6 +87,7 @@ InitGlobals(void){
   g_CRAMP_Engine.g_hMUT=0;
   g_CRAMP_Engine.g_hIOCP=0;
   g_CRAMP_Engine.g_hJOBTimer=0;
+  g_CRAMP_Engine.g_hQuery=0;
 
   g_CRAMP_Engine.g_fLogFile=0;
   g_CRAMP_Engine.g_pScenario=0;
@@ -357,6 +359,8 @@ MemoryPollTH(LPVOID lpParameter){
 
   SIZE_T monint=0;
   monint=g_CRAMP_Engine.g_pScenario->MonitorInterval();
+  PdhOpenQuery(0,0,&g_CRAMP_Engine.g_hQuery);
+
   while(1){
     long dest=1;
     InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
@@ -374,11 +378,10 @@ MemoryPollTH(LPVOID lpParameter){
 //-----------------------------------------------------------------------------
 BOOLEAN
 ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
-  BOOLEAN ret=FALSE;
-  DEBUGCHK(ipScenario);
   if(!ipScenario)
-    return(ret);
+    return(FALSE);
 
+  BOOLEAN ret=FALSE;
   ListOfTestCaseInfo lgc;
   try{
     // Copy it to improve performance
@@ -397,15 +400,38 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
   h_snapshot=CreateToolhelp32Snapshot(TH32CS_SNAPALL,0);
   DEBUGCHK(!(h_snapshot==INVALID_HANDLE_VALUE));
 
+  std::list<DWORD> lpid;
+  PROCESS_INFORMATION pin={0};
   std::list<PROCESS_INFORMATION> lpin;
   ListOfTestCaseInfo::iterator iter=lgc.begin();
+
   for(;iter!=lgc.end();iter++){
     TestCaseInfo *ptc=(*iter);
     if(!ptc||!ptc->MonProcStatus())
       continue;
 
+    memset(&pin,0,sizeof(PROCESS_INFORMATION));
+    pin=ptc->ProcessInfo();
+
+#ifdef USE_PDH
+    if(pin.hProcess){
+      DWORD pstat=0;
+      GetExitCodeProcess(pin.hProcess,&pstat);
+      // Clean up the performance counters
+      if(STILL_ACTIVE!=pstat){
+        RemovePIDCounterHash(pin.dwProcessId);
+        continue;
+      }
+    }
+    if(pin.dwProcessId)
+      lpid.push_back(pin.dwProcessId);
+#endif
+
+    // Remove call to func
     if(ptc->ExeProcStatus()){
+#ifndef USE_PDH
       GetTestCaseMemoryDetails(h_snapshot,ptc);
+#endif
       continue;
     }
 
@@ -415,16 +441,29 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
 
     std::list<PROCESS_INFORMATION>::iterator lpiniter=lpin.begin();
     for(;lpiniter!=lpin.end();lpiniter++){
-      PROCESS_INFORMATION pin=(*lpiniter);
+      memset(&pin,0,sizeof(PROCESS_INFORMATION));
+      pin=(*lpiniter);
+      if(!pin.dwProcessId)
+        continue;
+#ifdef USE_PDH
+      lpid.push_back(pin.dwProcessId);
+#else
       ptc->ProcessInfo(pin);
       GetTestCaseMemoryDetails(h_snapshot,ptc);
+#endif
       CloseHandle(pin.hProcess);
       pin.hProcess=0;
     }
   }
   CloseHandle(h_snapshot);
-  ret=TRUE;
-  return(ret);
+
+#ifdef USE_PDH
+  if(UpdatePIDCounterHash(lpid))
+    return(FALSE);
+  WriteCounterData();
+#endif
+
+  return(TRUE);
 }
 
 //-----------------------------------------------------------------------------
@@ -613,8 +652,12 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
     return(TRUE);
   DWORD pstat=0;
   GetExitCodeProcess(pin.hProcess,&pstat);
-  if(STILL_ACTIVE!=pstat)
+
+  // Clean up the performance counters
+  if(STILL_ACTIVE!=pstat){
+    RemovePIDCounterHash(pin.dwProcessId);
     return(TRUE);
+  }
 
   BOOLEAN ret=FALSE;
   PROCESSENTRY32 ppe={0};
@@ -624,13 +667,6 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
   for(;ret;ret=Process32Next(h_snapshot,&ppe)){
     if(pin.dwProcessId!=ppe.th32ProcessID)
       continue;
-
-#if 0
-    // Disable detailed memory information logging
-    sprintf(msg,"LOG|MEMORY|PROC|SUMMARY|Count %d,Threads %d",
-            ppe.cntUsage,ppe.cntThreads);
-    ipTestCase->AddLog(msg);
-#endif
 
     do{
       PROCESS_MEMORY_COUNTERS pmc={0};
