@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-13 11:37:12 dky>
+## Time-stamp: <2004-02-23 13:08:35 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -17,6 +17,7 @@
 ##                  footprint. Env 'PROFILEDB_BUFFER_LIMIT' to alter size.
 ##                  If set, MUST be greater than 5000.
 ## 01-02-2004  Mod  Reduced variables                                       dky
+## 02-22-2004  Mod  Proper call stack results by re-ordering                dky
 ##-----------------------------------------------------------------------------
 ## Log file syntax:
 ##  Thread ID|Function address|Depth|Raw Ticks|Time in Ns|Ticks
@@ -48,7 +49,7 @@ $progname=~s,.*/,,;
 ##-----------------------------------------------------------------------------
 sub usage{
   print STDERR "usage : $progname ARGS
-ARGS  : PID DUMP ALL|TICK|ADDR
+ARGS  : PID DUMP STAT|TICK|ADDR|ALL
         PID QUERY STAT [APPEND]
         PID QUERY THREADS [APPEND]
         PID QUERY thread_id STACK pos Start End [APPEND]
@@ -128,6 +129,32 @@ sub ThreadCompare{
     return -1;
   }
   return 0;
+}
+
+##-----------------------------------------------------------------------------
+## CallStackSort
+##-----------------------------------------------------------------------------
+sub CallStackSort{
+  my $pd=-1;
+  my @tmplist=();
+  my @callstack=();
+  foreach (@_) {
+    my @sp=split(/\|/,$_);
+    if (-1 == $pd || $sp[3] < $pd) {
+      push(@tmplist,$_);
+    } else {
+      @callstack=(reverse(@tmplist),@callstack);
+      @tmplist=();
+      push(@tmplist,$_);
+    }
+    $pd=$sp[3];
+  }
+
+  if ($#tmplist) {
+    @callstack=(reverse(@tmplist),@callstack);
+  }
+
+  return @callstack;
 }
 
 ##-----------------------------------------------------------------------------
@@ -296,10 +323,12 @@ sub ProcessArgs{
         if ($#ARGV>=5) {
           $max=$ARGV[5];
         }
+        $key=$key-$max;         # Call stack is reverse order of return order
         if ($key < 0) {
           $key=0;
         }
         push(@values,GetRawValuesFromIDs($tidlist[0],($key..$key+$max)));
+        @values=CallStackSort(@values);
       }
     }
 
@@ -322,12 +351,16 @@ sub DumpLogsToDB{
   my $table=$_[0];
 
   PrintTime("Dump started");
-  if (! -f $f_logdb) {
-    PrintTime("Entering Raw");
-    AddRawLogs($f_logtxt);
-    PrintTime("Entering Func Info");
-    AddFunctionInformation();
+  PrintTime("Entering Func Info");
+  AddFunctionInformation();
+
+  if ($table=~/STAT/) {
+    PrintTime("Dump Completed");
+    return 0;
   }
+
+  PrintTime("Entering Raw");
+  AddRawLogs($f_logtxt);
 
   if ($table=~/TICK/) {
     PrintTime("Entering Tick");
@@ -341,6 +374,7 @@ sub DumpLogsToDB{
     PrintTime("Entering Addr");
     AddAddrSortedData();
   }
+
   PrintTime("Dump Completed");
 
   return 0;
@@ -350,11 +384,6 @@ sub DumpLogsToDB{
 ## UpdateDB
 ##-----------------------------------------------------------------------------
 sub UpdateDB{
-  if (!(-f $f_logtxt && -f $f_logfin)) {
-    print STDERR "Error: Log files for \"$g_pid\" PID not found\n";
-    return 1;
-  }
-
   if (-f $f_logdb) {
     my $update=0;
     my @dbinfo=stat($f_logdb);
