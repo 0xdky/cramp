@@ -1443,6 +1443,8 @@ Private Sub Form_Resize()
   fraMainUI(0).Move 600, 840
   fraMainUI(1).Move 600, 840
     
+  On Error Resume Next
+  
   Dim l, t, w, h
   If Me.WindowState <> vbMinimized Then
     If Me.WindowState <> vbMaximized Then
