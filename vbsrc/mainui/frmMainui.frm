@@ -4,12 +4,12 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8136
-   ClientLeft      =   5328
+   ClientHeight    =   8130
+   ClientLeft      =   5325
    ClientTop       =   3060
    ClientWidth     =   8460
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8136
+   ScaleHeight     =   8130
    ScaleWidth      =   8460
    Begin VB.Frame fraMainUI 
       Height          =   6900
@@ -32,8 +32,8 @@ Begin VB.Form frmMainui
             TabIndex        =   31
             Top             =   240
             Width           =   6492
-            _ExtentX        =   11451
-            _ExtentY        =   6160
+            _ExtentX        =   11456
+            _ExtentY        =   6165
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
             _Version        =   393217
@@ -275,8 +275,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9716
-         _ExtentY        =   4043
+         _ExtentX        =   9710
+         _ExtentY        =   4048
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -294,8 +294,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9716
-         _ExtentY        =   6160
+         _ExtentX        =   9710
+         _ExtentY        =   6165
          _Version        =   393217
          HideSelection   =   0   'False
          Style           =   7
@@ -308,8 +308,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8175
-      _ExtentX        =   14415
-      _ExtentY        =   13780
+      _ExtentX        =   14420
+      _ExtentY        =   13785
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -488,7 +488,7 @@ Private Sub cmdRun_Click()
     Dim sNull As String
     Dim lSuccess As Long
     Dim lRetValue As Long
-    Dim retVal As Boolean
+    Dim RetVal As Boolean
     Dim Response
     
     SaveFunction gCurFileName
@@ -510,7 +510,7 @@ Private Sub cmdRun_Click()
                             pInfo)
     
     lRetValue = WaitForSingleObject(pInfo.hProcess, INFINITE)
-    retVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
+    RetVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
     
     If lRetValue = 0 Then
         Response = MsgBox("Scenario Run : Successful!!", , "Status")
@@ -603,21 +603,21 @@ Private Sub lvwAttributes_Click()
     If UCase(Selection) = UCase("ExecPath") Then
         cmdBrowse.Move PX + CellWidth - 300, PY
         cmdBrowse.Visible = True
-        SelectedIndex = lvwAttributes.SelectedItem.Index
+        SelectedIndex = lvwAttributes.SelectedItem.index
         
         Exit Sub
     ElseIf UCase(Selection) = UCase("IdRef") Then
         CreateIdRefList
-        Dim Index As Integer
+        Dim index As Integer
         cboIdRef.Clear
         cboIdRef.Move PX, PY, CellWidth - 150
         cboIdRef.Visible = True
         cboIdRef.Text = lvwAttributes.SelectedItem.SubItems(1)
-        For Index = 1 To gIdRef.Count
-            cboIdRef.AddItem gIdRef.Item(Index)
-        Next Index
+        For index = 1 To gIdRef.Count
+            cboIdRef.AddItem gIdRef.Item(index)
+        Next index
         cboIdRef.SetFocus
-        SelectedIndex = lvwAttributes.SelectedItem.Index
+        SelectedIndex = lvwAttributes.SelectedItem.index
         
         Exit Sub
     
@@ -631,7 +631,7 @@ Private Sub lvwAttributes_Click()
             cboTrueFalse.Visible = True
             cboTrueFalse.Text = Selection
             cboTrueFalse.SetFocus
-            SelectedIndex = lvwAttributes.SelectedItem.Index
+            SelectedIndex = lvwAttributes.SelectedItem.index
             
             Exit Sub
             
@@ -645,7 +645,7 @@ Private Sub lvwAttributes_Click()
     txtInput.Visible = True
     'txtInput.SelText = Selection
     txtInput.SetFocus
-    SelectedIndex = lvwAttributes.SelectedItem.Index
+    SelectedIndex = lvwAttributes.SelectedItem.index
         
 End Sub
 
@@ -695,6 +695,15 @@ Private Sub mnuHelp_Click()
     
     WriteIntoDB
     
+    Dim pptPath As String
+    pptPath = App.Path & "\..\docs\CRAMP.ppt"
+    Dim ppt As Object
+    Set ppt = CreateObject("PowerPoint.Application.9")
+    ppt.Visible = True
+    ppt.Presentations.Open pptPath
+    ppt.ActivePresentation.SlideShowSettings.Run
+    Set ppt = Nothing
+    
 End Sub
 
 '***********************************************************
@@ -702,12 +711,12 @@ End Sub
 'First save the existing scenario if it is modified
 'then open the clicked scenario
 '***********************************************************
-Private Sub mnuMRU_Click(Index As Integer)
+Private Sub mnuMRU_Click(index As Integer)
     Dim RetStatus As Boolean
     RetStatus = CheckSaveStatus
     
     Dim sScenarioName As String
-    sScenarioName = gMRUList(0, Index)
+    sScenarioName = gMRUList(0, index)
     Dim tmpStr As String
     CleanAndRestart
     
@@ -821,8 +830,8 @@ Private Sub tspMainUI_Click()
         fraMainUI(ii).Visible = False
     Next ii
     
-    fraMainUI(tspMainUI.SelectedItem.Index - 1).Visible = True
-    fraMainUI(tspMainUI.SelectedItem.Index - 1).Move 600, 840
+    fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
+    fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
     
     RenameFormWindow
 End Sub
