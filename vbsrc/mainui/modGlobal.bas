@@ -1092,6 +1092,24 @@ Public Sub CleanUp()
     gobjDic.removeAll
   End If
   
+  'clean up list view
+  frmMainui.queryLV.ListItems.Clear
+  frmMainui.queryLV.ColumnHeaders.Clear
+  
+  'clean up combo box
+  frmMainui.pidCombo.Clear
+  frmMainui.staCombo.Clear
+  frmMainui.threadCombo.Clear
+  frmMainui.rtCombo.Clear
+  frmMainui.addrCombo.Clear
+  'clean up text box
+  frmMainui.queryText.Text = ""
+  frmMainui.limitText.Text = ""
+  frmMainui.listitemText.Text = ""
+  'clean up lable
+  frmMainui.rngLabel.Caption = ""
+  frmMainui.totLabel.Caption = ""
+  
   gFileSize = 0
   gDicCountUpper = 0
   gDicCountLower = 0
