@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-09 11:23:31 dhruva>
+// Time-stamp: <2003-10-09 16:07:27 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -10,12 +10,18 @@
 #pragma once
 #pragma warning (disable:4786)
 
-#include "Windows.h"
+#include <Windows.h>
 #include <process.h>
+#include <fstream.h>
 
 #include <list>
 #include <string>
-#include <fstream.h>
+
+// XERCES related
+#include <xercesc/dom/DOM.hpp>
+#include <xercesc/dom/DOMNode.hpp>
+#include <xercesc/util/XMLString.hpp>
+XERCES_CPP_NAMESPACE_USE
 
 // User defined Unique ID's cannot be greater than this
 #define AUTO_UNIQUE_BASE 55555
@@ -95,6 +101,7 @@ public:
 
   void AddLog(std::string ilog);
   BOOLEAN DumpLog(ofstream &ifout);
+  BOOLEAN DumpLogToDOM(DOMNode *ipDomNode);
 
   // Internal methods: Not to be used other than in main engine
   TestCaseInfo *Reference(void);

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-09 12:21:27 dhruva>
+// Time-stamp: <2003-10-09 16:11:37 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -22,8 +22,17 @@
 #include <Tlhelp32.h>
 #include <WindowsX.h>
 
+#include <xercesc/util/XMLUni.hpp>
+#include <xercesc/util/XMLUniDefs.hpp>
+#include <xercesc/dom/DOMWriter.hpp>
+#include <xercesc/dom/DOMImplementation.hpp>
+#include <xercesc/dom/DOMImplementationLS.hpp>
+#include <xercesc/dom/DOMImplementationRegistry.hpp>
+#include <xercesc/framework/LocalFileFormatTarget.hpp>
+
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 void InitGlobals(void);
+int DumpLogsToXML(char *logfile);
 DWORD WINAPI JobNotifyTH(PVOID);
 DWORD WINAPI CreateManagedProcesses(PVOID);
 DWORD WINAPI MemoryPollTH(PVOID lpParameter);
@@ -531,6 +540,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
         break;
       g_pScenario->DumpLog(logfile);
       logfile.close();
+      DumpLogsToXML("C:\\tmp\\cramp.xml");
     }while(0);
     TestCaseInfo::DeleteScenario(g_pScenario);
   }
@@ -540,4 +550,50 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
   InitGlobals();
   return(ret);
+}
+
+//-----------------------------------------------------------------------------
+// DumpLogsToXML
+//-----------------------------------------------------------------------------
+int
+DumpLogsToXML(char *logfile){
+  try{
+    XMLPlatformUtils::Initialize();
+  }
+  catch(const XMLException& toCatch){
+    return(1);
+  }
+
+  {
+    DOMDocument *doc=0;
+    DOMImplementation *impl=0;
+
+    XMLCh tempStr[100];
+    XMLString::transcode("Core",tempStr,99);
+    impl=DOMImplementationRegistry::getDOMImplementation(tempStr);
+    DEBUGCHK(impl);
+
+    XMLString::transcode("CRAMPLOG",tempStr,99);
+    doc=impl->createDocument(0,tempStr,0);
+    DEBUGCHK(doc);
+    DOMElement *rootElem=doc->getDocumentElement();
+    g_pScenario->DumpLogToDOM(rootElem);
+
+    DOMWriter *theSerializer=0;
+    XMLString::transcode("LS",tempStr,99);
+    impl=DOMImplementationRegistry::getDOMImplementation(tempStr);
+    DEBUGCHK(impl);
+    theSerializer=((DOMImplementationLS *)impl)->createDOMWriter();
+    DEBUGCHK(theSerializer);
+
+    XMLFormatTarget *myFormTarget=0;
+    myFormTarget=new LocalFileFormatTarget(logfile);
+    theSerializer->writeNode(myFormTarget,*doc);
+
+    delete theSerializer;
+    delete myFormTarget;
+    doc->release();
+  }
+  XMLPlatformUtils::Terminate();
+  return(0);
 }

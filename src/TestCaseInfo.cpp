@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-09 12:12:43 dhruva>
+// Time-stamp: <2003-10-09 16:45:57 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -13,6 +13,15 @@
 #include "cramp.h"
 #include "TestCaseInfo.h"
 #include <algorithm>
+
+#include <xercesc/util/XMLString.hpp>
+#include <xercesc/util/PlatformUtils.hpp>
+
+#include <xercesc/dom/DOMAttr.hpp>
+#include <xercesc/dom/DOMNode.hpp>
+#include <xercesc/dom/DOMText.hpp>
+#include <xercesc/dom/DOMElement.hpp>
+#include <xercesc/dom/DOMDocument.hpp>
 
 // Initialize static
 ListOfTestCaseInfo TestCaseInfo::l_gc;
@@ -113,6 +122,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
         excep._error=u_uid;
         throw(excep);
       }
+      u_uid=0;
       ReferStatus(TRUE);
       Reference(ptc);
     }
@@ -666,6 +676,52 @@ TestCaseInfo::AddLog(std::string ilog){
   l_log.push_back(ilog);
   LeaveCriticalSection(&cs_log);
   return;
+}
+
+//-----------------------------------------------------------------------------
+// DumpLogToDOM
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::DumpLogToDOM(DOMNode *ipDomNode){
+  if(!ipDomNode)
+    return(FALSE);
+
+  XMLCh xmlstr[256];
+  DOMText *pDomText=0;
+  DOMElement *pDomElem=0;
+  DOMDocument *pDomDoc=0;
+
+  // Get the document or factory
+  pDomDoc=ipDomNode->getOwnerDocument();
+
+  // Create the element
+  XMLString::transcode("TESTCASE",xmlstr,255);
+  pDomElem=pDomDoc->createElement(xmlstr);
+  ipDomNode->appendChild(pDomElem);
+
+  // Create the text for element
+  if(GroupStatus())
+    XMLString::transcode(TestCaseName().c_str(),xmlstr,255);
+  else
+    XMLString::transcode(TestCaseExec().c_str(),xmlstr,255);
+  pDomText=pDomDoc->createTextNode(xmlstr);
+  pDomElem->appendChild(pDomText);
+
+  EnterCriticalSection(&cs_log);
+  std::list<std::string>::iterator liter=l_log.begin();
+  for(;liter!=l_log.end();liter++){
+    DOMElement *pDomChildElem=0;
+    XMLString::transcode("LOG",xmlstr,255);
+    pDomChildElem=pDomDoc->createElement(xmlstr);
+    pDomElem->appendChild(pDomChildElem);
+  }
+  LeaveCriticalSection(&cs_log);
+
+  ListOfTestCaseInfo::iterator iter=l_tci.begin();
+  for(;iter!=l_tci.end();iter++)
+    (*iter)->DumpLogToDOM(pDomElem);
+
+  return(TRUE);
 }
 
 //-----------------------------------------------------------------------------
