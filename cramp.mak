@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-22 12:19:31 dhruva>
+## Time-stamp: <2003-10-23 12:20:35 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -97,7 +97,7 @@ dirs: $(MAKEFILE)
 # For CRAMP engine
 engine: dirs $(COBJS)
     @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(COBJS) psapi.lib shell32.lib \
-             $(XML_LIB) $(BDB_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
+             $(XML_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
 # Compiling
 $(OBJDIR)/main.obj: $(SRCDIR)/main.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/main.cpp \
@@ -136,7 +136,7 @@ $(SRCDIR)/XMLParse.h: $(DEPS)
 library: dirs $(PROFLIB).dll
 $(PROFLIB).dll: $(POBJS)
     @$(LINK) /DLL $(LINK_DEBUG) $(E_LDFLAGS) $(POBJS) imagehlp.lib \
-             $(BDB_LIB) /OUT:$(BINDIR)/$(PROFLIB).dll
+             /OUT:$(BINDIR)/$(PROFLIB).dll
 $(OBJDIR)/CallMon.obj: $(LIBSRCDIR)/CallMon.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/CallMon.cpp \
              /Fo$(OBJDIR)/CallMon.obj
