@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 16:47:46 dhruva>
+// Time-stamp: <2003-11-04 16:41:05 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -331,8 +331,8 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
     for(cc=0;cc<psz;cc++)
       ptharr[cc]=ppi[cc].hProcess;
     // Add non blocking groups
-    for(cc=psz;cc<numgroups;cc++)
-      ptharr[cc]=tharr[cc];
+    for(cc=0;cc<numgroups;cc++)
+      ptharr[psz+cc]=tharr[cc];
 
     for(cc=0;cc<psz;cc++){
       ResumeThread(ppi[cc].hThread);
