@@ -1217,7 +1217,7 @@ Public Sub CreateDictionary()
     'Close file
     MyFileStream.Close
   Else
-    MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
+    'MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
     'clean up ui
     gDicCountLower = 0
     frmMainui.miniLabel.Caption = gDicCountLower
