@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-03 10:21:58 dhruva>
+## Time-stamp: <2004-01-05 12:12:16 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -59,6 +59,24 @@ ARGS  : PID DUMP ALL|TICK|ADDR
         PID QUERY thread_id|ALL ADDR function_address limit [APPEND]
 output: Results are written or appended to query.psf";
   return 0;
+}
+
+##-----------------------------------------------------------------------------
+##  PrintTime
+##-----------------------------------------------------------------------------
+sub PrintTime{
+  if (!exists($ENV{'CRAMP_DEBUG'})) {
+    return;
+  }
+
+  my @curr=localtime();
+  $curr[4]+=1;
+  $curr[5]+=1900;
+  print "$curr[4]/$curr[3]/$curr[5] at $curr[2]:$curr[1]:$curr[0] :: ";
+  @curr=times();
+  print "User:$curr[0] System:$curr[1]\n";
+
+  return;
 }
 
 ##-----------------------------------------------------------------------------
@@ -125,7 +143,7 @@ sub WriteResults{
 
   foreach (@_) {
     print QUERYOUT "$_\n";
-    if ($ENV{'DEBUG'}) {
+    if (exists($ENV{'CRAMP_DEBUG'})) {
       print STDOUT "$_\n";
     }
   }
@@ -287,6 +305,35 @@ sub ProcessArgs{
 }
 
 ##-----------------------------------------------------------------------------
+## DumpLogsToDB
+##-----------------------------------------------------------------------------
+sub DumpLogsToDB{
+  my @curr=();
+  my $table=$_[0];
+
+  if (! -f $f_logdb) {
+    PrintTime();
+    AddRawLogs($f_logtxt);
+    PrintTime();
+    AddFunctionInformation();
+    PrintTime();
+  }
+
+  if ($table=~/TICK/) {
+    AddTickSortedData();
+  } elsif ($table=~/ADDR/) {
+    AddAddrSortedData();
+  } elsif ($table=~/ALL/) {
+    AddTickSortedData();
+    PrintTime();
+    AddAddrSortedData();
+  }
+  PrintTime();
+
+  return 0;
+}
+
+##-----------------------------------------------------------------------------
 ## UpdateDB
 ##-----------------------------------------------------------------------------
 sub UpdateDB{
@@ -311,65 +358,6 @@ sub UpdateDB{
   }
 
   return 0;
-}
-
-##-----------------------------------------------------------------------------
-## DumpLogsToDB
-##-----------------------------------------------------------------------------
-sub DumpLogsToDB{
-  my $table=$_[0];
-  AddRawLogs($f_logtxt);
-  AddFunctionInformation();
-
-  if ($table=~/TICK/) {
-    AddTickSortedData();
-  } elsif ($table=~/ADDR/) {
-    AddAddrSortedData();
-  } elsif ($table=~/ALL/) {
-    AddTickSortedData();
-    AddAddrSortedData();
-  }
-
-  return 0;
-}
-
-##-----------------------------------------------------------------------------
-## GetDuplicateKeyValues
-##  0 => Handle to DB, 1 => Key, 2 => Max size (0 for all)
-##-----------------------------------------------------------------------------
-sub GetDuplicateKeyValues{
-  if (!defined($_[0])) {
-    warn("GetDuplicateKeyValues: Undefined DB handle");
-    return ();
-  }
-
-  my($k,$v)=($_[1],"");
-  my $dbc=$_[0]->db_cursor();
-  if (0!=$dbc->c_get($k,$v,DB_SET)) {
-    undef $dbc;
-    return ();
-  }
-
-  my $max=0;
-  $dbc->c_count($max);
-  if ($_[2] && $_[2]<$max) {
-    $max=$_[2];
-  }
-
-  my $cc=1;
-  my @results=();
-  push(@results,$v);
-  while (0==$dbc->c_get($k,$v,DB_NEXT_DUP)) {
-    if ($cc==$max) {
-      last;
-    }
-    $cc++;
-    push(@results,$v);
-  }
-
-  undef $dbc;
-
-  return @results;
 }
 
 ##-----------------------------------------------------------------------------
@@ -585,8 +573,32 @@ sub GetThreadIDs{
 sub AddAddrSortedData{
   foreach (GetThreadIDs()) {
     my $tid=$_;
+    $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
+                  -Filename    => $f_logdb,
+                  -Subname     => "RAW#$tid",
+                  -Flags       => DB_RDONLY)
+      || next;
+    if (!defined($g_db_RAW)) {
+      next;
+    }
+    if (SetDBFilters($g_db_RAW)) {
+      next;
+    }
+
+    my $key;
+    my %h_func;
+    foreach (0..$#g_tie_RAW) {
+      $g_tie_RAW[$_]=~/^([0-9]+)(\|)([0-9A-F]+)/;
+      $key=$3;
+      if (exists($h_func{$key})) {
+        $h_func{$key}.=" $_";
+      } else {
+        $h_func{$key}="$_";
+      }
+    }
+
     my $db;
-    my %tie_h_func=();
+    my %tie_h_func;
     $db=tie(%tie_h_func,'BerkeleyDB::Hash',
             -Filename    => $f_logdb,
             -Subname     => "FUNCALL#$tid",
@@ -602,28 +614,7 @@ sub AddAddrSortedData{
     my $count=0;
     $db->truncate($count);
 
-    $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
-                  -Filename    => $f_logdb,
-                  -Subname     => "RAW#$tid",
-                  -Flags       => DB_RDONLY)
-      || last;
-    if (!defined($g_db_RAW)) {
-      next;
-    }
-    if (SetDBFilters($g_db_RAW)) {
-      next;
-    }
-
-    my $key;
-    foreach (0..$#g_tie_RAW) {
-      $g_tie_RAW[$_]=~/^([0-9]+)(\|)([0-9A-F]+)/;
-      $key=$3;
-      if (exists($tie_h_func{$key})) {
-        $tie_h_func{$key}.=" $_";
-      } else {
-        $tie_h_func{$key}="$_";
-      }
-    }
+    %tie_h_func=%h_func;
 
     undef $db;
     undef $g_db_RAW;
@@ -635,8 +626,12 @@ sub AddAddrSortedData{
     if (defined($g_db_RAW)) {
       undef $g_db_RAW;
     }
-    untie %tie_h_func;
-    untie @g_tie_RAW;
+    if (defined(%tie_h_func)) {
+      untie %tie_h_func;
+    }
+    if (defined(%g_tie_RAW)) {
+      untie @g_tie_RAW;
+    }
   }
 
   return 0;
