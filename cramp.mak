@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-12-09 08:51:58 dhruva>
+## Time-stamp: <2004-02-25 18:33:19 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -8,8 +8,6 @@
 ## mm-dd-yyyy  History                                                      tri
 ## 09-23-2003  Cre                                                          dky
 ##-----------------------------------------------------------------------------
-VERSION="0.1.1"
-
 # Specify the drive as an environment variable
 BASEDRIVE=$(BASEDRIVE)
 
@@ -70,8 +68,8 @@ STUB=/DCRAMP_STUB
 INCLUDE=./src;./inc;$(INCLUDE)
 
 # Version info
-CFLAGS=$(CFLAGS) /V$(VERSION)
-LDFLAGS=$(LDFLAGS) /VERSION:$(VERSION)
+CFLAGS=$(CFLAGS)
+LDFLAGS=$(LDFLAGS)
 
 # For engine
 E_CFLAGS=$(CFLAGS) $(NOLOGO) /I$(XMLBASE)/include /I$(BDBBASE)/include
@@ -93,8 +91,9 @@ UTILITIES=$(BINDIR)/ProfileControl.exe $(BINDIR)/profileDB.exe
 
 # Currently disabled base class build: Problem with SDK
 all: cramp
-cramp: dirs res engine library utils test
+cramp: dirs res engine library utils vb test
 remake: clean cramp
+setup: remake installer
 
 # Dependancy to force a re-build
 DEPS=$(MAKEFILE) $(INCDIR)/cramp.h
@@ -225,6 +224,15 @@ $(OBJDIR)/DPEBaseClassTest.obj: $(TSTDIR)/DPEBaseClassTest.cpp
 
 $(TSTDIR)/TestProf.cpp: $(DEPS)
 $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
+
+vb:
+    vb6.exe /make ./vbsrc/mainui/CRAMP.vbp
+
+# Compile the installer program by creating new version string and setup
+installer:
+    @cvs.exe edit ./version
+    @perl.exe ./scripts/version.pl ./version $(LEVEL)
+    @cvs.exe commit -m "$(LEVEL) modification" ./version
 
 # Cleaning
 clean: mostly-clean clean-vc60
