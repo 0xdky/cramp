@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 18:41:39 dhruva>
+// Time-stamp: <2003-11-05 10:35:01 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -110,7 +110,7 @@ typedef unsigned (__stdcall *PTHREAD_START) (void *);
 #ifdef CRAMP_DEBUG
 #define DEBUGCHK(expr) if(!expr) DebugBreak()
 #else
-#define DEBUGCHK(expr) ExitProcess(-1)
+#define DEBUGCHK(expr) if(!expr) ExitProcess(-1)
 #endif
 #endif
 
