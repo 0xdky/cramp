@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-23 13:08:35 dky>
+## Time-stamp: <2004-02-23 14:31:33 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -138,12 +138,24 @@ sub CallStackSort{
   my $pd=-1;
   my @tmplist=();
   my @callstack=();
+  my $topfunc=pop(@_);
+  my @sp=split(/\|/,$topfunc);
+  my $td=$sp[3];
+
   foreach (@_) {
-    my @sp=split(/\|/,$_);
+    @sp=split(/\|/,$_);
+    if ($sp[3] <= $td) {
+      last;
+    }
+
     if (-1 == $pd || $sp[3] < $pd) {
       push(@tmplist,$_);
+    } elsif ($sp[3] == $pd) {
+      push(@callstack,reverse(@tmplist));
+      push(@callstack,$_);
+      @tmplist=();
     } else {
-      @callstack=(reverse(@tmplist),@callstack);
+      push(@callstack,reverse(@tmplist));
       @tmplist=();
       push(@tmplist,$_);
     }
@@ -151,7 +163,7 @@ sub CallStackSort{
   }
 
   if ($#tmplist) {
-    @callstack=(reverse(@tmplist),@callstack);
+    push(@callstack,reverse(@tmplist));
   }
 
   return @callstack;
@@ -319,7 +331,7 @@ sub ProcessArgs{
         }
       } elsif ($ARGV[3]=~/STACK/) {
         $max=10;
-        $key=$ARGV[4]-1;
+        $key=$ARGV[4];
         if ($#ARGV>=5) {
           $max=$ARGV[5];
         }
