@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-11-19 10:59:59 dhruva>
+## Time-stamp: <2003-11-19 20:26:53 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : cramp_staf.pl
 ## Desc  : PERL script to run testcases on a pool of computers using STAF
@@ -102,15 +102,26 @@ sub STAFPing{
 
 ##-----------------------------------------------------------------------------
 ## GetSTAFPool
-##  Get STAF computer pool
+##  Get STAF computer pool. Add HOST by default!
 ##-----------------------------------------------------------------------------
 sub GetSTAFPool{
     open(POOL,"<$STAF_POOL") || return -1;
     my $cc=0;
     my $staf_cmd;
+    my @loc=();
+    push(@loc,hostname());
+
     while(<POOL>){
         chomp();
+        push(@loc,$_);
+    }
+    close(POOL);
+
+    foreach(@loc){
         my $comp=$_;
+        if(exists($h_staf_pool{$comp})){
+            next;
+        }
         if(STAFPing($comp)){
             next;
         }
@@ -184,7 +195,6 @@ sub GetSTAFPool{
         $h_cramp_path{$comp}="$path/bin|$logpath";
         $cc++;
     }
-    close(POOL);
 
     return !$cc;
 }
