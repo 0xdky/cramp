@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-01 18:53:52 dhruva>
+// Time-stamp: <2003-10-02 18:18:25 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -8,9 +8,14 @@
 // 09-23-2003  Cre                                                          pie
 //-----------------------------------------------------------------------------
 #include "TestCaseInfo.h"
+#include "XMLParse.h"
 
 #include <list>
 #include <string>
+
+// #include <string.h>
+#include <stdlib.h>
+#include <fstream.h>
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/parsers/AbstractDOMParser.hpp>
@@ -23,10 +28,6 @@
 #include <xercesc/dom/DOMNodeList.hpp>
 #include <xercesc/dom/DOMError.hpp>
 #include <xercesc/dom/DOMLocator.hpp>
-#include "XMLParse.h"
-#include <string.h>
-#include <stdlib.h>
-#include <fstream.h>
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/util/XMLString.hpp>
@@ -73,7 +74,7 @@ ElemAttr g_ElemAttrMap[]={
 // XMLParse
 //-----------------------------------------------------------------------------
 XMLParse::XMLParse(const char *iXMLFileName){
-  _pXMLFileName = iXMLFileName;
+  _pXMLFileName=iXMLFileName;
   _pParent=0;
 }
 
@@ -81,7 +82,7 @@ XMLParse::XMLParse(const char *iXMLFileName){
 // ~XMLParse
 //-----------------------------------------------------------------------------
 XMLParse::~XMLParse(){
-  _pXMLFileName = "";
+  _pXMLFileName="";
   _pParent=0;
 }
 
@@ -90,152 +91,157 @@ XMLParse::~XMLParse(){
 //-----------------------------------------------------------------------------
 bool
 XMLParse::ParseXMLFile(void){
+  bool ret=false;
+
   cout <<endl;
 
   // Initialize the XML4C2 system.
-  try
-  {
+  try{
     XMLPlatformUtils::Initialize();
   }
 
-  catch(const XMLException& toCatch)
-  {
-    char *pMsg = XMLString::transcode(toCatch.getMessage());
+  catch(const XMLException& toCatch){
+    char *pMsg=XMLString::transcode(toCatch.getMessage());
     cout << "Error during Xerces-c Initialization.\n"
          << "  Exception message:"
          << pMsg;
     XMLString::release(&pMsg);
-    return (false);
+    return(ret);
   }
 
-  // Watch for special case help request
-  if( _pXMLFileName == "" )
-  {
-    cout << "\nUsage:\n"
-      "    CreateDOMDocument\n\n"
-      "This program creates a new DOM document from scratch in memory.\n"
-      "It then prints the count of elements in the tree.\n"
-         <<  endl;
+  do{
 
-    XMLPlatformUtils::Terminate();
-    return (false);
-  }
-
-  // Instantiate the DOM parser.
-  static const XMLCh gLS[] = { chLatin_L, chLatin_S, chNull };
-  //static const XMLCh gLS[3];
-  DOMImplementation *impl=DOMImplementationRegistry::getDOMImplementation(gLS);
-  DOMBuilder        *parser = ((DOMImplementationLS*)impl)
-    ->createDOMBuilder(DOMImplementationLS::MODE_SYNCHRONOUS, 0);
-
-  bool  doNamespaces       = false;
-  bool  doSchema           = false;
-  bool  schemaFullChecking = false;
-
-  parser->setFeature(XMLUni::fgDOMNamespaces, doNamespaces);
-  parser->setFeature(XMLUni::fgXercesSchema, doSchema);
-  parser->setFeature(XMLUni::fgXercesSchemaFullChecking, schemaFullChecking);
-
-  // the input is a list file
-  ifstream fin;
-  int argInd = 0;
-  fin.open(_pXMLFileName);
-
-  if (fin.fail()) {
-    cout <<"Cannot open the list file: " << _pXMLFileName << endl;
-    return (false);
-  }
-  else
-  {
-    cout <<"My file is :: " << _pXMLFileName << endl;
-  }
-
-  cout <<endl;
-
-  const char*   xmlFile = 0;
-  xmlFile = _pXMLFileName;
-
-  //pass xml file to parser
-  DOMDocument *doc = 0;
-  doc = parser->parseURI(xmlFile);
-
-  /*int tt=0;
-    for(;g_ElemAttrMap[tt].elem;tt++){
-    printf("%d>Element:%s Attribute:%s\n",tt+1,g_ElemAttrMap[tt].elem,
-    g_ElemAttrMap[tt].attr);
+    // Watch for special case help request
+    if(_pXMLFileName==""){
+      cout << "\nUsage:\n"
+        "    CreateDOMDocument\n\n"
+        "This program creates a new DOM document from scratch in memory.\n"
+        "It then prints the count of elements in the tree.\n"
+           <<  endl;
+      break;
     }
-	return (true);*/
 
-  //find root element
-  const char *scenarioname = "Scenario";
-  DOMElement* rootElem = doc->getDocumentElement();
-  char *rootelemname = XMLString::transcode( rootElem->getTagName() );
-  cout << "Root Element Name Is ::" << rootelemname << endl;
-  XMLString::release(&rootelemname);
+    // Instantiate the DOM parser.
+    static const XMLCh gLS[]={chLatin_L,chLatin_S,chNull};
+    //static const XMLCh gLS[3];
+    DOMImplementation *impl=0;
+    impl=DOMImplementationRegistry::getDOMImplementation(gLS);
+    if(!impl)
+      break;
 
-  // SCENARIO
-  DOMNode *rootnode = rootElem;
-  char  *tmpName = "OM";
-  ScanXMLFile( rootnode, SCENARIO );
+    DOMBuilder *parser=0;
+    parser=((DOMImplementationLS *)impl)->createDOMBuilder(
+      DOMImplementationLS::MODE_SYNCHRONOUS,0);
+    if(!parser)
+      break;
 
-  //terminate the XML parsing
+    bool doNamespaces=false;
+    bool doSchema=false;
+    bool schemaFullChecking=false;
+
+    parser->setFeature(XMLUni::fgDOMNamespaces,doNamespaces);
+    parser->setFeature(XMLUni::fgXercesSchema,doSchema);
+    parser->setFeature(XMLUni::fgXercesSchemaFullChecking,schemaFullChecking);
+
+    // the input is a list file
+    ifstream fin;
+    int argInd=0;
+    fin.open(_pXMLFileName);
+
+    if(fin.fail()) {
+      cout << "Cannot open the list file: " << _pXMLFileName << endl;
+      break;
+    }else{
+      cout <<"My file is :: " << _pXMLFileName << endl;
+    }
+    cout <<endl;
+
+    const char *xmlFile=0;
+    xmlFile=_pXMLFileName;
+
+    // Pass xml file to parser
+    DOMDocument *doc=0;
+    doc=parser->parseURI(xmlFile);
+    if(!doc)
+      break;
+
+    // int tt=0;
+    // for(;g_ElemAttrMap[tt].elem;tt++){
+    //   printf("%d>Element:%s Attribute:%s\n",tt+1,g_ElemAttrMap[tt].elem,
+    //          g_ElemAttrMap[tt].attr);
+    // }
+    // return(ret);
+
+    // Find root element
+    DOMElement *rootElem=0;
+    rootElem=doc->getDocumentElement();
+    if(!rootElem)
+      break;
+
+    char *rootelemname=XMLString::transcode(rootElem->getTagName());
+    cout << "Root Element Name Is ::" << rootelemname << endl;
+    if(XMLString::compareString(rootelemname,"SCENARIO"))
+      break;
+    XMLString::release(&rootelemname);
+
+    // SCENARIO
+    DOMNode *rootnode=rootElem;
+    ScanXMLFile(rootnode,SCENARIO);
+    ret=true;
+  }while(0);
+
+  // Terminate the XML parsing
   XMLPlatformUtils::Terminate();
 
-  return (true);
+  return(ret);
 }
 
 //-----------------------------------------------------------------------------
 // ScanXMLFile
 //-----------------------------------------------------------------------------
 void
-XMLParse::ScanXMLFile( DOMNode * parentchnode,
-                       int type ){
+XMLParse::ScanXMLFile(DOMNode *parentchnode,int type){
 
-	//SCENARIO
-  if( SCENARIO == type )
-  {
-    ScanForAttributes( parentchnode, SCENARIO );
-  }
+  // SCENARIO
+  if(SCENARIO==type)
+    ScanForAttributes(parentchnode,SCENARIO);
 
-  //get all nodes
-  DOMNodeList *childlist = parentchnode->getChildNodes();
-  int childsize = childlist->getLength();
-  if( 0 == childsize )
+  // Get all nodes
+  DOMNodeList *childlist=parentchnode->getChildNodes();
+  if(!childlist)
     return;
 
-  char  *textName = "#text";
-  char  *groupName = "GROUP";
-  char  *testcaseName = "TESTCASE";
-  DOMNode *nextnode = NULL;
+  int childsize=childlist->getLength();
+  if(!childsize)
+    return;
 
-  for( int ss = 0; ss < childsize; ss++ )
-  {
-    DOMNode  *parentchnode = childlist->item(ss);
+  char  *textName="#text";
+  char  *groupName="GROUP";
+  char  *testcaseName="TESTCASE";
+  DOMNode *nextnode=0;
 
-    char *parentchname = XMLString::transcode(parentchnode->getNodeName());
+  for(int ss=0;ss<childsize;ss++){
+    DOMNode *parentchnode=0;
+    parentchnode=childlist->item(ss);
+    if(!parentchnode)
+      continue;
+
+    char *parentchname=XMLString::transcode(parentchnode->getNodeName());
 
     // #text
-    if(0 == XMLString::compareString( parentchname, textName ))
-    {
+    if(!XMLString::compareString(parentchname,textName))
       continue;
-    }
-    else
-    {
-      // GROUP
-      if( 0 == XMLString::compareString( parentchname, groupName ) )
-      {
-        ScanForAttributes( parentchnode, GROUP );
-        ScanXMLFile( parentchnode, GROUP );
-      }
-      else if( 0 == XMLString::compareString( parentchname, testcaseName ) )
-      {
-        // TESTCASE
-        ScanForAttributes( parentchnode, TESTCASE );
-      }
+
+    // GROUP
+    if(!XMLString::compareString(parentchname,groupName)){
+      ScanForAttributes(parentchnode,GROUP);
+      ScanXMLFile(parentchnode,GROUP);
+    }else if(!XMLString::compareString(parentchname,testcaseName)){
+      // TESTCASE
+      ScanForAttributes(parentchnode,TESTCASE);
     }
     XMLString::release(&parentchname);
   }
-
   return;
 }
 
@@ -244,66 +250,61 @@ XMLParse::ScanXMLFile( DOMNode * parentchnode,
 //-----------------------------------------------------------------------------
 void
 XMLParse::ScanForAttributes(DOMNode *rootnode,
-                            int type ){
+                            int type){
 
-  if( NULL == rootnode )
-    return;
-  DOMNamedNodeMap  *pSceAttlist = NULL;
-  int SecSize = 0;
-  pSceAttlist  = rootnode->getAttributes();
-  SecSize = pSceAttlist->getLength();
-  if( 0 == SecSize )
+  if(!rootnode)
     return;
 
-  if( 0 == SecSize )
+  int SecSize=0;
+  DOMNamedNodeMap *pSceAttlist=0;
+
+  pSceAttlist=rootnode->getAttributes();
+  if(!pSceAttlist)
     return;
-  if( NULL == pSceAttlist )
+
+  SecSize=pSceAttlist->getLength();
+  if(!SecSize)
     return;
 
   std::list<MyElement> myelement;
-  TestCaseInfo * pChild = 0;
+  TestCaseInfo *pChild=0;
 
-  bool blockfound = false;
-  bool blockvalue = true;
+  bool blockfound=false;
+  bool blockvalue=true;
 
-  for( int ss = 0; ss < SecSize; ss++ )
-  {
+  for(int ss=0;ss<SecSize;ss++){
     MyElement object;
 
-    DOMNode  *newAtt = pSceAttlist->item(ss);
-    char* attriName = XMLString::transcode( newAtt->getNodeName() );
-    char* attriValue = XMLString::transcode( newAtt->getNodeValue() );
+    DOMNode  *newAtt=pSceAttlist->item(ss);
+    char *attriName=XMLString::transcode(newAtt->getNodeName() );
+    char *attriValue=XMLString::transcode(newAtt->getNodeValue());
 
-    //check for block value
-    if( 0 == XMLString::compareString( g_ElemAttrMap[10].attr,
-                                       attriName ) )//BLOCK
-    {
-      blockfound = true;
-      char *truevalue = "FALSE";
-      if( 0 == XMLString::compareString(attriValue, truevalue) )
-      {
+    // BLOCK
+    if(!XMLString::compareString(g_ElemAttrMap[10].attr,
+                                 attriName)){
+      blockfound=true;
+      char *truevalue="FALSE";
+      if(!XMLString::compareString(attriValue,truevalue))
         blockvalue = false;
-      }
     }
 
-    if( 0 == XMLString::compareString( g_ElemAttrMap[0].attr,
-                                       attriName ) )//ID
-    {
-      switch( type )
-      {
+    // ID
+    if(!XMLString::compareString(g_ElemAttrMap[0].attr,
+                                 attriName)){
+      switch(type){
         case SCENARIO:
           // Create scenario group
-          _pParent=TestCaseInfo::CreateScenario(attriValue, true);
+          _pParent=TestCaseInfo::CreateScenario(attriValue,true);
           break;
         case GROUP:
           // Create group
           if(blockfound==true)
-            pChild =_pParent->AddGroup(attriValue, blockvalue);
+            pChild =_pParent->AddGroup(attriValue,blockvalue);
           break;
         case TESTCASE:
           // Create testcase
           if(blockfound==true)
-            pChild =_pParent->AddTestCase(attriValue, blockvalue);
+            pChild =_pParent->AddTestCase(attriValue,blockvalue);
           break;
         default:
           break;
@@ -315,49 +316,45 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
     myelement.push_back(object);
   }
 
-  //add more attributes
-  for( std::list<MyElement>::iterator from=myelement.begin();
-       from!=myelement.end();
-       ++from
-       )
-  {
-    switch( type )
-    {
+  // Add more attributes
+  std::list<MyElement>::iterator from=myelement.begin();
+  for(;from!=myelement.end();++from){
+    switch(type){
       case SCENARIO:
-        if( 0 == XMLString::compareString( g_ElemAttrMap[6].attr,
-                                           (*from).attrname ) )//MAXRUNTIME
-        {
-          int time = atoi((*from).attrvalue);
-          if( NULL != _pParent )
+        // MAXRUNTIME
+        if(!XMLString::compareString(g_ElemAttrMap[6].attr,
+                                     (*from).attrname)){
+          int time=atoi((*from).attrvalue);
+          if(_pParent)
             _pParent->MaxTimeLimit(time);
         }
         break;
       case GROUP:
         break;
       case TESTCASE:
-        //set testcase name
-        if( 0 == XMLString::compareString( g_ElemAttrMap[17].attr,
-                                           (*from).attrname ) )//NAME
-        {
-          if( NULL != pChild )
-            pChild->TestCaseName((*from).attrvalue);
-        }
-        //set testcase exe
-        if( 0 == XMLString::compareString( g_ElemAttrMap[15].attr,
-                                           (*from).attrname ) )//EXECPATH
-        {
-          if( NULL != pChild )
-            pChild->TestCaseExec((*from).attrvalue);
+        if(!pChild)
+          break;
+        if(!XMLString::compareString(g_ElemAttrMap[17].attr,
+                                     (*from).attrname)){
+          // NAME
+          pChild->TestCaseName((*from).attrvalue);
+        }else if(!XMLString::compareString(g_ElemAttrMap[15].attr,
+                                           (*from).attrname)){
+          // EXECPATH
+          pChild->TestCaseExec((*from).attrvalue);
+        }else if(!XMLString::compareString(g_ElemAttrMap[16].attr,
+                                           (*from).attrname)){
+          // NUMRUNS
+          int time=atoi((*from).attrvalue);
+          pChild->NumberOfRuns(time);
         }
         break;
       default:
         break;
     }
-
     XMLString::release(&(*from).attrname);
     XMLString::release(&(*from).attrvalue);
   }
-
   myelement.clear();
 
   return;
@@ -366,7 +363,7 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
 //-----------------------------------------------------------------------------
 // GetScenario
 //-----------------------------------------------------------------------------
-TestCaseInfo *
-XMLParse::GetScenario(void){
-  return( _pParent );
+TestCaseInfo
+*XMLParse::GetScenario(void){
+  return(_pParent);
 }
