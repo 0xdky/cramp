@@ -91,7 +91,7 @@ Public Sub GetEnvironmentVariable()
   'checking for the profileDQ.pl
   IsFileExistAndSize gperlScript, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
-    MsgBox "ERROR :: profileDB.pl Is Not Found Under " & gCRAMPPath & _
+    MsgBox "ERROR :: profileDQ.pl Is Not Found Under " & gCRAMPPath & _
                      "\bin" & " Folder"
   End If
   
