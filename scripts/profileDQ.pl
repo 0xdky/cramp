@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-03-06 15:18:54 dky>
+## Time-stamp: <2004-03-11 13:03:04 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -37,6 +37,7 @@ use BerkeleyDB;
 # Global variables
 my $g_nw=0;                     # No window / error window
 my $g_pid;                      # Process ID of the profiled program
+my $g_filt=0;                   # Filtering while dumping
 my $g_verb=1;                   # Default verbosity
 my $f_logdb;                    # Berkeley DB file
 my $f_logtxt;                   # Profiler stack log file
@@ -62,7 +63,8 @@ $progname=~s,.*/,,;
 ##-----------------------------------------------------------------------------
 sub usage{
   select STDERR;
-  print "usage : $progname [[-nw|--no-window][-q|--quite][-d|--debug] ARGS
+  my $opt="[[-nw|--no-window][-q|--quite][-d|--debug][-f|--filter]]";
+  print "usage : $progname $opt ARGS
 ARGS  : PID DUMP STAT|TICK|ADDR|ALL
         PID QUERY STAT [APPEND]
         PID QUERY THREADS [APPEND]
@@ -304,6 +306,8 @@ sub ProcessArgs{
     } elsif (/(-Q)|(--QUIET)/) {
       $g_verb=0;
       $g_nw=1;
+    } elsif (/(-F)|(--FILTER)/) {
+      $g_filt=1;
     } else {
       push(@temparray,$_);
     }
@@ -328,7 +332,9 @@ sub ProcessArgs{
   $f_logstat="$cramplogdir/cramp_stat#$g_pid.log";
 
   if ($ARGV[1]=~/DUMP/) {
-    ApplyFilter();
+    if (0!=$g_filt) {
+      ApplyFilter();
+    }
     foreach ($ARGV[2]..$ARGV[-1]) {
       UpdateDB($_);
     }
@@ -965,7 +971,7 @@ sub AddFunctionInformation{
   $db=new BerkeleyDB::Hash
     -Filename    => $f_logdb,
       -Subname     => "FUNC_INFO",
-        -Flags       => DB_EXCL|DB_CREATE;
+        -Flags       => DB_CREATE;
   if (!defined($db)) {
     ErrorMessage(0,"Unable to create \"FUNC_INFO\" table in DB");
     return 1;
