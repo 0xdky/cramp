@@ -14,15 +14,60 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   2
-      Left            =   1200
+      Left            =   0
       TabIndex        =   56
-      Top             =   -6240
-      Width           =   7450
+      Top             =   -6120
+      Width           =   7695
+      Begin VB.Frame frmList 
+         Height          =   4215
+         Left            =   360
+         TabIndex        =   57
+         Top             =   480
+         Width           =   7095
+         Begin VB.CommandButton cmdRunList 
+            Caption         =   "Run"
+            Height          =   495
+            Left            =   5520
+            TabIndex        =   61
+            Top             =   2160
+            Width           =   1095
+         End
+         Begin VB.CommandButton cmdRemoveList 
+            Caption         =   "Remove"
+            Height          =   495
+            Left            =   5520
+            TabIndex        =   60
+            Top             =   1320
+            Width           =   1095
+         End
+         Begin VB.CommandButton cmdAddList 
+            Caption         =   "Add"
+            Height          =   495
+            Left            =   5520
+            TabIndex        =   59
+            Top             =   480
+            Width           =   1095
+         End
+         Begin VB.ListBox lstScenarios 
+            Height          =   3570
+            Left            =   360
+            TabIndex        =   58
+            Top             =   360
+            Width           =   4695
+         End
+      End
+      Begin MSComDlg.CommonDialog dlgList 
+         Left            =   6840
+         Top             =   6120
+         _ExtentX        =   847
+         _ExtentY        =   847
+         _Version        =   393216
+      End
    End
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
-      Left            =   6120
+      Left            =   6240
       TabIndex        =   2
       Top             =   -6960
       Visible         =   0   'False
@@ -410,9 +455,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   0
-      Left            =   960
+      Left            =   840
       TabIndex        =   1
-      Top             =   840
+      Top             =   480
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -443,7 +488,7 @@ Begin VB.Form frmMainui
          Height          =   315
          ItemData        =   "frmMainui.frx":0E6E
          Left            =   6000
-         List            =   "frmMainui.frx":0E70
+         List            =   "frmMainui.frx":0E78
          TabIndex        =   9
          Text            =   "TRUE"
          Top             =   5400
@@ -530,8 +575,8 @@ Begin VB.Form frmMainui
       Left            =   600
       TabIndex        =   0
       Top             =   240
-      Width           =   8175
-      _ExtentX        =   14420
+      Width           =   8415
+      _ExtentX        =   14843
       _ExtentY        =   14208
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
@@ -698,6 +743,13 @@ Private Sub cmdAddGroup_Click()
 End Sub
 
 '***********************************************************
+'
+'***********************************************************
+Private Sub cmdAddList_Click()
+    AddScenarioInList
+End Sub
+
+'***********************************************************
 'Adds a testcase in scenario
 'First update the DB with present attributes data in listview
 'then adds a new node in treeview
@@ -769,52 +821,45 @@ Private Sub cmdDelete_Click()
 End Sub
 
 '***********************************************************
+'
+'***********************************************************
+Private Sub cmdRemoveList_Click()
+    
+    Dim intListIndex As Integer
+    intListIndex = lstScenarios.ListIndex
+    lstScenarios.RemoveItem (intListIndex)
+    cmdRemoveList.Enabled = False
+    gSaveFlag = True
+    
+End Sub
+
+'***********************************************************
 'Runs the scenario and generates the results.
 'First it saves the entire scenario and then runs it.
 '***********************************************************
 Private Sub cmdRun_Click()
+        
     Dim Command As String
-    Dim TaskID As Long
-    Dim pInfo As PROCESS_INFORMATION
-    Dim sInfo As STARTUPINFO
-    Dim sNull As String
-    Dim lSuccess As Long
-    Dim lRetValue As Long
-    Dim retVal As Boolean
-    Dim Response
     
     SaveFunction gCurFileName
     
-    MousePointer = 11
-    
     Command = gCRAMPPath & "\bin\CRAMPEngine.exe " & gCurFileName
     
-    sInfo.cb = Len(sInfo)
-    lSuccess = CreateProcess(sNull, _
-                            Command, _
-                            ByVal 0&, _
-                            ByVal 0&, _
-                            1&, _
-                            NORMAL_PRIORITY_CLASS, _
-                            ByVal 0&, _
-                            sNull, _
-                            sInfo, _
-                            pInfo)
+    RunScenario Command
     
-    lRetValue = WaitForSingleObject(pInfo.hProcess, INFINITE)
-    retVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Private Sub cmdRunList_Click()
+    Dim Command As String
+    'Better save the list again
+    SaveScList gCurScListFileName
     
-    If lRetValue = 0 Then
-        Response = MsgBox("Scenario Run : Successful!!", , "Status")
-    Else
-        Response = MsgBox("Scenario Run : Unsuccessful" & Chr(13) & _
-                    "Exit code: " & lRetValue, , "Status")
-    End If
+    Command = gperlPath & gstrSpace & gCRAMPPath & "\bin\crampstaf.pl" & gstrSpace & gCurScListFileName
     
-    lRetValue = CloseHandle(pInfo.hThread)
-    lRetValue = CloseHandle(pInfo.hProcess)
-    
-    MousePointer = 99
+    RunScenario Command
     
 End Sub
 
@@ -875,6 +920,29 @@ Private Sub Form_Unload(Cancel As Integer)
         DeleteFile gDatabaseName
     End If
     
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Private Sub lstScenarios_Click()
+    Dim strSelection As String
+    
+    If lstScenarios.ListCount = 0 Then
+        Exit Sub
+    End If
+    
+    cmdRemoveList.Enabled = True
+    
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Private Sub lstScenarios_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+    If Button = vbRightButton Then
+      PopupMenu mnuNodeRightCL
+    End If
 End Sub
 
 '***********************************************************
@@ -992,7 +1060,11 @@ Private Sub mnuExit_Click()
           CleanUp 'pie added this code
         End If
     Else
+        SaveIntoMRUFile
         'Add code for scenario list frame stuff
+        If Not CheckScListSaveStatus Then
+            Exit Sub
+        End If
         
     End If
     
@@ -1046,39 +1118,60 @@ End Sub
 'then open the clicked scenario
 '***********************************************************
 Private Sub mnuMRU_Click(index As Integer)
-    Dim RetStatus As Boolean
-    RetStatus = CheckSaveStatus
-    If Not RetStatus Then
-        Exit Sub
+    
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    If stFrameType = stList Then
+        'Check for earlier scenario list operation
+        If Not CheckScListSaveStatus Then
+            Exit Sub
+        End If
+    Else
+        If Not CheckSaveStatus Then
+            Exit Sub
+        End If
     End If
     
-    Dim sScenarioName As String
-    sScenarioName = gMRUList(0, index)
+    Dim strSelection As String, Msg As String
+    strSelection = gMRUList(0, index)
     
-    If Not FileExists(sScenarioName) Then
-        Dim Msg, Style, Title, Response, MyString
+    If Not FileExists(strSelection) Then
+        
         Msg = "ERROR: Scenario file " & Chr(13) & Chr(34) & _
-              sScenarioName & Chr(34) & Chr(13) & _
+              strSelection & Chr(34) & Chr(13) & _
               " does not exist"
-        Style = vbCritical + vbOKOnly
-        Title = "CRAMP Error"
-        MsgBox Msg, Style, Title
+        ShowErrorMsgbox Msg
         Exit Sub
     End If
     
-    Dim tmpStr As String
-    CleanAndRestart
+    'Find whether the selection is Scenario or List
+    Dim strFileExtn As String
+    strFileExtn = GetFileExt(strSelection)
     
-    CreateDatabase
+    Select Case LCase(strFileExtn)
+        Case LCase("xml")
+            CleanAndRestart
+            CreateDatabase
+            gCurScenarioName = GetFileNameWithoutExt(strSelection)
+            gCurFileName = strSelection
+            LoadScenario gCurFileName
+            cmdRun.Enabled = True
     
-    gCurScenarioName = GetFileNameWithoutExt(sScenarioName)
-    
-    gCurFileName = sScenarioName
+        Case LCase("txt")
+            ShowListFrame
+            gCurScListName = GetFileNameWithoutExt(strSelection)
+            gCurScListFileName = strSelection
+            LoadScenarioListFrame gCurScListFileName
+        Case Else
+            'ERROR msg
+            Msg = "ERROR: Unknown format of selected file"
+            ShowErrorMsgbox Msg
+            Exit Sub
+    End Select
+        
     mnuSave.Enabled = True
-    LoadScenario gCurFileName
-    cmdRun.Enabled = True
     RenameFormWindow
-    UpdateMRUFileList gCurFileName
+    UpdateMRUFileList strSelection
     gSaveFlag = False
  
 End Sub
@@ -1090,91 +1183,98 @@ End Sub
 '***********************************************************
 Private Sub mnuNew_Click()
     
-    Dim RetStatus As Boolean
-    RetStatus = CheckSaveStatus
-    If Not RetStatus Then
-        Exit Sub
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    If stFrameType = stList Then
+        'Check for earlier scenario list operation
+        If Not CheckScListSaveStatus Then
+            Exit Sub
+        End If
+    Else
+        If Not CheckSaveStatus Then
+            Exit Sub
+        End If
     End If
     
     CleanAndRestart
-    
+    RenameFormWindow
     CreateDatabase
         
     AddNodeInTreeView , otScenario
     
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub mnuNewList_Click()
+    
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    If stFrameType = stFile Then
+        If Not CheckSaveStatus Then
+            Exit Sub
+        End If
+    Else
+        'Check for earlier scenario list operation
+        If Not CheckScListSaveStatus Then
+            Exit Sub
+        End If
+    End If
+    
     ShowListFrame
     RenameFormWindow
     gSaveFlag = False
     mnuSave.Enabled = False
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub mnuNodeMoveDown_Click()
-    Dim nodCurrent As Node, nodNext As Node
-    Dim nodNew As Node
-    Dim boolExpPosition As Boolean
-    
-    Set nodCurrent = tvwNodes.SelectedItem
-    
-    'See if previous node exists
-    Set nodNext = nodCurrent.Next
-    If nodNext Is Nothing Then
-        Exit Sub
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    If stFrameType = stFile Then
+        MoveDownNodeSelection
+    Else
+        MoveDownListItem
     End If
-    boolExpPosition = nodNext.Expanded
-    'Create new node at the desired position.
-    Set nodNew = tvwNodes.Nodes.Add(nodCurrent, tvwPrevious, "NewNode", "")
     
-    'Copy the children of the previous node
-    CopyNodeWithChildren nodNew, nodNext
-    nodNew.Expanded = boolExpPosition
-    'Remove the previous node, will automatically remove its children
-    tvwNodes.Nodes.Remove (nodNext.key)
-    nodNew.EnsureVisible
-    tvwNodes.SelectedItem = nodCurrent
-    tvwNodes.Refresh
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub mnuNodeMoveUp_Click()
-    Dim nodCurrent As Node, nodPrevious As Node
-    Dim nodNew As Node
-    Dim boolExpPosition As Boolean
-    
-    Set nodCurrent = tvwNodes.SelectedItem
-    
-    'See if previous node exists
-    Set nodPrevious = nodCurrent.Previous
-    If nodPrevious Is Nothing Then
-        Exit Sub
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    If stFrameType = stFile Then
+        MoveUpNodeSelection
+    Else
+        MoveUpListItem
     End If
-    boolExpPosition = nodPrevious.Expanded
-    'Create new node at the desired position.
-    Set nodNew = tvwNodes.Nodes.Add(nodCurrent, tvwNext, "NewNode", "")
     
-    'Copy the children of the previous node
-    CopyNodeWithChildren nodNew, nodPrevious
-    nodNew.Expanded = boolExpPosition
-    'Remove the previous node, will automatically remove its children
-    tvwNodes.Nodes.Remove (nodPrevious.key)
-    nodNew.EnsureVisible
-    tvwNodes.SelectedItem = nodCurrent
-    tvwNodes.Refresh
 End Sub
 
 '***********************************************************
 'Opens the selected scenario file
 '***********************************************************
 Private Sub mnuOpen_Click()
-    Dim strFileName As String
-    
-    Dim RetStatus As Boolean
-    RetStatus = CheckSaveStatus
-    If Not RetStatus Then
-        Exit Sub
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    'Check for earlier scenario list operation
+    If stFrameType = stList Then
+        If Not CheckScListSaveStatus Then
+            Exit Sub
+        End If
+    Else
+        'Check for earlier scenario operation
+        If Not CheckSaveStatus Then
+            Exit Sub
+        End If
     End If
     
+    Dim strFileName As String
     dlgSelect.Filter = "XML Files (*.xml)|*.xml"
     dlgSelect.FileName = ""
     dlgSelect.ShowOpen
@@ -1198,8 +1298,28 @@ Private Sub mnuOpen_Click()
     
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub mnuOpenList_Click()
-    ShowListFrame
+    
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    If stFrameType = stFile Then
+        If Not CheckSaveStatus Then
+            Exit Sub
+        End If
+    Else
+        'Check for earlier scenario list operation
+        If Not CheckScListSaveStatus Then
+            Exit Sub
+        End If
+    
+    End If
+        
+    'Call the open function
+    OpenScList
+    
 End Sub
 
 '***********************************************************
@@ -1241,24 +1361,43 @@ End Sub
 'header accordingly by calling RenameFormWindow
 '***********************************************************
 Private Sub tspMainUI_Click()
-    Dim ii As Integer
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    If stFrameType = stList Then
+        'Check for earlier scenario list operation
+        If Not CheckScListSaveStatus Then
+            Exit Sub
+        End If
+    Else
+        If Not CheckSaveStatus Then
+            Exit Sub
+        End If
+    End If
     
+    Dim ii As Integer
     For ii = 0 To fraMainUI.Count - 1
         fraMainUI(ii).Visible = False
     Next ii
     
     fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
     fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
-    
+    mnuSave.Enabled = False
+    gSaveFlag = False
     RenameFormWindow
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub tvwNodes_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
     If Button = vbRightButton Then
       PopupMenu mnuNodeRightCL
     End If
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub tvwNodes_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single)
     Dim strKey As String, strText As String
     Dim nodNew As Node, nodDragged As Node
@@ -1291,6 +1430,9 @@ Private Sub tvwNodes_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long,
     Set tvwNodes.DropHighlight = Nothing
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub tvwNodes_OLEDragOver(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, X As Single, Y As Single, State As Integer)
     'If no node is selected, select the first node you dragged over.
     If tvwNodes.SelectedItem Is Nothing Then
@@ -1300,6 +1442,9 @@ Private Sub tvwNodes_OLEDragOver(Data As MSComctlLib.DataObject, Effect As Long,
     Set tvwNodes.DropHighlight = tvwNodes.HitTest(X, Y)
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub tvwNodes_OLEStartDrag(Data As MSComctlLib.DataObject, AllowedEffects As Long)
     tvwNodes.SelectedItem = Nothing
 End Sub

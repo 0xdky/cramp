@@ -9,8 +9,6 @@ Public gNameList(1000) As String
 Public gDatabaseName As String
 Public gCurFileName As String
 Public gCurScenarioName As String
-Public gCurScListFileName As String
-Public gCurScListName As String
 Public gListViewNode As Node
 Public gSaveFlag As Boolean
 Public gMRUList(1, 3) As String
@@ -19,6 +17,10 @@ Public gGrpIdRef(1000, 1) As String
 Public gTcIdRef(1000, 1) As String
 Public gIdRef As New Collection
 
+Const SYNCHRONIZE = 1048576
+Const NORMAL_PRIORITY_CLASS = &H20&
+Const INFINITE = -1
+
 Public Enum ObjectType
     otNone = 0
     otScenario = 1
@@ -26,11 +28,6 @@ Public Enum ObjectType
     otTestcase = 3
 End Enum
 
-'To get/set the scenario/scenario list
-Public Enum ScType
-    stFile = 1
-    stList = 2
-End Enum
 
 '***********************************************************
 ' My Code Starts Here
@@ -58,7 +55,6 @@ Public Type udtPID
   thrArray() As String
 End Type
 
-
 '****************************************************
 ' Return the node's object type
 '****************************************************
@@ -75,15 +71,6 @@ Public Function nodeType(testNode As Node) As ObjectType
                 nodeType = otTestcase
         End Select
     End If
-End Function
-
-Public Function GetScType() As ScType
-    If frmMainui.fraMainUI(2).Visible Then
-        GetScType = stList
-    Else
-        GetScType = stFile
-    End If
-    
 End Function
 
 '****************************************************
@@ -103,6 +90,9 @@ Public Function GetNodeName(tblType As ObjectType) As String
 
 End Function
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub SetVisible()
     frmMainui.cboTrueFalse.Visible = False
     frmMainui.cboIdRef.Visible = False
@@ -293,6 +283,9 @@ Public Sub SetActionButtons()
 
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub InitialiseListView()
     Dim colX As ColumnHeader ' Declare variable.
 
@@ -308,6 +301,9 @@ Public Sub InitialiseListView()
 
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub SetGlobalVariables()
     Dim retVal As Long
     Dim pid As Long
@@ -349,13 +345,14 @@ Public Sub SetGlobalVariables()
     frmMainui.cmdRun.Enabled = False
     gCurFileName = gTEMPDir & "\Scenario1.xml"
     gCurScenarioName = "Scenario1"
-    gCurScListFileName = gTEMPDir & "\ScenarioList1.txt"
-    gCurScListName = "ScenarioList1"
     
     gSaveFlag = False
 
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub CleanAndRestart()
 
     SetGlobalVariables
@@ -417,6 +414,9 @@ Public Sub ClearNodeNamesFromGlobalLists(ByVal selectedNode As Node)
 
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub DeleteRecord(ByVal nodeElement As Node)
     Dim tblName As String
     Dim tblType As ObjectType
@@ -444,6 +444,9 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
     cnn.Close
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub RenameFormWindow()
     Dim stFrameType As ScType
     stFrameType = GetScType
@@ -465,6 +468,9 @@ Public Sub RenameFormWindow()
     End If
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub HideShowMenuItems()
     If frmMainui.tspMainUI.SelectedItem.index = 2 Then
         'Profiler tab page is open, disable File menu item
@@ -490,33 +496,18 @@ Public Sub HideShowMenuItems()
 
 End Sub
 
-Public Sub ShowListFrame()
-
-    'Check for current scenario save status
-    Dim RetStatus As Boolean
-    RetStatus = CheckSaveStatus
-    If Not RetStatus Then
-        Exit Sub
-    End If
-    
-    'Hide the current frame and show the desired one
-    Dim ii As Integer
-    
-    For ii = 0 To frmMainui.fraMainUI.Count - 1
-        frmMainui.fraMainUI(ii).Visible = False
-    Next ii
-    
-    frmMainui.fraMainUI(2).Visible = True
-    frmMainui.fraMainUI(2).Move 600, 840
-    
-End Sub
-
+'***********************************************************
+'
+'***********************************************************
 Public Sub TestVBS()
 
     Shell ("CScript.exe D:\CRAMP\crampsetting.vbs")
 
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub InitialiseMRUFileList()
     Dim sFileName As String
     Dim sMRUFile As String
@@ -564,6 +555,9 @@ Public Sub InitialiseMRUFileList()
 
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub UpdateMenuEditor()
     Dim ii As Integer
 
@@ -579,6 +573,9 @@ Public Sub UpdateMenuEditor()
 
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Function CheckSaveStatus() As Boolean
     If gSaveFlag Then
         Dim Msg, Style, Title, Response, MyString
@@ -607,34 +604,9 @@ Public Function CheckSaveStatus() As Boolean
     CheckSaveStatus = True
 End Function
 
-Public Function CheckScListSaveStatus() As Boolean
-    If gSaveFlag Then
-        Dim Msg, Style, Title, Response, MyString
-        Msg = "Do you want to save the changes you made to " & _
-                    gCurScListName & "?"
-        Style = vbYesNoCancel + vbExclamation
-        Title = "CRAMP"
-
-        Response = MsgBox(Msg, Style, Title)
-        Select Case Response
-            Case vbYes
-                If frmMainui.mnuSave.Enabled Then
-                    SaveFunction gCurFileName
-                ElseIf Not ScListSaveAs Then
-                    CheckScListSaveStatus = False
-                    Exit Function
-                End If
-                    
-            Case vbNo
-
-            Case vbCancel
-                CheckScListSaveStatus = False
-                Exit Function
-        End Select
-    End If
-    CheckScListSaveStatus = True
-End Function
-
+'***********************************************************
+'
+'***********************************************************
 Public Sub SaveIntoMRUFile()
     Dim sFileName As String
     Dim ii As Integer
@@ -686,43 +658,9 @@ Public Sub SaveFunction(strFileName As String)
 
 End Sub
 
-'************************************************************
+'***********************************************************
 '
-'************************************************************
-Public Sub SaveScList(strFileName As String)
-    
-    gSaveFlag = False
-
-End Sub
-
-Public Function ScListSaveAs() As Boolean
-
-    frmMainui.dlgSelect.Flags = cdlOFNOverwritePrompt
-    frmMainui.dlgSelect.Filter = "TXT Files (*.txt)|*.txt"
-    If Not gCurScListFileName = "" Then
-        frmMainui.dlgSelect.FileName = gCurScListFileName
-    Else
-        frmMainui.dlgSelect.FileName = ""
-    End If
-    frmMainui.dlgSelect.ShowSave
-    
-    If frmMainui.dlgSelect.FileTitle <> "" Then
-        gCurScListName = Left(frmMainui.dlgSelect.FileTitle, _
-                                (Len(frmMainui.dlgSelect.FileTitle) - 4))
-        gCurScListName = frmMainui.dlgSelect.FileName
-        If Not gCurScListName = "" Then
-            SaveScList gCurScListName
-            frmMainui.mnuSave.Enabled = True
-            frmMainui.cmdRun.Enabled = True
-        End If
-        RenameFormWindow
-        ScListSaveAs = True
-    Else
-        ScListSaveAs = False
-    End If
-    
-End Function
-
+'***********************************************************
 Public Sub UpdateMRUFileList(strFileName As String)
     Dim ii, jj As Integer
     Dim bFilePresent As Boolean
@@ -763,7 +701,9 @@ Public Sub UpdateMRUFileList(strFileName As String)
     UpdateMenuEditor
 End Sub
 
-
+'***********************************************************
+'
+'***********************************************************
 Public Sub CreateIdRefList()
     Dim selectedNode As Node
     Dim rootNode As Node
@@ -781,6 +721,9 @@ Public Sub CreateIdRefList()
 
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Function NodeCanBeAdded(parentNode As Node, _
                                 NodeId As String) As Boolean
     Dim ii As Integer
@@ -818,6 +761,9 @@ Public Function NodeCanBeAdded(parentNode As Node, _
     NodeCanBeAdded = True
 End Function
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub UpdateNodeName(strName As String)
     Dim tblType As ObjectType
     Dim curName, newName As String
@@ -845,6 +791,9 @@ Public Sub UpdateNodeName(strName As String)
     
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Function FileSaveAs() As Boolean
 
     frmMainui.dlgSelect.Flags = cdlOFNOverwritePrompt
@@ -873,11 +822,124 @@ Public Function FileSaveAs() As Boolean
     
 End Function
 
+'***********************************************************
+'
+'***********************************************************
+Public Sub ShowErrorMsgbox(strMsg As String)
+    Dim Style, Title, Response, MyString
+    Style = vbCritical + vbOKOnly
+    Title = "CRAMP Error"
+    MsgBox strMsg, Style, Title
+    
+End Sub
+
 'Public Sub RegSettingTest()
 
     'SetKeyValue "Environment", "StringValue", "HelloShirish", REG_SZ
 
 'End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Public Sub RunScenario(Command As String)
+
+    Dim TaskID As Long
+    Dim pInfo As PROCESS_INFORMATION
+    Dim sInfo As STARTUPINFO
+    Dim sNull As String
+    Dim lSuccess As Long
+    Dim lRetValue As Long
+    Dim retVal As Boolean
+    Dim Response
+    
+    frmMainui.MousePointer = 11
+    
+    sInfo.cb = Len(sInfo)
+    lSuccess = CreateProcess(sNull, _
+                            Command, _
+                            ByVal 0&, _
+                            ByVal 0&, _
+                            1&, _
+                            NORMAL_PRIORITY_CLASS, _
+                            ByVal 0&, _
+                            sNull, _
+                            sInfo, _
+                            pInfo)
+    
+    lRetValue = WaitForSingleObject(pInfo.hProcess, INFINITE)
+    retVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
+    
+    If lRetValue = 0 Then
+        Response = MsgBox("Run : Successful!!", , "Status")
+    Else
+        Response = MsgBox("Run : Unsuccessful" & Chr(13) & _
+                    "Exit code: " & lRetValue, , "Status")
+    End If
+    
+    lRetValue = CloseHandle(pInfo.hThread)
+    lRetValue = CloseHandle(pInfo.hProcess)
+    
+    frmMainui.MousePointer = 99
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Public Sub MoveDownNodeSelection()
+    Dim nodCurrent As Node, nodNext As Node
+    Dim nodNew As Node
+    Dim boolExpPosition As Boolean
+    
+    Set nodCurrent = frmMainui.tvwNodes.SelectedItem
+    
+    'See if previous node exists
+    Set nodNext = nodCurrent.Next
+    If nodNext Is Nothing Then
+        Exit Sub
+    End If
+    boolExpPosition = nodNext.Expanded
+    'Create new node at the desired position.
+    Set nodNew = frmMainui.tvwNodes.Nodes.Add(nodCurrent, tvwPrevious, "NewNode", "")
+    
+    'Copy the children of the previous node
+    CopyNodeWithChildren nodNew, nodNext
+    nodNew.Expanded = boolExpPosition
+    'Remove the previous node, will automatically remove its children
+    frmMainui.tvwNodes.Nodes.Remove (nodNext.key)
+    nodNew.EnsureVisible
+    tvwNodes.SelectedItem = nodCurrent
+    tvwNodes.Refresh
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Public Sub MoveUpNodeSelection()
+    Dim nodCurrent As Node, nodPrevious As Node
+    Dim nodNew As Node
+    Dim boolExpPosition As Boolean
+    
+    Set nodCurrent = frmMainui.tvwNodes.SelectedItem
+    
+    'See if previous node exists
+    Set nodPrevious = nodCurrent.Previous
+    If nodPrevious Is Nothing Then
+        Exit Sub
+    End If
+    boolExpPosition = nodPrevious.Expanded
+    'Create new node at the desired position.
+    Set nodNew = frmMainui.tvwNodes.Nodes.Add(nodCurrent, tvwNext, "NewNode", "")
+    
+    'Copy the children of the previous node
+    CopyNodeWithChildren nodNew, nodPrevious
+    nodNew.Expanded = boolExpPosition
+    'Remove the previous node, will automatically remove its children
+    frmMainui.tvwNodes.Nodes.Remove (nodPrevious.key)
+    nodNew.EnsureVisible
+    tvwNodes.SelectedItem = nodCurrent
+    tvwNodes.Refresh
+End Sub
 
 
 '***********************************************************
@@ -924,7 +986,7 @@ Public Sub HideShowControls(strVal As String)
            .selLabel.Visible = True
            .threadLabel.Visible = True
            .rtLabel.Visible = True
-           .AddLabel.Visible = False
+           .addLabel.Visible = False
            .limitLabel.Visible = True
            .tableLabel.Visible = False
            'move controls
@@ -949,7 +1011,7 @@ Public Sub HideShowControls(strVal As String)
            .selLabel.Visible = False
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .AddLabel.Visible = False
+           .addLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
            .tableCombo.Move 2280, 480
@@ -974,7 +1036,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = True
-           .AddLabel.Visible = False
+           .addLabel.Visible = False
            .limitLabel.Visible = True
            'move controls
            .threadCombo.Move 3600, 480
@@ -995,7 +1057,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = False
-           .AddLabel.Visible = True
+           .addLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
            .threadCombo.Move 3600, 480
@@ -1004,7 +1066,7 @@ Public Sub MoveControls(strVal As String)
            .appendCheck.Move 6840, 480
            'move lables 5740
            .threadLabel.Move 3600, 240
-           .AddLabel.Move 4680, 240
+           .addLabel.Move 4680, 240
            .limitLabel.Move 5880, 240
       Case "STAT"
            'hide-show controls
@@ -1015,7 +1077,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .AddLabel.Visible = False
+           .addLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
            .threadCombo.Move 3600, 480

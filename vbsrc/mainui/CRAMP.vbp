@@ -17,6 +17,7 @@ Module=Win32; Win32.bas
 Module=modFileHandling; modFileHandling.bas
 Module=modInitialization; modInitialization.bas
 Form=frmLVColHS.frm
+Module=modGeneral; modGeneral.bas
 IconForm="frmMainui"
 Startup="frmMainui"
 HelpFile=""
