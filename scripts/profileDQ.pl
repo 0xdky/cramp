@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-28 14:27:26 dky>
+## Time-stamp: <2004-02-28 18:51:30 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -961,13 +961,12 @@ sub AppendFuncInfoToLogs{
 }
 
 ##-----------------------------------------------------------------------------
-## Filter
+##                            Filtering during dumping
+##-----------------------------------------------------------------------------
 ##-----------------------------------------------------------------------------
 ## MakeFilterString
 ##-----------------------------------------------------------------------------
 sub MakeFilterString{
-  $g_filterstring=0;
-
   open(FILTER,"<$f_filter") ||
     return 1;
 
@@ -981,11 +980,9 @@ sub MakeFilterString{
   }
   close(FILTER);
 
-  foreach (keys %filterhash) {
-    $g_filterstring="$_|".$g_filterstring;
-  }
-
-  if (0==length($g_filterstring)) {
+  if (scalar(keys %filterhash)) {
+    $g_filterstring=join('|',keys %filterhash);
+  } else {
     return 1;
   }
 
@@ -1002,6 +999,7 @@ sub ApplyFilterOnFuncInfo{
     || return 1;
 
   my $addr;
+  my $modified=0;
   while (<I_FUNC>) {
     chomp();
     if (/$g_filterstring/o) {
@@ -1011,12 +1009,14 @@ sub ApplyFilterOnFuncInfo{
         print O_FUNC "$_\n";
       }
       $g_filteredhash{$addr}=1;
+    } else {
+      $modified=1;
     }
   }
   close(O_FUNC);
   close(I_FUNC);
 
-  if (0==scalar(keys(%g_filteredhash))) {
+  if (!$modified || 0==scalar(keys(%g_filteredhash))) {
     return 1;
   }
 
@@ -1085,27 +1085,35 @@ sub ApplyFilterOnStat{
 ## ApplyFilter
 ##-----------------------------------------------------------------------------
 sub ApplyFilter{
-  if (MakeFilterString()) {
-    return 1;
-  }
-  if (ApplyFilterOnFuncInfo()) {
-    return 1;
-  }
-  if (ApplyFilterOnProfile()) {
-    return 1;
-  }
-  if (ApplyFilterOnStat()) {
-    return 1;
+  my $ret=1;
+  if (0==MakeFilterString()) {
+    if (0==ApplyFilterOnFuncInfo()) {
+      if (0==ApplyFilterOnProfile()) {
+        if (0==ApplyFilterOnStat()) {
+          $ret=0;
+        }
+      }
+    }
   }
 
   # If all goes well, overwrite the files
   if (!exists($ENV{'CRAMP_DEBUG'})) {
-    unlink($f_logtxt);
-    unlink($f_logfin);
-    unlink($f_logstat);
-    rename("$f_logtxt.fo",$f_logtxt);
-    rename("$f_logfin.fo",$f_logfin);
-    rename("$f_logstat.fo",$f_logstat);
+    if (0==$ret) {
+      unlink($f_logtxt);
+      unlink($f_logfin);
+      unlink($f_logstat);
+      rename("$f_logtxt.fo",$f_logtxt);
+      rename("$f_logfin.fo",$f_logfin);
+      rename("$f_logstat.fo",$f_logstat);
+    } else {
+      unlink("$f_logtxt.fo");
+      unlink("$f_logfin.fo");
+      unlink("$f_logstat.fo");
+    }
+  } else {
+    if ($ret) {
+      PrintTime("Applying filter failed!");
+    }
   }
 
   return 0;
