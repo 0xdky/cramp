@@ -1051,26 +1051,9 @@ End Sub
 'Save the current scenario with new name
 '***********************************************************
 Private Sub mnuSaveAs_Click()
-    dlgSelect.Flags = cdlOFNOverwritePrompt
-    dlgSelect.Filter = "XML Files (*.xml)|*.xml"
-    If Not gCurFileName = "" Then
-        dlgSelect.FileName = gCurFileName
-    Else
-        dlgSelect.FileName = ""
-    End If
-    dlgSelect.ShowSave
     
-    If dlgSelect.FileTitle <> "" Then
-        gCurScenarioName = Left(dlgSelect.FileTitle, _
-                                (Len(dlgSelect.FileTitle) - 4))
-        gCurFileName = dlgSelect.FileName
-        If Not gCurFileName = "" Then
-            SaveFunction gCurFileName
-            mnuSave.Enabled = True
-            cmdRun.Enabled = True
-        End If
-        RenameFormWindow
-    End If
+    FileSaveAs
+    
 End Sub
 
 '***********************************************************

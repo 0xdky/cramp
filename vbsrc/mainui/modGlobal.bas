@@ -508,8 +508,13 @@ Public Function CheckSaveStatus() As Boolean
         Response = MsgBox(Msg, Style, Title)
         Select Case Response
             Case vbYes
-                SaveFunction gCurFileName
-
+                If frmMainui.mnuSave.Enabled Then
+                    SaveFunction gCurFileName
+                ElseIf Not FileSaveAs Then
+                    CheckSaveStatus = False
+                    Exit Function
+                End If
+                    
             Case vbNo
 
             Case vbCancel
@@ -692,6 +697,34 @@ Public Sub UpdateNodeName(strName As String)
     frmMainui.tvwNodes.SelectedItem.Text = newName
     
 End Sub
+
+Public Function FileSaveAs() As Boolean
+
+    frmMainui.dlgSelect.Flags = cdlOFNOverwritePrompt
+    frmMainui.dlgSelect.Filter = "XML Files (*.xml)|*.xml"
+    If Not gCurFileName = "" Then
+        frmMainui.dlgSelect.FileName = gCurFileName
+    Else
+        frmMainui.dlgSelect.FileName = ""
+    End If
+    frmMainui.dlgSelect.ShowSave
+    
+    If frmMainui.dlgSelect.FileTitle <> "" Then
+        gCurScenarioName = Left(frmMainui.dlgSelect.FileTitle, _
+                                (Len(frmMainui.dlgSelect.FileTitle) - 4))
+        gCurFileName = frmMainui.dlgSelect.FileName
+        If Not gCurFileName = "" Then
+            SaveFunction gCurFileName
+            frmMainui.mnuSave.Enabled = True
+            frmMainui.cmdRun.Enabled = True
+        End If
+        RenameFormWindow
+        FileSaveAs = True
+    Else
+        FileSaveAs = False
+    End If
+    
+End Function
 
 'Public Sub RegSettingTest()
 
