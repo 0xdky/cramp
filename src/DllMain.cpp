@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 09:44:09 dhruva>
+// Time-stamp: <2003-10-17 10:26:44 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler
@@ -92,8 +92,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,
       if(valid)
         CallMonitor::threadAttach(new CallMonLOG());
       break;
-    case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
+      if(valid)
+        DeleteCriticalSection(&cs_prof);
+    case DLL_THREAD_DETACH:
       if(valid)
         CallMonitor::threadDetach();
       break;
