@@ -289,7 +289,7 @@ Public Sub SetGlobalVariables()
     frmMainui.cmdRun.Enabled = False
     gCurFileName = gTEMPDir & "\Scenario1.xml"
     gCurScenarioName = "Scenario1"
-    gSaveFlag = True
+    gSaveFlag = False
     
 End Sub
 
