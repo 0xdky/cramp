@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-01-28 10:42:18 dky>
+// Time-stamp: <2004-02-11 18:35:26 sjm>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -526,8 +526,10 @@ ProfilerMailSlotServerTH(LPVOID idata){
                             &cMessage,
                             (LPDWORD)NULL);
     DEBUGCHK(fResult);
-    if(cbMessage==MAILSLOT_NO_MESSAGE)
+    if(cbMessage==MAILSLOT_NO_MESSAGE){
+      Sleep(500);		// To reduce CPU usage or yield
       continue;
+    }
     cAllMessages=cMessage;
 
     // Mail slot loop
