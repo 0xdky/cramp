@@ -1,7 +1,8 @@
 Attribute VB_Name = "modFileHandling"
+'***********************************************************
 ' This function will return just the file name from a
 ' string containing a path and file name.
-
+'***********************************************************
 Public Function ParseFileName(sFileIn As String) As String
     Dim I As Integer
 
@@ -12,9 +13,10 @@ Public Function ParseFileName(sFileIn As String) As String
 
 End Function
 
-
+'***********************************************************
 ' This function will return the file extension from a
 ' string containing a path and file name.
+'***********************************************************
 
 Public Function GetFileExt(sFileName As String) As String
     Dim P As Integer
@@ -28,6 +30,9 @@ Public Function GetFileExt(sFileName As String) As String
 
 End Function
 
+'***********************************************************
+'
+'***********************************************************
 Public Function GetFileNameWithoutExt(sFileName As String) As String
     Dim FileName As String
     Dim FileExt As String
@@ -66,10 +71,10 @@ Dim PathLength As Long
 
 End Function
 
-
+'***********************************************************
 ' This procedure will add a \ to the end of the directory
 ' name if needed.
-
+'***********************************************************
 Function sFixDirString(sInComming As String) As String
 Dim sTemp As String
 
@@ -83,8 +88,10 @@ Dim sTemp As String
 
 End Function
 
+'***********************************************************
 ' The MakeDir routine will create a directory even if the
 ' underlying directories do not exist.
+'***********************************************************
 
 Sub MakeDir(sDirName As String)
 Dim iMouseState As Integer
@@ -118,13 +125,9 @@ MakeDirError:
     Resume Next
 End Sub
 
-Public Sub FolderTestRoutines()
-    CopyFolder
-    DeleteFolder
-    'FileExists
-    'CopyFile
-End Sub
-
+'***********************************************************
+'
+'***********************************************************
 Public Function FileExists(file As String) As Boolean
     Dim fso
     'Dim file As String
@@ -137,157 +140,172 @@ Public Function FileExists(file As String) As Boolean
     End If
 End Function
 
-
-Public Sub CopyFile()
+'***********************************************************
+'
+'***********************************************************
+Public Sub CopyFile(FileName As String, sFolder As String, dFolder As String)
     Dim fso
-    Dim file As String, sfol As String, dfol As String
-    file = "TestXML.xml" ' change to match the file name
-    sfol = "D:\CRAMP\" ' change to match the source folder path
-    dfol = "F:\" ' change to match the destination folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
-    If Not fso.FileExists(sfol & file) Then
-        MsgBox sfol & file & " does not exist!", vbExclamation, "Source File Missing"
-    ElseIf Not fso.FileExists(dfol & file) Then
-        fso.CopyFile (sfol & file), dfol, True
+    If Not fso.FileExists(sFolder & FileName) Then
+        MsgBox sFolder & FileName & " does not exist!", vbExclamation, "Source File Missing"
+    ElseIf Not fso.FileExists(dFolder & FileName) Then
+        fso.CopyFile (sFolder & FileName), dFolder, True
     Else
-        MsgBox dfol & file & " already exists!", vbExclamation, "Destination File Exists"
+        MsgBox dFolder & FileName & " already exists!", vbExclamation, "Destination File Exists"
+    End If
+    
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Public Sub MoveFile(FileName As String, sFolder As String, dFolder As String)
+    Dim fso
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FileExists(sFolder & FileName) Then
+        MsgBox sFolder & FileName & " does not exist!", vbExclamation, "Source File Missing"
+    ElseIf Not fso.FileExists(dFolder & FileName) Then
+        fso.MoveFile (sFolder & FileName), dFolder
+    Else
+        MsgBox dFolder & FileName & " already exists!", vbExclamation, "Destination File Exists"
     End If
 End Sub
 
-Public Sub MoveFile()
+'***********************************************************
+'
+'***********************************************************
+Public Sub DeleteFile(FileName As String)
     Dim fso
-    Dim file As String, sfol As String, dfol As String
-    file = "test.xls" ' change to match the file name
-    sfol = "C:\" ' change to match the source folder path
-    dfol = "E:\" ' change to match the destination folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
-    If Not fso.FileExists(sfol & file) Then
-        MsgBox sfol & file & " does not exist!", vbExclamation, "Source File Missing"
-    ElseIf Not fso.FileExists(dfol & file) Then
-        fso.MoveFile (sfol & file), dfol
+    If fso.FileExists(FileName) Then
+        fso.DeleteFile FileName, True
     Else
-        MsgBox dfol & file & " already exists!", vbExclamation, "Destination File Exists"
-    End If
-End Sub
-
-Public Sub DeleteFile()
-    Dim fso
-    Dim file As String
-    file = "C:\test.xls" ' change to match the file w/Path
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    If fso.FileExists(file) Then
-        fso.DeleteFile file, True
-    Else
-        MsgBox file & " does not exist or has already been deleted!" _
+        MsgBox FileName & " does not exist or has already been deleted!" _
                 , vbExclamation, "File not Found"
     End If
 End Sub
 
-Public Sub FolderExists()
+'***********************************************************
+'
+'***********************************************************
+Public Sub FolderExists(FolderName As String)
     Dim fso
-    Dim folder As String
-    folder = "C:\My Documents" ' change to match the folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
-    If fso.FolderExists(folder) Then
-        MsgBox folder & " is a valid folder/path.", vbInformation, "Path Exists"
+    If fso.FolderExists(FolderName) Then
+        MsgBox FolderName & " is a valid folder/path.", vbInformation, "Path Exists"
     Else
-        MsgBox folder & " is not a valid folder/path.", vbInformation, "Invalid Path"
+        MsgBox FolderName & " is not a valid folder/path.", vbInformation, "Invalid Path"
     End If
 End Sub
 
-Public Sub CreateFolder()
+'***********************************************************
+'
+'***********************************************************
+Public Sub CreateFolder(FolderName As String)
     Dim fso
-    Dim fol As String
-    fol = "c:\MyFolder" ' change to match the folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
-    If Not fso.FolderExists(fol) Then
-        fso.CreateFolder (fol)
+    If Not fso.FolderExists(FolderName) Then
+        fso.CreateFolder (FolderName)
     Else
-        MsgBox fol & " already exists!", vbExclamation, "Folder Exists"
+        MsgBox FolderName & " already exists!", vbExclamation, "Folder Exists"
     End If
 End Sub
 
-Public Sub CopyFolder()
+'***********************************************************
+'
+'***********************************************************
+Public Sub CopyFolder(sFolder As String, dFolder As String)
     Dim fso
-    Dim sfol As String, dfol As String
-    sfol = "D:\users" ' change to match the source folder path
-    dfol = "F:\users" ' change to match the destination folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
-    If Not fso.FolderExists(dfol) Then
-        fso.CopyFolder sfol, dfol
+    If Not fso.FolderExists(dFolder) Then
+        fso.CopyFolder sFolder, dFolder
     Else
-        MsgBox dfol & " already exists!", vbExclamation, "Folder Exists"
+        MsgBox dFolder & " already exists!", vbExclamation, "Folder Exists"
     End If
 End Sub
 
-Public Sub MoveFolder()
+'***********************************************************
+'
+'***********************************************************
+Public Sub MoveFolder(sFolder As String, dFolder As String)
     ' ***********************************************************
     ' ***      This will only work if your operating system   ***
     ' ***          allows it otherwise an error occurs        ***
     ' ***********************************************************
     Dim fso
-    Dim fol As String, dest As String
-    sfol = "c:\MyFolder" ' change to match the source folder path
-    dfol = "e:\MyFolder" ' change to match the destination folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
-    If Not fso.FolderExists(dfol) Then
-        fso.MoveFolder sfol, dfol
+    If Not fso.FolderExists(dFolder) Then
+        fso.MoveFolder sFolder, dFolder
     Else
-        MsgBox dfol & " already exists!", vbExclamation, "Folder Exists"
+        MsgBox dFolder & " already exists!", vbExclamation, "Folder Exists"
     End If
 End Sub
 
-Public Sub DeleteFolder()
+'***********************************************************
+'
+'***********************************************************
+Public Sub DeleteFolder(FolderName As String)
     ' ***********************************************************
     ' *** This will delete a folder even if it contains files ***
     ' ***                 Use With Caution                    ***
     ' ***********************************************************
     Dim fso
-    Dim fol As String
-    fol = "D:\users" ' change to match the folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
-    If fso.FolderExists(fol) Then
-        fso.DeleteFolder fol
+    If fso.FolderExists(FolderName) Then
+        fso.DeleteFolder FolderName
     Else
-        MsgBox fol & " does not exist or has already been deleted!" _
+        MsgBox FolderName & " does not exist or has already been deleted!" _
             , vbExclamation, "Folder not Found"
     End If
 End Sub
 
-Public Sub MoveFilesFolder2Folder()
+'***********************************************************
+'
+'***********************************************************
+Public Sub MoveFilesFolder2Folder(sFolder As String, dFolder As String)
     Dim fso
-    Dim sfol As String, dfol As String
-    sfol = "c:\MyFolder" ' change to match the source folder path
-    dfol = "e:\MyFolder" ' change to match the destination folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
 On Error Resume Next
-    If Not fso.FolderExists(sfol) Then
-        MsgBox sfol & " is not a valid folder/path.", vbInformation, "Invalid Source"
-    ElseIf Not fso.FolderExists(dfol) Then
-        MsgBox dfol & " is not a valid folder/path.", vbInformation, "Invalid Destination"
+    If Not fso.FolderExists(sFolder) Then
+        MsgBox sFolder & " is not a valid folder/path.", vbInformation, "Invalid Source"
+    ElseIf Not fso.FolderExists(dFolder) Then
+        MsgBox dFolder & " is not a valid folder/path.", vbInformation, "Invalid Destination"
     Else
-        fso.MoveFile (sfol & "\*.*"), dfol ' Change "\*.*" to "\*.xls" to move Excel Files only
+        fso.MoveFile (sFolder & "\*.*"), dFolder ' Change "\*.*" to "\*.xls" to move Excel Files only
     End If
     If Err.Number = 53 Then MsgBox "File not found"
 End Sub
 
-Public Sub CopyFilesFolder2Folder()
+'***********************************************************
+'
+'***********************************************************
+Public Sub CopyFilesFolder2Folder(sFolder As String, dFolder As String)
     Dim fso
-    Dim sfol As String, dfol As String
-    sfol = "c:\MyFolder" ' change to match the source folder path
-    dfol = "e:\MyFolder" ' change to match the destination folder path
+    
     Set fso = CreateObject("Scripting.FileSystemObject")
 On Error Resume Next
-    If Not fso.FolderExists(sfol) Then
-        MsgBox sfol & " is not a valid folder/path.", vbInformation, "Invalid Source"
-    ElseIf Not fso.FolderExists(dfol) Then
-        MsgBox dfol & " is not a valid folder/path.", vbInformation, "Invalid Destination"
+    If Not fso.FolderExists(sFolder) Then
+        MsgBox sFolder & " is not a valid folder/path.", vbInformation, "Invalid Source"
+    ElseIf Not fso.FolderExists(dFolder) Then
+        MsgBox dFolder & " is not a valid folder/path.", vbInformation, "Invalid Destination"
     Else
-        fso.CopyFile (sfol & "\*.*"), dfol ' Change "\*.*" to "\*.xls" to move Excel Files only
+        fso.CopyFile (sFolder & "\*.*"), dFolder ' Change "\*.*" to "\*.xls" to move Excel Files only
     End If
     If Err.Number = 53 Then MsgBox "File not found"
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Function GetUNCPath(strPath As String) As String
     
     Dim strLeft, strRight As String
