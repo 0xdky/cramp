@@ -187,6 +187,10 @@ sub GetCallStack{
     push(@limit,$_);
   }
 
+  if ($#limit<0) {
+    return ();
+  }
+
   # Passing the reversed list
   return(reverse(CallStackSort(@limit)));
 }
@@ -360,7 +364,7 @@ sub ProcessArgs{
           $max=$key;
           $key=0;
         } else {
-          $key-=$max;           # Call stack is reverse order of return order
+          $key-=$max;	 # Call stack is reverse order of return order
           $max+=$key;
         }
         @values=GetCallStack(GetRawValuesFromIDs($tidlist[0],0,
