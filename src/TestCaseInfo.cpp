@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-06 17:26:38 dhruva>
+// Time-stamp: <2003-10-07 10:25:29 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -149,7 +149,7 @@ TestCaseInfo
 *TestCaseInfo::CreateScenario(const char *iUniqueID,
                               BOOLEAN iBlock){
   TestCaseInfo *pScenario=0;
-  pScenario=AddGroup(0,TRUE);
+  pScenario=new TestCaseInfo(0,iUniqueID,TRUE,iBlock);
   return(pScenario);
 }
 
