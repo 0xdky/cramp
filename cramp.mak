@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-17 18:31:33 dhruva>
+## Time-stamp: <2003-10-20 10:27:59 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -13,6 +13,10 @@ VERSION="0.1.1"
 # Modify to point to XML base folder
 XMLBASE=F:/Applications/xerces
 XMLBASE1=E:/Applications/xerces
+
+# Berkeley Database
+DBBASE=F:/Applications/db
+DBBASE1=E:/Applications/db
 
 # DPE Cominc folder for DPE server header files
 DPE_COMINC=../../DPE/Cominc
@@ -57,9 +61,12 @@ LDFLAGS=$(LDFLAGS) /VERSION:$(VERSION)
 
 # For engine
 E_CFLAGS=$(CFLAGS) $(NOLOGO) /I$(XMLBASE)/include /I$(XMLBASE1)/include
+E_CFLAGS=$(E_CFLAGS) /I$(DBBASE)/include /I$(DBBASE1)/include
+E_CFLAGS=$(E_CFLAGS) /I$(DBBASE)/include/dbinc /I$(DBBASE1)/include/dbinc
 E_CCFLAGS=$(E_CFLAGS) $(CPP_DEBUG) $(MT_DEBUG) /GX
 E_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
 E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(XMLBASE1)/lib
+E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(DBBASE)/lib /LIBPATH:$(DBBASE1)/lib
 
 # Add new files here
 COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
@@ -124,8 +131,8 @@ $(SRCDIR)/XMLParse.h: $(DEPS)
 # Profiling DLL
 library: dirs $(PROFLIB).dll
 $(PROFLIB).dll: $(POBJS)
-    @$(LINK) /DLL $(LINK_DEBUG) $(P_LDFLAGS) $(POBJS) imagehlp.lib \
-             /OUT:$(BINDIR)/$(PROFLIB).dll
+    @$(LINK) /DLL $(LINK_DEBUG) $(E_LDFLAGS) $(POBJS) imagehlp.lib \
+             libdb41s.lib /OUT:$(BINDIR)/$(PROFLIB).dll
 $(OBJDIR)/CallMon.obj: $(SRCDIR)/CallMon.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/CallMon.cpp \
              /Fo$(OBJDIR)/CallMon.obj
