@@ -288,4 +288,20 @@ On Error Resume Next
     If Err.Number = 53 Then MsgBox "File not found"
 End Sub
 
+Public Function GetUNCPath(strPath As String) As String
+    
+    Dim strLeft, strRight As String
+    Dim strLength As Long
+    
+    If Left$(strPath, 2) = "\\" Then
+        GetUNCPath = strPath
+    Else
+        strLength = Len(strPath)
+        strLeft = Left$(strPath, 2)
+        strRight = Right(strPath, strLength - 2)
+        GetUNCPath = "\\" & Environ("COMPUTERNAME") & "\" & _
+                    Left$(strLeft, 1) & strRight
+    End If
+
+End Function
 

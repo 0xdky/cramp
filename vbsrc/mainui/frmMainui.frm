@@ -517,12 +517,14 @@ Private Sub cmdBrowse_Click()
     dlgSelect.ShowOpen
     ExecPath = dlgSelect.FileName
     
+    ExecPath = GetUNCPath(ExecPath)
+    
     If ExecPath <> "" Then
         lvwAttributes.SelectedItem.SubItems(1) = ExecPath
     End If
     lvwAttributes.SetFocus
     cmdBrowse.Visible = False
-        
+    
 End Sub
 
 '***********************************************************
