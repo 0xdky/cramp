@@ -10,7 +10,7 @@
       <TESTCASE ID="T-001" EXECPATH="notepad.exe" NUMRUNS="1"
                 MAXRUNTIME="2000" >
       </TESTCASE>
-      <TESTCASE ID="T-001" EXECPATH="hello.exe" NUMRUNS="2"
+      <TESTCASE ID="T-002" IDREF="T-002" EXECPATH="hello.exe" NUMRUNS="2"
                 BLOCK="FALSE">
       </TESTCASE>
       <GROUP ID="GG-003" NAME="Group3" STOPONFIRSTFAILURE="TRUE"
