@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 11:51:26 dhruva>
+// Time-stamp: <2003-11-03 12:00:51 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -128,7 +128,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
         if(iSubProc)
           sprintf(uidstr,"%s_sp#%d",p_pgroup->s_uid.c_str(),sztci);
         else
-          sprintf(uidstr,"%s_uk#%d",p_pgroup->s_uid.c_str(),sztci);
+          sprintf(uidstr,"%s_??#%d",p_pgroup->s_uid.c_str(),sztci);
         u_uid=hashstring(uidstr);
         s_uid=uidstr;
       }
