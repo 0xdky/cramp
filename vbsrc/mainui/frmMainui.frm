@@ -968,6 +968,9 @@ Private Sub mnuNew_Click()
     
     Dim RetStatus As Boolean
     RetStatus = CheckSaveStatus
+    If Not RetStatus Then
+        Exit Sub
+    End If
     
     CleanAndRestart
     
@@ -985,6 +988,9 @@ Private Sub mnuOpen_Click()
     
     Dim RetStatus As Boolean
     RetStatus = CheckSaveStatus
+    If Not RetStatus Then
+        Exit Sub
+    End If
     
     dlgSelect.Filter = "XML Files (*.xml)|*.xml"
     dlgSelect.FileName = ""
