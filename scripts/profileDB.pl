@@ -1,13 +1,13 @@
 #!perl
-## Time-stamp: <2003-10-27 17:55:43 dhruva>
+## Time-stamp: <2003-10-28 10:04:02 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
-## Usage : perl profileDB.pl PID DUMP|QUERY
-##                           THREADS|TID
-##                           SORT|RAW|ADDR
-##                           COUNT|-1 (for count info only)
-##         Results are writte to query.psf
+## Usage : perl profileDB.pl PID DUMP [ALL|RAW|TICK|ADDR]|
+##                               QUERY [THREADS|TID|ADDR]
+##                                     RAW|TICK|Function address
+##                                     LIMIT (-1 for count info only)
+## Output: Results are written to query.psf
 ## Desc  : Call SetDBFilters on all DB handles
 ##-----------------------------------------------------------------------------
 ## mm-dd-yyyy  History                                                      tri
@@ -118,7 +118,10 @@ sub ProcessArgs{
     $f_logdb="$cramplogdir/cramp#$g_pid.db";
 
     if($ARGV[1]=~/DUMP/){
-        return UpdateDB();
+        foreach($ARGV[2]..$ARGV[-1]){
+            UpdateDB($_);
+        }
+        return 1;
     }elsif($ARGV[1]=~/QUERY/){
         $f_queryout="$cramplogdir/query.psf";
         unlink $f_queryout;
@@ -148,13 +151,13 @@ sub ProcessArgs{
                 return 1;
             }
 
-            if($ARGV[3]=~/SORT/){
+            if($ARGV[3]=~/TICK/){
                 @values=GetTickSortedValues($key,$max);
             }elsif($ARGV[3]=~/RAW/){
                 @values=GetRawValues($key,$max);
             }
-        }elsif($ARGV[2]=~/COUNT/){
-            if($ARGV[3]=~/[0-9ABCDEF]+/){
+        }elsif($ARGV[2]=~/ADDR/){
+            if($ARGV[3]=~/[0-9ABCDEFX]+/){
                 $key=$ARGV[3];
                 @values=GetFunctionCalls($key,$max);
             }
@@ -183,45 +186,41 @@ sub UpdateDB{
         return 1;
     }
 
-    if(! -f $f_logdb){
-        print STDOUT "Creating Berkeley DB from logs\n";
-        if(DumpLogsToDB()){
-            print STDERR "Error: Failed to dump logs to DB\n";
-            return 1;
-        }
-        print STDOUT "Successfully created Berkeley DB from logs\n";
-    }else{
+    if(-f $f_logdb){
         my $update=0;
         my @dbinfo=stat($f_logdb);
         my @loginfo=stat($f_logtxt);
         my @funinfo=stat($f_logfin);
-
-        if($loginfo[9]>$dbinfo[9]){
-            $update=1;
-            print STDOUT "Updating Berkeley DB from logs\n";
-            if(AddRawLogs()){
-                print STDERR "Error: Failed in adding raw logs to DB\n";
-                return 1;
-            }elsif(AddTickSortedData()){
-                print STDERR "Error: Failed in adding sorted logs to DB\n";
-                return 1;
-            }
-        }
-        if($funinfo[9]>$dbinfo[9]){
-            $update=1;
-            print STDOUT "Updating function info in Berkeley DB from logs\n";
-            if(AddFunctionInformation()){
-                print STDERR "Error: Failed in adding function info to DB\n";
-                return 1;
-            }
-        }
-        if($update){
-            print STDOUT "Successfully updated Berkeley DB from logs\n";
-        }else{
-            print STDOUT "Berkeley DB is upto date\n";
+        if($loginfo[9]>$dbinfo[9] || $funinfo[9]>$dbinfo[9]){
+            unlink $f_logdb;
         }
     }
 
+    if(DumpLogsToDB(@_)){
+        print STDERR "Error: Failed to dump logs to DB\n";
+        return 1;
+    }
+
+    return 0;
+}
+
+##-----------------------------------------------------------------------------
+## DumpLogsToDB
+##-----------------------------------------------------------------------------
+sub DumpLogsToDB{
+    my $table=$_[0];
+    if($table=~/RAW/){
+        AddRawLogs();
+    }elsif($table=~/TICK/){
+        AddTickSortedData();
+    }elsif($table=~/ADDR/){
+        AddAddrSortedData();
+    }elsif($table=~/ALL/){
+        AddRawLogs();
+        AddTickSortedData();
+        AddAddrSortedData();
+    }
+    AddFunctionInformation();
     return 0;
 }
 
@@ -422,7 +421,7 @@ sub AddRawLogs{
     $db=new BerkeleyDB::Hash
         -Filename    => $f_logdb,
         -Subname     => "TID_FUNC",
-        -Flags       => DB_CREATE,
+        -Flags       => DB_EXCL|DB_CREATE,
         -Property    => DB_DUP
         || die("Error: $BerkeleyDB::Error");
     if(!defined($db)){
@@ -457,15 +456,14 @@ sub AddRawLogs{
 ## AddThreadIDs
 ##-----------------------------------------------------------------------------
 sub AddThreadIDs{
-    my @tids=@_;
     my @tie_TID=();
     my $db;
     $db=tie(@tie_TID,'BerkeleyDB::Recno',
             -Filename    => $f_logdb,
             -Subname     => "TID",
-            -Flags       => DB_CREATE,
+            -Flags       => DB_EXCL|DB_CREATE,
             -Property    => DB_RENUMBER)
-        || die("Error: $BerkeleyDB::Error");
+        || return 1;
     if(!defined($db)){
         return 1;
     }
@@ -475,7 +473,7 @@ sub AddThreadIDs{
     my $count=0;
     $db->truncate($count);
 
-    foreach(@tids){
+    foreach(@_){
         push(@tie_TID,$_);
     }
     undef $db;
@@ -493,7 +491,7 @@ sub AddAddrSortedData{
     $db=new BerkeleyDB::Btree
         -Filename    => $f_logdb,
         -Subname     => "ADDR_FUNC_SORT",
-        -Flags       => DB_CREATE,
+        -Flags       => DB_EXCL|DB_CREATE,
         -Property    => DB_DUP|DB_DUPSORT
         || die("Error: $BerkeleyDB::Error");
     if(!defined($db)){
@@ -505,13 +503,21 @@ sub AddAddrSortedData{
     my $count=0;
     $db->truncate($count);
 
+    my %h_tid;
     while(<LOGTXT>){
         chomp();
         my @tokens=split(/\|/,$_);
+        $h_tid{$tokens[0]}='';
         $db->db_put($tokens[1],$_);
     }
     close(LOGTXT);
     undef $db;
+
+    my @tids=();
+    foreach(keys %h_tid){
+        push(@tids,$_);
+    }
+    AddThreadIDs(@tids);
 
     return 0;
 }
@@ -525,7 +531,7 @@ sub AddTickSortedData{
     $db=new BerkeleyDB::Btree
         -Filename    => $f_logdb,
         -Subname     => "TID_FUNC_SORT_TICK",
-        -Flags       => DB_CREATE,
+        -Flags       => DB_EXCL|DB_CREATE,
         -Property    => DB_DUP|DB_DUPSORT,
         -DupCompare  => \&TickCompare
         || die("Error: $BerkeleyDB::Error");
@@ -538,13 +544,21 @@ sub AddTickSortedData{
     my $count=0;
     $db->truncate($count);
 
+    my %h_tid;
     while(<LOGTXT>){
         chomp();
         my @tokens=split(/\|/,$_);
+        $h_tid{$tokens[0]}='';
         $db->db_put($tokens[0],$_);
     }
     close(LOGTXT);
     undef $db;
+
+    my @tids=();
+    foreach(keys %h_tid){
+        push(@tids,$_);
+    }
+    AddThreadIDs(@tids);
 
     return 0;
 }
@@ -557,7 +571,7 @@ sub AddFunctionInformation{
     $db=new BerkeleyDB::Hash
         -Filename    => $f_logdb,
         -Subname     => "FUNC_INFO",
-        -Flags       => DB_CREATE
+        -Flags       => DB_EXCL|DB_CREATE
         || die("Error: $BerkeleyDB::Error");
     if(!defined($db)){
         return 1;
@@ -577,26 +591,6 @@ sub AddFunctionInformation{
     close(LOGFIN);
     undef $db;
 
-    return 0;
-}
-
-##-----------------------------------------------------------------------------
-## DumpLogsToDB
-##-----------------------------------------------------------------------------
-sub DumpLogsToDB{
-    if(AddRawLogs()){
-        print STDERR "Error: Failed in adding raw logs to DB\n";
-        return 1;
-    }elsif(AddAddrSortedData()){
-        print STDERR "Error: Failed in adding sorted logs to DB\n";
-        return 1;
-    }elsif(AddTickSortedData()){
-        print STDERR "Error: Failed in adding sorted logs to DB\n";
-        return 1;
-    }elsif(AddFunctionInformation()){
-        print STDERR "Error: Failed in adding function information to DB\n";
-        return 1;
-    }
     return 0;
 }
 
