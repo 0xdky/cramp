@@ -288,7 +288,8 @@ End Sub
 
 Public Sub SetGlobalVariables()
     Dim retVal As Long
-
+    Dim pid As Long
+    
     gCRAMPPath = Environ("CRAMP_PATH")
     If (0 = Len(gCRAMPPath)) Then
         gCRAMPPath = App.Path & "\..\"
@@ -310,8 +311,17 @@ Public Sub SetGlobalVariables()
         Wend
     End If
 
-    gDatabaseName = gTEMPDir & "\CRAMPDB.mdb"
-
+    ' Get the current process id
+    ' Create a access DB for each process id
+    ' Its a must if
+    pid = GetCurrentProcessId()
+    
+    gDatabaseName = gTEMPDir & "\CRAMPDB#" & pid & ".mdb"
+    
+    If FileExists(gDatabaseName) Then
+        DeleteFile gDatabaseName
+    End If
+    
     frmMainui.mnuSave.Enabled = False
     frmMainui.cmdRun.Enabled = False
     gCurFileName = gTEMPDir & "\Scenario1.xml"

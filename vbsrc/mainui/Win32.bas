@@ -69,6 +69,8 @@ Public Declare Function GetShortPathName Lib "kernel32" Alias _
 "GetShortPathNameA" (ByVal lpszLongPath As String, _
 ByVal lpszShortPath As String, ByVal cchBuffer As Long) As Long
 
+Public Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+
 Public Const REG_SZ As Long = 1
 Public Const REG_DWORD As Long = 4
 
