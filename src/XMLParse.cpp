@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 12:36:22 dhruva>
+// Time-stamp: <2003-12-10 14:36:20 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -389,10 +389,8 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
         case PROFILING:
           break;
         case BLOCK:
-          if(!stricmp((*from).attrvalue,"FALSE"))
-            pChild->BlockStatus(FALSE);
-          else
-            pChild->BlockStatus(TRUE);
+          pChild->BlockStatus((!stricmp((*from).attrvalue,"TRUE")
+                               ||strcmp((*from).attrvalue,"0")));
           break;
         case REINITIALIZEDATA:
           break;
@@ -402,16 +400,12 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
           pChild->TestCaseExec((*from).attrvalue);
           break;
         case MONPROC:
-          if(!stricmp((*from).attrvalue,"TRUE"))
-            pChild->MonProcStatus(TRUE);
-          else if(!stricmp((*from).attrvalue,"FALSE"))
-            pChild->MonProcStatus(FALSE);
+          pChild->MonProcStatus((!stricmp((*from).attrvalue,"TRUE")
+                                 ||strcmp((*from).attrvalue,"0")));
           break;
         case EXEPROC:
-          if(!stricmp((*from).attrvalue,"TRUE"))
-            pChild->ExeProcStatus(TRUE);
-          else if(!stricmp((*from).attrvalue,"FALSE"))
-            pChild->ExeProcStatus(FALSE);
+          pChild->ExeProcStatus((!stricmp((*from).attrvalue,"TRUE")
+                                 ||strcmp((*from).attrvalue,"0")));
           break;
         case NUMRUNS:
         {

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-09 16:37:10 dhruva>
+// Time-stamp: <2003-12-10 14:33:35 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -367,7 +367,7 @@ TestCaseInfo::GroupStatus(void){
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::GroupStatus(BOOLEAN iIsGroup){
-  b_group=iIsGroup;
+  b_group=!!iIsGroup;
   return;
 }
 
@@ -384,7 +384,7 @@ TestCaseInfo::BlockStatus(void){
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::BlockStatus(BOOLEAN iIsBlocked){
-  b_block=iIsBlocked;
+  b_block=!!iIsBlocked;
   return;
 }
 
@@ -401,7 +401,7 @@ TestCaseInfo::ExeProcStatus(void){
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::ExeProcStatus(BOOLEAN iIsExeProc){
-  b_exeproc=iIsExeProc;
+  b_exeproc=!!iIsExeProc;
   return;
 }
 
@@ -426,7 +426,7 @@ TestCaseInfo::MonProcStatus(void){
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::MonProcStatus(BOOLEAN iIsMonProc){
-  b_monproc=iIsMonProc;
+  b_monproc=!!iIsMonProc;
   return;
 }
 
@@ -451,7 +451,7 @@ TestCaseInfo::ReferStatus(void){
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::ReferStatus(BOOLEAN iIsReference){
-  b_refer=iIsReference;
+  b_refer=!!iIsReference;
   return;
 }
 
