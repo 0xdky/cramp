@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 11:31:50 dhruva>
+// Time-stamp: <2003-11-03 11:51:26 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -104,8 +104,6 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
       excep._error=u_uid;
       throw(excep);
     }
-  }else{
-    s_uid="Unknown";
   }
 
   b_block=iBlock;
@@ -119,6 +117,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
     try{
       EnterCriticalSection(&cs_tci);
       p_pgroup->l_tci.push_back(this);
+      SIZE_T sztci=p_pgroup->l_tci.size();
       LeaveCriticalSection(&cs_tci);
       ListOfTestCaseInfo &lgc=BlockListOfGC();
       lgc.push_back(this);
@@ -126,8 +125,12 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
       // log processing and do not set b_uid as this is generated!
       if(!b_uid){
         char uidstr[32];
-        sprintf(uidstr,"CRAMP_NAME#%d",lgc.size());
+        if(iSubProc)
+          sprintf(uidstr,"%s_sp#%d",p_pgroup->s_uid.c_str(),sztci);
+        else
+          sprintf(uidstr,"%s_uk#%d",p_pgroup->s_uid.c_str(),sztci);
         u_uid=hashstring(uidstr);
+        s_uid=uidstr;
       }
       ReleaseListOfGC();
     }
@@ -441,12 +444,14 @@ TestCaseInfo::NumberOfRuns(SIZE_T iNumberOfRuns){
   if(u_numruns<2)
     return;
   b_pseudogroup=TRUE;
+  char id[256];
   for(unsigned int ii=0;ii<iNumberOfRuns;ii++){
     TestCaseInfo *nptc=0;
+    sprintf(id,"%s#%d",s_uid.c_str(),ii+1);
     if(GroupStatus())
-      nptc=AddGroup(0,BlockStatus());
+      nptc=AddGroup(id,BlockStatus());
     else
-      nptc=AddTestCase(0,BlockStatus());
+      nptc=AddTestCase(id,BlockStatus());
     DEBUGCHK(nptc);
     nptc->ReferStatus(TRUE);
     nptc->Reference(this);
