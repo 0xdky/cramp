@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 12:32:00 dhruva>
+// Time-stamp: <2003-10-23 15:10:33 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -47,8 +47,8 @@ void
 CallMonLOG::logExit(CallInfo &ci,bool normalRet){
   TICKS ticksPerSecond;
   char rettype=1;
-  if(!normalRet)
-    rettype=1;
+  if(normalRet)
+    rettype=0;
   queryTickFreq(&ticksPerSecond);
 
   char logmsg[256];
