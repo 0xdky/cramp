@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-14 18:01:27 dhruva>
+// Time-stamp: <2003-11-19 16:15:06 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -40,14 +40,12 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
   int ret=-1;
   int crampret=0;
-  HANDLE h_job=0;
+  InitGlobals();
 
   // Ensure only 1 instance of CRAMPEngine is running
-  h_job=OpenJobObject(JOB_OBJECT_QUERY,FALSE,JOB_NAME);
-  if(h_job)
+  g_CRAMP_Engine.g_hJOB=OpenJobObject(JOB_OBJECT_QUERY,FALSE,JOB_NAME);
+  if(g_CRAMP_Engine.g_hJOB)
     return(-1);
-
-  InitGlobals();
 
   char logdir[256]=".";
   char logfile[256];
@@ -83,39 +81,16 @@ WINAPI WinMain(HINSTANCE hinstExe,
                       scenario,256,0,0);
   GetFullPathName(scenario,256,scenario,&buff);
 
-  HANDLE h_memtimer=0;
-  HANDLE h_arr[5];
+  HANDLE h_arr[3];
   h_arr[0]=0;                   // Job monitoring thread
-  h_arr[1]=0;                   // MUTEX object to kill memory thread
-  h_arr[2]=0;                   // Memory polling thread
-  h_arr[3]=0;                   // Mail slot communication thread
-  h_arr[4]=0;                   // Pipe communication server thread
-  h_arr[5]=0;                   // Last must be 0
+  h_arr[1]=0;                   // Memory polling thread
+  h_arr[2]=0;                   // Last must be 0
 
-  h_job=CreateJobObject(NULL,JOB_NAME);
-  if(!h_job)
+  g_CRAMP_Engine.g_hJOB=CreateJobObject(NULL,JOB_NAME);
+  if(!g_CRAMP_Engine.g_hJOB)
     return(ret);
 
-  CRAMPServerMessaging *pSlotMsg=0;
-  CRAMPServerMessaging *pPipeMsg=0;
-
   do{
-    // Create an IO completion port to positively identify adding
-    // or removal of processes into/from a job
-    g_CRAMP_Engine.g_hIOCP=CreateIoCompletionPort(INVALID_HANDLE_VALUE,
-                                                  NULL,0,0);
-
-    // Start the thread to monitor the job notifications
-    h_arr[0]=chBEGINTHREADEX(NULL,0,JobNotifyTH,NULL,0,NULL);
-
-    JOBOBJECT_ASSOCIATE_COMPLETION_PORT joacp;
-    joacp.CompletionKey=(void *)COMPKEY_JOBOBJECT;
-    joacp.CompletionPort=g_CRAMP_Engine.g_hIOCP;
-    SetInformationJobObject(h_job,
-                            JobObjectAssociateCompletionPortInformation,
-                            &joacp,
-                            sizeof(joacp));
-
     // Parse the XML file and populate the list
     g_CRAMP_Engine.g_pScenario=GetTestCaseInfos(scenario);
     sprintf(msg,"# Running SCENARIO: %s",scenario);
@@ -123,57 +98,56 @@ WINAPI WinMain(HINSTANCE hinstExe,
     if(!g_CRAMP_Engine.g_pScenario)
       break;
 
-    h_arr[1]=CreateMutex(NULL,TRUE,"MEMORY_MUTEX");
-    DEBUGCHK(h_arr[1]);
-    ReleaseMutex(h_arr[1]);
+    // Start the thread to monitor the job notifications
+    h_arr[0]=chBEGINTHREADEX(NULL,0,JobNotifyTH,NULL,0,NULL);
 
-    // Mail slot & pipe server thread
-    try{
-      // Use default ctor
-      pSlotMsg=new CRAMPServerMessaging();
-      pPipeMsg=new CRAMPServerMessaging();
-    }
-    catch(CRAMPException excep){
-      DEBUGCHK(0);
-      break;
-    }
-    pSlotMsg->Server(".");
-    pPipeMsg->Server(".");
+    // Create an IO completion port to positively identify adding
+    // or removal of processes into/from a job
+    g_CRAMP_Engine.g_hIOCP=CreateIoCompletionPort(INVALID_HANDLE_VALUE,
+                                                  NULL,0,0);
 
-    HANDLE h_event=0;
-    h_event=CreateEvent(NULL,TRUE,FALSE,"THREAD_TERMINATE");
-    h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,
+    // JOB communication port
+    JOBOBJECT_ASSOCIATE_COMPLETION_PORT joacp;
+    joacp.CompletionKey=(void *)COMPKEY_JOBOBJECT;
+    joacp.CompletionPort=g_CRAMP_Engine.g_hIOCP;
+    SetInformationJobObject(g_CRAMP_Engine.g_hJOB,
+                            JobObjectAssociateCompletionPortInformation,
+                            &joacp,
+                            sizeof(joacp));
+    // JOB time limit
+    SIZE_T jobmaxtime=0;
+    jobmaxtime=g_CRAMP_Engine.g_pScenario->MaxTimeLimit();
+    if(jobmaxtime){
+      JOBOBJECT_BASIC_LIMIT_INFORMATION jobli={0};
+      jobli.LimitFlags=JOB_OBJECT_LIMIT_JOB_TIME;
+      // To 100-NANO seconds
+      jobli.PerJobUserTimeLimit.QuadPart=UInt32x32To64(jobmaxtime,1000);
+      SetInformationJobObject(g_CRAMP_Engine.g_hJOB,
+                              JobObjectBasicLimitInformation,
+                              &jobli,
+                              sizeof(jobli));
+
+      JOBOBJECT_END_OF_JOB_TIME_INFORMATION joeoj={0};
+      joeoj.EndOfJobTimeAction=JOB_OBJECT_POST_AT_END_OF_JOB;
+      SetInformationJobObject(g_CRAMP_Engine.g_hJOB,
+                              JobObjectEndOfJobTimeInformation,
+                              &joeoj,
+                              sizeof(joeoj));
+    }
+
+    // Start only after making SCENARIO
+    h_arr[1]=chBEGINTHREADEX(NULL,0,MemoryPollTH,
                              (LPVOID)g_CRAMP_Engine.g_pScenario,
                              0,NULL);
-    DEBUGCHK(h_arr[2]);
-    h_arr[3]=chBEGINTHREADEX(NULL,0,MailSlotServerTH,
-                             (LPVOID)pSlotMsg,
-                             0,NULL);
-    DEBUGCHK(h_arr[3]);
+    DEBUGCHK(h_arr[1]);
 
-    // Do not use PIPE, some problem
-    // h_arr[4]=chBEGINTHREADEX(NULL,0,MultiThreadedPipeServerTH,
-    //                          (LPVOID)pPipeMsg,
-    //                          0,NULL);
-    // DEBUGCHK(h_arr[4]);
-
-    SetEvent(h_event);          // So that threads can resume
-
+    // Run the engine
     ret=CreateManagedProcesses(g_CRAMP_Engine.g_pScenario);
 
-    // Kill the threads
-    DEBUGCHK(ResetEvent(h_event));
     // Post msg to terminate job monitoring thread and wait for termination
     PostQueuedCompletionStatus(g_CRAMP_Engine.g_hIOCP,0,
                                COMPKEY_TERMINATE,NULL);
     WaitForMultipleObjects(2,h_arr,TRUE,INFINITE);
-    TerminateThread(h_arr[3],0);
-
-    if(ret)
-      sprintf(msg,"SC|OK|%d|%d",crampret,!ret);
-    else
-      sprintf(msg,"SC|KO|%d|%d",crampret,!ret);
-    g_CRAMP_Engine.g_pScenario->AddLog(msg);
 
     // Clean up everything properly
     CloseHandle(g_CRAMP_Engine.g_hIOCP);
@@ -181,53 +155,52 @@ WINAPI WinMain(HINSTANCE hinstExe,
       CloseHandle(h_arr[xx]);
       h_arr[xx]=0;
     }
-
-    // Return OKAY
-    ret=!ret;
   }while(0);
 
-  if(pSlotMsg){
-    delete pSlotMsg;
-    pSlotMsg=0;
-  }
-
-  if(pPipeMsg){
-    delete pSlotMsg;
-    pSlotMsg=0;
-  }
-
-  if(h_memtimer){
-    CloseHandle(h_memtimer);
-    h_memtimer=0;
-  }
-
-  if(h_job){
-    CloseHandle(h_job);
-    h_job=0;
-  }
-
+  // Get all exit status and delete the internal tree
   if(g_CRAMP_Engine.g_pScenario){
-    // do{
-    //   char logdir[256]=".";
-    //   char logfile[256];
-    //   if(getenv("CRAMP_LOGPATH"))
-    //     strcpy(logdir,getenv("CRAMP_LOGPATH"));
-    //   sprintf(logfile,"%s/cramp.log",logdir);
-    //   ofstream flog(logfile,ios::out,filebuf::sh_none);
-    //   if(!flog.is_open())
-    //     break;
-    //   g_CRAMP_Engine.g_pScenario->DumpLog(flog);
-    //   flog.close();
-    //   Disable XML file dumping, use PSF files
-    //   sprintf(logfile,"%s/cramp.xml",logdir);
-    //   DumpLogsToXML(logfile);
-    // }while(0);
+    DWORD ec=0;
+    ListOfTestCaseInfo &l_gc=g_CRAMP_Engine.g_pScenario->BlockListOfGC();
+    ListOfTestCaseInfo::iterator iter=l_gc.begin();
+    for(;iter!=l_gc.end();iter++){
+      TestCaseInfo *ptc=(*iter);
+      if(!ptc)
+        continue;
+      GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
+      if(ptc->SubProcStatus()){
+        if(ec)
+          sprintf(msg,"SP|KO|-1|%d",ec);
+        else
+          sprintf(msg,"SP|OK|0|%d",ec);
+        ptc->AddLog(msg);
+      }else if(ptc->ExeProcStatus()){
+        if(ec)
+          sprintf(msg,"TP|KO|-1|%d",ec);
+        else
+          sprintf(msg,"TP|OK|0|%d",ec);
+        ptc->AddLog(msg);
+      }
+    }
+    g_CRAMP_Engine.g_pScenario->ReleaseListOfGC();
+
+    ret=g_CRAMP_Engine.g_scenariostatus;
+    if(g_CRAMP_Engine.g_scenariostatus)
+      sprintf(msg,"SC|KO|%d|%d",crampret,g_CRAMP_Engine.g_scenariostatus);
+    else
+      sprintf(msg,"SC|OK|%d|%d",crampret,g_CRAMP_Engine.g_scenariostatus);
+    g_CRAMP_Engine.g_pScenario->AddLog(msg);
+
     TestCaseInfo::DeleteScenario(g_CRAMP_Engine.g_pScenario);
+    g_CRAMP_Engine.g_pScenario=0;
   }
 
-  g_CRAMP_Engine.g_pScenario=0;
-  GlobalFree(argvW);
+  if(g_CRAMP_Engine.g_hJOB){
+    CloseHandle(g_CRAMP_Engine.g_hJOB);
+    g_CRAMP_Engine.g_hJOB=0;
+  }
 
+  GlobalFree(argvW);
   InitGlobals();
+
   return(ret);
 }

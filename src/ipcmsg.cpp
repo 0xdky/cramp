@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:05:53 dhruva>
+// Time-stamp: <2003-11-19 13:40:58 dhruva>
 //-----------------------------------------------------------------------------
 // File  : ipcmsg.cpp
 // Desc  : Contains code to for messaging object for IPC
@@ -38,13 +38,9 @@ CRAMPMessaging::CRAMPMessaging(const char *iServer,BOOLEAN isAPipe){
     if(!iServer)
       break;
 
-    HANDLE h_event=0;
-    h_event=OpenEvent(EVENT_MODIFY_STATE|SYNCHRONIZE,FALSE,"THREAD_TERMINATE");
-    if(!h_event)
-      break;
-    DWORD wstate=-1;
-    wstate=WaitForSingleObject(h_event,5000);
-    if(WAIT_TIMEOUT==wstate||WAIT_FAILED==wstate)
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
+    if(!dest)
       break;
 
     char filename[MAX_PATH];

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 12:48:37 dhruva>
+// Time-stamp: <2003-11-19 16:09:52 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -36,7 +36,7 @@ DWORD WINAPI CreateManagedProcesses(LPVOID);
 DWORD WINAPI MemoryPollTH(LPVOID);
 TestCaseInfo *GetTestCaseInfos(const char *);
 BOOLEAN GetTestCaseMemoryDetails(HANDLE &,TestCaseInfo *&);
-BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *,CRAMPMessaging *);
+BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *);
 PROC_INFO *GetHandlesToActiveProcesses(HANDLE);
 SIZE_T GetProcessHandleFromName(const char *,std::list<PROCESS_INFORMATION> &);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
@@ -84,6 +84,8 @@ InitGlobals(void){
   g_CRAMP_Engine.g_hIOCP=0;
   g_CRAMP_Engine.g_fLogFile=0;
   g_CRAMP_Engine.g_pScenario=0;
+  g_CRAMP_Engine.g_l_stopengine=0;
+  g_CRAMP_Engine.g_scenariostatus=0;
   return;
 }
 
@@ -102,54 +104,12 @@ TestCaseInfo
   TestCaseInfo *pScenario=0;
   pScenario=xml.GetScenario();
 
-#if 0
-  ListOfTestCaseInfo lgc;
-  try{
-    lgc=pScenario->BlockListOfGC();
-    pScenario->ReleaseListOfGC();
-  }
-  catch(CRAMPException excep){
-    DEBUGCHK(0);
-    return(0);
-  }
-  ListOfTestCaseInfo::iterator iter=lgc.begin();
-  for(;iter!=lgc.end();iter++){
-    TestCaseInfo *ptc=0;
-    ptc=(*iter);
-    if(!ptc)
-      continue;
-    if(!ptc->MonProcStatus())
-      continue;
-    std::string &exec=ptc->TestCaseExec();
-    PROCESS_INFORMATION pin={0};
-    do{
-      std::list<PROCESS_INFORMATION> lpin;
-      if(!GetProcessHandleFromName(exec.c_str(),lpin))
-        break;
-      std::list<PROCESS_INFORMATION>::iterator lpiniter=lpin.begin();
-      ptc->ProcessInfo((*lpiniter));
-      lpiniter++;
-      std::string &str=ptc->GetUID();
-      char tcname[32];
-      for(SIZE_T cc=1;lpiniter!=lpin.end();lpiniter++,cc++){
-        TestCaseInfo *psp=0;
-        sprintf(tcname,"%s_mp#%d",str.c_str(),cc);
-        // Create a monitored proc
-        psp=ptc->AddTestCase(tcname,CRAMP_TC_MONPROC);
-        DEBUGCHK(psp);
-        psp->TestCaseName("Monitoring only");
-        psp->TestCaseExec(exec.c_str());
-        psp->ProcessInfo((*lpiniter));
-      }
-    }while(0);
-  }
-#endif
-
   return(pScenario);
 }
 
 //-----------------------------------------------------------------------------
 // GetHandlesToActiveProcesses
+//  Not used...
 //-----------------------------------------------------------------------------
 PROC_INFO
 *GetHandlesToActiveProcesses(HANDLE h_Job){
@@ -208,10 +168,15 @@ PROC_INFO
 //-----------------------------------------------------------------------------
 DWORD WINAPI
 CreateManagedProcesses(LPVOID ipTestCaseInfo){
-  if(!ipTestCaseInfo)
-    return(0);
+  if(!ipTestCaseInfo||!g_CRAMP_Engine.g_hJOB)
+    return(-1);
 
-  DWORD dwret=1;
+  long dest=1;
+  InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
+  if(!dest)
+    return(WAIT_TIMEOUT);
+
+  DWORD dwret=-1;
   SIZE_T psz=0;
   char msg[256];
   HANDLE *tharr=0;
@@ -220,6 +185,10 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
   ListOfTestCaseInfo l_tci;
   PROCESS_INFORMATION *ppi=0;
   TestCaseInfo *pTopTC=(TestCaseInfo *)ipTestCaseInfo;
+
+  // If remote node, just skip it
+  if(pTopTC->RemoteStatus())
+    return(0);
 
   // Make a copy... better performance
   l_tci=pTopTC->BlockListOfTCI();
@@ -250,7 +219,11 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
     if(ptc->GroupStatus()||porigtc->PseudoGroupStatus()){
       ptc=(ptc->GroupStatus())?ptc:porigtc;
       if(blocked){
-        CreateManagedProcesses(ptc);
+        dwret=CreateManagedProcesses(ptc);
+        if(dwret){
+          sprintf(msg,"# Failed to start:%d",dwret);
+          porigtc->AddLog(msg);
+        }
       }else if(tc<numgroups){
         tharr[tc]=chBEGINTHREADEX(NULL,0,CreateManagedProcesses,ptc,0,NULL);
         tc++;
@@ -275,22 +248,17 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
                       NULL,
                       &si,
                       &pi)){
-      dwret=0;
-      porigtc->AddLog("TP|KO|-1|-1");
+      dwret=-1;
+      porigtc->AddLog("# Failed to start:-1");
       continue;
     }
 
-    HANDLE h_job=0;
-    h_job=OpenJobObject(JOB_OBJECT_ASSIGN_PROCESS,TRUE,JOB_NAME);
-    if(!h_job)
-      continue;
     BOOLEAN ret=FALSE;
-    ret=AssignProcessToJobObject(h_job,pi.hProcess);
-    CloseHandle(h_job);
+    ret=AssignProcessToJobObject(g_CRAMP_Engine.g_hJOB,pi.hProcess);
     if(!ret){
       TerminateProcess(pi.hProcess,1);
-      dwret=0;
-      porigtc->AddLog("TP|KO|-2|-2");
+      dwret=-1;
+      porigtc->AddLog("# Failed to add to job:-1");
       continue;
     }
 
@@ -305,16 +273,14 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
         maxwait=INFINITE;
       dwret=WaitForSingleObject(pi.hProcess,maxwait);
       if(WAIT_OBJECT_0==dwret||!dwret){
-        dwret=1;
+        dwret=0;
       }else if(WAIT_TIMEOUT==dwret){
         TerminateProcess(pi.hProcess,dwret);
-        dwret=1;
+        dwret=0;
       }else if(WAIT_ABANDONED==dwret){
-        TerminateProcess(pi.hProcess,dwret);
-        dwret=0;
+        TerminateProcess(pi.hProcess,WAIT_ABANDONED);
       }else if(WAIT_FAILED==dwret){
-        TerminateProcess(pi.hProcess,dwret);
-        dwret=0;
+        TerminateProcess(pi.hProcess,WAIT_FAILED);
       }
     }else{
       ppi[psz]=pi;
@@ -343,10 +309,13 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
     dwret=WaitForMultipleObjects(psz+numgroups,ptharr,TRUE,maxwait);
     if(WAIT_TIMEOUT==dwret){
       for(int yy=0;yy<psz;yy++)
-        TerminateProcess(ptharr[yy],dwret);
+        TerminateProcess(ptharr[yy],WAIT_TIMEOUT);
       for(int zz=0;zz<numgroups;zz++)
-        TerminateThread(tharr[zz],dwret);
+        TerminateThread(tharr[zz],WAIT_TIMEOUT);
+    }else{
+      dwret=0;
     }
+
     delete [] ppi;
     delete [] tharr;
     delete [] ptharr;
@@ -354,6 +323,7 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
     tharr=0;
     ptharr=0;
   }
+
   return(dwret);
 }
 
@@ -367,40 +337,16 @@ MemoryPollTH(LPVOID lpParameter){
   if(!lpParameter)
     return(1);
 
-  HANDLE h_event=0;
-  h_event=OpenEvent(EVENT_MODIFY_STATE|SYNCHRONIZE,FALSE,"THREAD_TERMINATE");
-  if(!h_event)
-    return(1);
-  WaitForSingleObject(h_event,INFINITE);
-  CloseHandle(h_event);
-
-  BOOLEAN fDone=FALSE;
-  TestCaseInfo *pScenario=(TestCaseInfo *)lpParameter;
-  HANDLE h_mutex=0;
-  h_mutex=OpenMutex(SYNCHRONIZE,TRUE,"MEMORY_MUTEX");
-  if(!h_mutex)
-    return(1);
-
-  CRAMPServerMessaging *pmsg=0;
-  try{
-    if(getenv("CRAMP_CLIENT"))
-      pmsg=new CRAMPServerMessaging(getenv("CRAMP_CLIENT"),FALSE);
-    else
-      pmsg=new CRAMPServerMessaging(GetLocalHostName().c_str(),FALSE);
-  }
-  catch(CRAMPException excep){
-    DEBUGCHK(0);
-    return(1);
-  }
   SIZE_T monint=0;
   monint=g_CRAMP_Engine.g_pScenario->MonitorInterval();
   while(1){
-    WaitForSingleObject(h_mutex,INFINITE);
-    ActiveProcessMemoryDetails(pScenario,pmsg);
-    ReleaseMutex(h_mutex);
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
+    if(!dest||!g_CRAMP_Engine.g_pScenario)
+      break;
+    ActiveProcessMemoryDetails(g_CRAMP_Engine.g_pScenario);
     Sleep(monint);
   }
-  CloseHandle(h_mutex);
   return(0);
 }
 
@@ -409,7 +355,7 @@ MemoryPollTH(LPVOID lpParameter){
 //  This method actually gets the process's memory information.
 //-----------------------------------------------------------------------------
 BOOLEAN
-ActiveProcessMemoryDetails(TestCaseInfo *ipScenario,CRAMPMessaging *ioMsg){
+ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
   BOOLEAN ret=FALSE;
   DEBUGCHK(ipScenario);
   if(!ipScenario)
@@ -536,44 +482,27 @@ JobNotifyTH(LPVOID){
             catch(CRAMPException excep){
             }
           }while(0);
+          if(ptc)
+            ptc->AddLog("# Process added");
           break;
         case JOB_OBJECT_MSG_EXIT_PROCESS:
           ptc=g_CRAMP_Engine.g_pScenario->FindTCFromPID((SIZE_T)po);
           if(!ptc)
             break;
-          {
-            DWORD ec=0;
-            GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
-            if(ptc->SubProcStatus())
-              if(ec)
-                sprintf(msg,"SP|-1|%d",ec);
-              else
-                sprintf(msg,"SP|0|%d",ec);
-            else
-              if(ec)
-                sprintf(msg,"TP|-1|%d",ec);
-              else
-                sprintf(msg,"TP|0|%d",ec);
-            ptc->AddLog(msg);
-          }
+          ptc->AddLog("# Normal exit");
           break;
         case JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS:
           ptc=g_CRAMP_Engine.g_pScenario->FindTCFromPID((SIZE_T)po);
           if(!ptc)
             break;
-          {
-            DWORD ec=0;
-            GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
-            if(ptc->SubProcStatus())
-              sprintf(msg,"SP|-2|%d",ec);
-            else
-              sprintf(msg,"TP|-2|%d",ec);
-            ptc->AddLog(msg);
-          }
+          ptc->AddLog("# Abnormal exit");
           break;
         case JOB_OBJECT_MSG_END_OF_JOB_TIME:
+          g_CRAMP_Engine.g_pScenario->AddLog("# SCENARIO Timeout");
+          TerminateJobObject(g_CRAMP_Engine.g_hJOB,WAIT_TIMEOUT);
+          g_CRAMP_Engine.g_scenariostatus=WAIT_TIMEOUT;
         case JOB_OBJECT_TERMINATE_AT_END_OF_JOB:
-          // fprintf(g_CRAMP_Engine.g_LogFile,"%d:End of Job\n",(SIZE_T)po);
+          InterlockedExchange(&g_CRAMP_Engine.g_l_stopengine,1);
           break;
         case JOB_OBJECT_MSG_ACTIVE_PROCESS_LIMIT:
           break;
@@ -591,6 +520,7 @@ JobNotifyTH(LPVOID){
       CompKey=1;
     }
   }
+  InterlockedExchange(&g_CRAMP_Engine.g_l_stopengine,1);
   return(0);
 }
 

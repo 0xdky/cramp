@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 12:01:40 dhruva>
+// Time-stamp: <2003-11-19 16:07:58 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -68,8 +68,12 @@ extern Global_CRAMP_Profiler g_CRAMP_Profiler;
 //-----------------------------------------------------------------------------
 class TestCaseInfo;
 typedef struct{
+  HANDLE g_hJOB;
   HANDLE g_hIOCP;
   FILE *g_fLogFile;
+  long g_l_stopengine;
+  DWORD g_scenariostatus;
+
   TestCaseInfo *g_pScenario;
 
   CRITICAL_SECTION g_cs_gc;

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:51:07 dhruva>
+// Time-stamp: <2003-11-19 13:42:33 dhruva>
 //-----------------------------------------------------------------------------
 // File  : ipc.cpp
 // Desc  : Contains code to do inter-process communication across computers
@@ -53,12 +53,6 @@ MailSlotServerTH(LPVOID iMessageHandler){
   if(!iMessageHandler)
     return(1);
 
-  HANDLE h_event=0;
-  h_event=OpenEvent(EVENT_MODIFY_STATE|SYNCHRONIZE,FALSE,"THREAD_TERMINATE");
-  if(!h_event)
-    return(1);
-  WaitForSingleObject(h_event,INFINITE);
-
   CRAMPMessaging *pmsg=0;
   pmsg=(CRAMPMessaging *)iMessageHandler;
 
@@ -74,8 +68,9 @@ MailSlotServerTH(LPVOID iMessageHandler){
   // Mail slot server loop
   DWORD wstate=-1;
   while(1){
-    wstate=WaitForSingleObject(h_event,1000);
-    if(WAIT_TIMEOUT==wstate||WAIT_FAILED==wstate)
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
+    if(!dest)
       break;
 
     DWORD cbMessage=0,cMessage=0,cbRead=0;
@@ -126,10 +121,7 @@ MailSlotServerTH(LPVOID iMessageHandler){
         break;
     }
   }
-  DEBUGCHK(ResetEvent(h_event));
-  if(h_event)
-    CloseHandle(h_event);
-  h_event=0;
+
   return(0);
 }
 
@@ -142,12 +134,6 @@ DWORD
 MultiThreadedPipeServerTH(LPVOID ipMsg){
   if(!ipMsg)
     return(0);
-
-  HANDLE h_event=0;
-  h_event=OpenEvent(EVENT_MODIFY_STATE|SYNCHRONIZE,FALSE,"THREAD_TERMINATE");
-  if(!h_event)
-    return(1);
-  WaitForSingleObject(h_event,INFINITE);
 
   CRAMPMessaging *pmsg=0;
   pmsg=(CRAMPMessaging *)ipMsg;
@@ -162,9 +148,11 @@ MultiThreadedPipeServerTH(LPVOID ipMsg){
 
   DWORD wstate=-1;
   while(1){
-    wstate=WaitForSingleObject(h_event,1000);
-    if(WAIT_TIMEOUT==wstate||WAIT_FAILED==wstate)
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
+    if(!dest)
       break;
+
     h_pipe=CreateNamedPipe(filename,
                            PIPE_ACCESS_DUPLEX,
                            PIPE_TYPE_MESSAGE|PIPE_READMODE_MESSAGE|PIPE_WAIT,
@@ -187,11 +175,7 @@ MultiThreadedPipeServerTH(LPVOID ipMsg){
     CloseHandle(h_pth);
     conn++;
   }
-  DEBUGCHK(0);
-  DEBUGCHK(ResetEvent(h_event));
-  if(h_event)
-    CloseHandle(h_event);
-  h_event=0;
+
   return(conn);
 }
 
@@ -204,12 +188,6 @@ PipeInstanceTH(LPVOID lpvParam){
   if(!lpvParam)
     return;
 
-  HANDLE h_event=0;
-  h_event=OpenEvent(EVENT_MODIFY_STATE|SYNCHRONIZE,FALSE,"THREAD_TERMINATE");
-  if(!h_event)
-    return;
-  WaitForSingleObject(h_event,INFINITE);
-
   CHAR chRequest[BUFSIZE];
   CHAR chReply[BUFSIZE];
   DWORD cbBytesRead=0,cbReplyBytes=0,cbWritten=0;
@@ -221,9 +199,11 @@ PipeInstanceTH(LPVOID lpvParam){
   h_pipe=pmsg->FileHandle();
   DWORD wstate=-1;
   while(1){
-    wstate=WaitForSingleObject(h_event,1000);
-    if(WAIT_TIMEOUT==wstate||WAIT_FAILED==wstate)
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
+    if(!dest)
       break;
+
     fSuccess=ReadFile(h_pipe,
                       chRequest,
                       BUFSIZE,
@@ -252,13 +232,10 @@ PipeInstanceTH(LPVOID lpvParam){
     }
     FlushFileBuffers(h_pipe);
   }
-  DEBUGCHK(ResetEvent(h_event));
-  if(h_event)
-    CloseHandle(h_event);
-  h_event=0;
 
   delete pmsg;
   pmsg=0;
+
   return;
 }
 
@@ -280,6 +257,7 @@ WriteToMailSlot(CRAMPMessaging *&ioMsg){
                 GetLocalHostName().c_str(),
                 ioMsg->Message().c_str());
   ret=WriteFile(ioMsg->FileHandle(),msgbuff,msgSz+1,&cbWritten,NULL);
+
   return(ret);
 }
 
@@ -316,5 +294,6 @@ WriteToPipe(CRAMPMessaging *&ioMsg){
                              NULL);
   if(fSuccess)
     ioMsg->Response(chReadBuf);
+
   return(fSuccess);
 }
