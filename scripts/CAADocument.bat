@@ -27,16 +27,25 @@ Rem @pause
 echo TCK_INIT
 @call \\snowmass\TOOLS\TCK\tck_init.bat
 @echo TCK_PROFILE
-@call \\snowmass\TOOLS\TCK\intel_a\TCK\tck_profile %ADL_FR_CATIA% 
+@call \\snowmass\TOOLS\TCK\intel_a\TCK\command\tck_profile %ADL_FR_CATIA% 
 
-@call mkdir CAAExposedInterfaces
-@call mkdir CAAExposedInterfaces\PublicInterfaces
-@call mkdir CAAExposedInterfaces\IdentityCard
-@call echo //empty file > CAAExposedInterfaces\IdentityCard\IdentityCard.h
+@call mkdir IDL_Documetation
+IF NOT EXIST IDL_Documetation\PublicInterfaces (
+    echo Creating PublicInterfaces
+    @call mkdir IDL_Documetation\PublicInterfaces
+)
+
+IF NOT EXIST IDL_Documetation\CAAIdlFileList.txt (
+    echo Creating CAAIdlFileList.txt
+    echo cominc\basedataobj.idl> IDL_Documetation\CAAIdlFileList.txt
+)
+
+@call mkdir IDL_Documetation\IdentityCard
+@call echo //empty file > IDL_Documetation\IdentityCard\IdentityCard.h
 @call mkGetPreq -p \\snowmass\%ADL_FR_CATIA%\BSF
-@set OUTPUT_DIRPATH=%ERGO_ROOT%\CAAExposedInterfaces\PublicInterfaces
+@set OUTPUT_DIRPATH=%ERGO_ROOT%\IDL_Documetation\PublicInterfaces
 @call %ERGOPLAN_ROOT%\util\vbscripts\CAADocument.vbs [ ^ ] ^ /*[ ^ ]*/
-@call mkdcidl -o CAADocumentation
+@call mkdcidl -o IDL_Documetation\CAADocumentation
 set CAADocCheck=TRUE
 GOTO :RemoveDirAndFile
 
@@ -53,17 +62,10 @@ echo ERROR : Please Specify ERGOPLAN_ROOT Environment Variable.
 GOTO :Exit
 
 :RemoveDirAndFile
-IF EXIST CAAExposedInterfaces (
-    echo Removing CAAExposedInterfaces Directory.
-    @call rmdir /S /Q CAAExposedInterfaces
-) ELSE (
-    echo Directory CAAExposedInterfaces Not Exist.
-)
-
 IF "%CAADocCheck%" == "FALSE" (
-    IF EXIST CAADocumentation (
+    IF EXIST IDL_Documetation\CAADocumentation (
         echo Removing CAADocumentation Directory.
-        @call rmdir /S /Q CAADocumentation
+        @call rmdir /S /Q IDL_Documetation\CAADocumentation
        ) ELSE (
            echo Directory CAADocumentation Not Exist.
               )
@@ -81,6 +83,13 @@ IF EXIST CATIAV5Level.lvl (
     @call del /Q CATIAV5Level.lvl
 ) ELSE (
     echo File CATIAV5Level.lvl Not Exist.
+)
+
+IF EXIST IDL_Documetation\IdentityCard (
+    echo Removing IdentityCard File.
+    @call rmdir /S /Q IDL_Documetation\IdentityCard
+) ELSE (
+    echo File IdentityCard Not Exist.
 )
 
 IF EXIST Install_config_intel_a (
