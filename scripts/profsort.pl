@@ -1,9 +1,9 @@
 #!perl
-## Time-stamp: <2003-10-17 14:25:33 dhruva>
+## Time-stamp: <2003-10-17 15:10:51 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profsort.pl
 ## Desc  : PERL script to sort the raw profile output.
-## Usaga : perl profsort.pl CRAMP_PROFILE.log
+## Usage : perl profsort.pl CRAMP_PROFILE.log [Summary]
 ##-----------------------------------------------------------------------------
 ## mm-dd-yyyy  History                                                      tri
 ## 09-30-2003  Cre                                                          dky
@@ -71,7 +71,6 @@ foreach(keys %hsh_summ){
     print LOGSUMM "$_|$hsh_summ{$_}->[0]|$hsh_summ{$_}->[1]\n";
 }
 close(LOGSUMM);
-print("Created summary file \"$f_logsumm\"\n");
 
 # No sorting
 if($#ARGV==0){
@@ -90,4 +89,3 @@ foreach(@arr_arr){
     print LOGSORT join("|",@$_) . "\n";
 }
 close(LOGSORT);
-print("Created sorted log file \"$f_logsort\"\n");
