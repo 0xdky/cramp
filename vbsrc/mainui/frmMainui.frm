@@ -1369,22 +1369,30 @@ Private Sub queryLV_ColumnClick(ByVal ColumnHeader As MSComctlLib.ColumnHeader)
   DoEvents
   
   With Me.queryLV
+    
+    .MousePointer = ccHourglass
+  
     'tie images to listview headers
     .ColumnHeaderIcons = SortIconImageList
     .SortKey = ColumnHeader.index - 1
+  
+    imgIconNo = GetIconNumber(imgIconNo)
+  
+    'sort
+    RunPerlScriptWithCP ColumnHeader.index - 1, imgIconNo
+    CreateDictionary
+    SetValueInListView
+  
+    'show icon on header
+    ShowSortIconInLVHeader Me.queryLV, imgIconNo
+  
+    'show hide col
+    ShowHideCol
+  
+    .Refresh
+    .MousePointer = ccDefault
+  
   End With
   
-  imgIconNo = GetIconNumber(imgIconNo)
-  
-  'sort
-  RunPerlScriptWithCP ColumnHeader.index - 1, imgIconNo
-  CreateDictionary
-  SetValueInListView
-  
-  'show icon on header
-  ShowSortIconInLVHeader Me.queryLV, imgIconNo
-  
-  'show hide col
-  ShowHideCol
 End Sub
 
