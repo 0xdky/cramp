@@ -348,7 +348,7 @@ Private Sub cmdRun_Click()
     
     MousePointer = 11
     
-    Command = App.Path & "\bin\CRAMPEngine.exe " & gCurFileName
+    Command = gCRAMPPath & "\bin\CRAMPEngine.exe " & gCurFileName
     
     sInfo.cb = Len(sInfo)
     lSuccess = CreateProcess(sNull, _
