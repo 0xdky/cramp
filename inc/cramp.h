@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 13:00:47 dhruva>
+// Time-stamp: <2003-10-23 13:02:11 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -16,8 +16,10 @@
 
 // Windows definitions
 #include <Windows.h>
-#include <string>
+#include <stdio.h>
 #include <process.h>
+
+#include <string>
 
 //------------------------ MACROS AND DEFINED ---------------------------------
 #define JOB_NAME "CRAMP_JOB"
