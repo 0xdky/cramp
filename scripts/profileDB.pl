@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-29 09:10:51 dhruva>
+## Time-stamp: <2003-10-29 09:23:43 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -53,6 +53,7 @@ sub SetDBFilters{
 
 ##-----------------------------------------------------------------------------
 ## TickCompare
+##  Removed explicit conversion to "int" in regexp. Guess, it is not required
 ##-----------------------------------------------------------------------------
 sub TickCompare{
     my $k1=$_[0];
@@ -61,8 +62,8 @@ sub TickCompare{
     $k1=~s/\0$//;
     $k2=~s/\0$//;
 
-    $k1=~s/([0-9]+)$/{$key1=int $1}/e;
-    $k2=~s/([0-9]+)$/{$key2=int $1}/e;
+    $k1=~s/([0-9]+)$/{$key1=$1}/e;
+    $k2=~s/([0-9]+)$/{$key2=$1}/e;
 
     if($key1 < $key2){
         return 1;
