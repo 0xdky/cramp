@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-12-03 10:48:07 dhruva>
+## Time-stamp: <2003-12-04 10:01:53 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -204,14 +204,14 @@ test: dirs $(BINDIR)/TestProf.exe
 basetest: baseclass $(BINDIR)/DPEBaseClassTest.exe
 
 $(BINDIR)/TestProf.exe: library $(OBJDIR)/TestProf.obj
-    @$(LINK) $(LINK_DEBUG) $(OBJDIR)/TestProf.obj $(BINDIR)/$(PROFLIB).lib \
+    @$(LINK) /DEBUG $(OBJDIR)/TestProf.obj $(BINDIR)/$(PROFLIB).lib \
              /OUT:$(BINDIR)/TestProf.exe
 $(BINDIR)/DPEBaseClassTest.exe: $(OBJDIR)/DPEBaseClass.obj \
                                 $(OBJDIR)/DPEBaseClassTest.obj
     @$(LINK) $(LINK_DEBUG) $(OBJDIR)/DPEBaseClassTest.obj \
              $(OBJDIR)/DPEBaseClass.obj /OUT:$(BINDIR)/DPEBaseClassTest.exe
 $(OBJDIR)/TestProf.obj: $(TSTDIR)/TestProf.cpp
-    @$(CPP)  /c $(CPP_DEBUG) /GX /Gh $(TSTDIR)/TestProf.cpp \
+    @$(CPP)  /c /ZI /DCRAMP_DEBUG /GX /Gh $(TSTDIR)/TestProf.cpp \
              /Fo$(OBJDIR)/TestProf.obj
 $(OBJDIR)/DPEBaseClassTest.obj: $(TSTDIR)/DPEBaseClassTest.cpp
     @$(CPP)  /c $(CPP_DEBUG) /GX /I$(DPE_COMINC) \
