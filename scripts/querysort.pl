@@ -32,18 +32,18 @@ if($ENV{'CRAMP_LOGPATH'}){
 }
 
 ## Read the input query.psf file
-open(fileIN,"$cramplogdir/query.psf") or dienice("Cannot open log.txt: $!");
-binmode(fileIN);
+open(FILE,"$cramplogdir/query.psf") or dienice("Cannot open log.txt: $!");
+binmode(FILE);
 my @logData=();
-while(<fileIN>) {
-    chomp();
+while(<FILE>) {
+    chomp($_);
     push(@logData, $_);
 }
-close(fileIN);
+close(FILE);
 
 ## Call the sort method. 
 ## CustomCompare is sub which checks for sorting order
-@SortList = reverse sort CustomCompare @logData;
+@SortList = sort CustomCompare @logData;
 
 ## WriteResults
 open(fileOUT,">$cramplogdir/query.psf") or dienice("Cannot open logout.txt: $!");
@@ -52,6 +52,7 @@ foreach $line (@SortList)
     chomp($line);
     print fileOUT "$line\n";
 }
+
 close(fileOUT);
 
 ##-----------------------------------------------------------------------------
@@ -64,11 +65,11 @@ sub CustomCompare{
     my @bb=();
 
     if($SortOrder){
-        @aa=split(/\|/,$b);
-        @bb=split(/\|/,$a);
-    }else{
         @aa=split(/\|/,$a);
         @bb=split(/\|/,$b);
+    }else{
+        @aa=split(/\|/,$b);
+        @bb=split(/\|/,$a);
     }
 
     ## Check for numeric or string context
@@ -91,8 +92,6 @@ sub CustomCompare{
 ##-----------------------------------------------------------------------------
 ## Error Trapping Sub...should things go pear shaped!
 ##-----------------------------------------------------------------------------
-
-
 sub dienice
 {
     my($msg) = @_;
