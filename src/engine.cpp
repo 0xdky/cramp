@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 17:11:24 dhruva>
+// Time-stamp: <2003-10-15 17:20:33 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -727,9 +727,6 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
     for(;mret;mret=Module32Next(h_snapmod,&me)){
       sprintf(msg,"LOG|MEMORY|MOD|SUMMARY|Name %s",me.szModule);
       ipTestCase->AddLog(msg);
-      sprintf(msg,"LOG|MEMORY|MOD|ACCESS|Global Count %ld,Local Count %ld",
-              me.GlblcntUsage,me.ProccntUsage);
-      ipTestCase->AddLog(msg);
 
       // Walk the module memory
       BYTE *pbase=me.modBaseAddr;
@@ -737,7 +734,6 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
       MEMORY_BASIC_INFORMATION mbi={0};
       bsz=VirtualQueryEx(pin.hProcess,pbase,&mbi,sizeof(mbi));
       DEBUGCHK(bsz);
-
       PVOID pvRgnBaseAddress=mbi.AllocationBase;
       PVOID pvAddressBlk=pvRgnBaseAddress;
       SIZE_T freesz=0,commitsz=0,reservesz=0;
@@ -759,7 +755,7 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
         }
         pvAddressBlk=(PVOID)((PBYTE) pvAddressBlk+mbi.RegionSize);
       }while(mbi.AllocationBase==pvRgnBaseAddress);
-      sprintf(msg,"LOG|MEMORY|MOD|VM|Commit %ld,Free %ld,Reserved %ld",
+      sprintf(msg,"LOG|MEMORY|MOD|VM|Commit %ld,Free %ld,Reserve %ld",
               commitsz,freesz,reservesz);
       ipTestCase->AddLog(msg);
     }
