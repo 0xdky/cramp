@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 09:31:36 dhruva>
+// Time-stamp: <2003-11-01 16:12:41 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -10,17 +10,12 @@
 #define __CALLMONLOG_SRC
 
 #include "CallMonLOG.h"
-#include "ProfileLimit.h"
 
 #include <queue>
 #include <string>
 #include <hash_map>
 
-extern FILE *g_fLogFile;
-extern CRITICAL_SECTION g_cs_log;
-extern CRITICAL_SECTION g_cs_prof;
-extern std::queue<std::string> g_LogQueue;
-extern std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
+extern Global_CRAMP_Profiler g_CRAMP_Profiler;
 extern BOOL WriteFuncInfo(unsigned int,unsigned long);
 
 //-----------------------------------------------------------------------------
@@ -57,33 +52,33 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
   queryTickFreq(&ticksPerSecond);
 
   std::hash_map<ADDR,FuncInfo>::iterator iter;
-  EnterCriticalSection(&g_cs_prof);
-  iter=g_hFuncCalls.find(ci.funcAddr);
-  if(iter==g_hFuncCalls.end()){
+  EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+  iter=g_CRAMP_Profiler.g_hFuncCalls.find(ci.funcAddr);
+  if(iter==g_CRAMP_Profiler.g_hFuncCalls.end()){
     FuncInfo fi={1,TRUE,elapsedticks,elapsedticks};
     fi._pending=WriteFuncInfo(ci.funcAddr,1);
-    g_hFuncCalls[ci.funcAddr]=fi;
+    g_CRAMP_Profiler.g_hFuncCalls[ci.funcAddr]=fi;
   }else{
     (*iter).second._calls++;
     (*iter).second._totalticks+=elapsedticks;
     if((*iter).second._maxticks<elapsedticks)
       (*iter).second._maxticks=elapsedticks;
   }
-  LeaveCriticalSection(&g_cs_prof);
+  LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
   // For stats only
-  if(!g_fLogFile)
+  if(!g_CRAMP_Profiler.g_fLogFile)
     return;
 
-  EnterCriticalSection(&g_cs_log);
-  fprintf(g_fLogFile,"%d|%08X|%d|%d|%I64d|%I64d\n",
+  EnterCriticalSection(&g_CRAMP_Profiler.g_cs_log);
+  fprintf(g_CRAMP_Profiler.g_fLogFile,"%d|%08X|%d|%d|%I64d|%I64d\n",
           _tid,
           ci.funcAddr,
           callInfoStack.size(),
           !normalRet,
           elapsedticks/(ticksPerSecond/1000),
           elapsedticks);
-  LeaveCriticalSection(&g_cs_log);
+  LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_log);
 
   return;
 }

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 13:02:11 dhruva>
+// Time-stamp: <2003-11-01 16:51:29 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -19,7 +19,59 @@
 #include <stdio.h>
 #include <process.h>
 
+#include <queue>
 #include <string>
+#include <hash_map>
+
+//-----------------------------------------------------------------------------
+// Global for CRAMP Profiler
+//-----------------------------------------------------------------------------
+typedef struct{
+  unsigned long _calls;
+  BOOLEAN _pending;
+  __int64 _maxticks;
+  __int64 _totalticks;
+}FuncInfo;
+
+typedef struct{
+  FILE *g_fLogFile;
+  FILE *g_fFuncInfo;
+
+  unsigned int g_pid;
+  long g_l_profile;
+  long g_l_stoplogging;
+  long g_l_calldepthlimit;
+
+  std::queue<std::string> g_LogQueue;
+  std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
+
+  CRITICAL_SECTION g_cs_log;
+  CRITICAL_SECTION g_cs_prof;
+
+}Global_CRAMP_Profiler;
+
+#ifndef __DLLMAIN_SRC
+extern Global_CRAMP_Profiler g_CRAMP_Profiler;
+#endif
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+// Global for CRAMP Engine
+//-----------------------------------------------------------------------------
+class TestCaseInfo;
+typedef struct{
+  HANDLE g_hIOCP;
+  FILE *g_fLogFile;
+  TestCaseInfo *g_pScenario;
+
+  CRITICAL_SECTION g_cs_gc;
+  CRITICAL_SECTION g_cs_log;
+}Global_CRAMP_Engine;
+
+#ifndef __MAIN_SRC
+extern Global_CRAMP_Engine g_CRAMP_Engine;
+#endif
+//-----------------------------------------------------------------------------
 
 //------------------------ MACROS AND DEFINED ---------------------------------
 #define JOB_NAME "CRAMP_JOB"

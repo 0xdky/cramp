@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 21:36:03 dhruva>
+// Time-stamp: <2003-11-01 16:12:25 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include "CallMon.h"
 #include "CallMonLOG.h"
-#include "ProfileLimit.h"
 
 using namespace std;
 
@@ -29,11 +28,7 @@ typedef CallMonitor::ADDR ADDR;
 // _penter return address to start of
 // caller.
 static const unsigned OFFSET_CALL_BYTES=5;
-
-// Control profiling
-extern long g_l_profile;
-extern long g_l_calldepthlimit;
-extern CRITICAL_SECTION g_cs_prof;
+extern Global_CRAMP_Profiler g_CRAMP_Profiler;
 
 // Start of MSVC-specific code
 
@@ -124,7 +119,7 @@ extern "C" __declspec(dllexport) __declspec(naked)
 
     // Profiling is disabled
     long dest=0;
-    InterlockedCompareExchange(&dest,1,g_l_profile);
+    InterlockedCompareExchange(&dest,1,g_CRAMP_Profiler.g_l_profile);
     if(dest)
       break;
 
@@ -266,7 +261,7 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
   // Max call depth has reached
   long deep=callInfoStack.size();
   if(deep){
-    InterlockedCompareExchange(&deep,0,g_l_calldepthlimit);
+    InterlockedCompareExchange(&deep,0,g_CRAMP_Profiler.g_l_calldepthlimit);
     if(!deep)
       return;
   }
