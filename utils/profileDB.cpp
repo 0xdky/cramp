@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-29 20:42:15 dhruva>
+// Time-stamp: <2003-10-30 17:57:35 dhruva>
 //-----------------------------------------------------------------------------
 // File  : proflog2db.cpp
 // Desc  : Dumps the raw text cramp profile log file to Berkeley DB
@@ -11,27 +11,38 @@
 #include "cramp.h"
 #include "db.h"
 
+#include <tchar.h>
+#include <fstream.h>
+
 #include <queue>
+#include <string>
 #include <hash_map>
+
+typedef std::string string;
 typedef std::queue<std::string> squeue;
 typedef std::hash_map<unsigned int,char> hash_tid;
 
 char DEBUG;
-char logdir[1024];
-char dbfile[1024];
-char logfile[1024];
-char funcfile[1024];
-char queryfile[1024];
+unsigned long uid;
+char logdir[MAX_PATH];
+char dbfile[MAX_PATH];
+char logfile[MAX_PATH];
+char funcfile[MAX_PATH];
+char queryfile[MAX_PATH];
 
+int AddFunctionInfo(void);
 int AddTickSortedData(void);
 int AddAddrSortedData(void);
 int AddThreadIDs(hash_tid &);
 int TickCompare(DB *,const DBT *,const DBT *);
 
 squeue GetThreadIDs(void);
+void AppendFunctionInfo(squeue &,FILE *);
 squeue GetDuplicateKeyValues(DB *,char *,unsigned int);
 squeue GetTickSortedValues(char *,unsigned int);
 squeue GetAddrSortedValues(char *,unsigned int);
+int GetAddrSecondaryKey(DB *,const DBT *,const DBT *,DBT *);
+int GetTickSecondaryKey(DB *,const DBT *,const DBT *,DBT *);
 
 #ifndef DBERROR
 #define DBERROR(ptr,ret,msg) do{                \
@@ -41,20 +52,12 @@ squeue GetAddrSortedValues(char *,unsigned int);
   }while(0)
 #endif
 
-#ifndef QUERYOUT
-#define QUERYOUT(que) while(!que.empty()){          \
-    fprintf(f_query,"%s\n",que.front().c_str());    \
-    if(DEBUG)                                       \
-      fprintf(stdout,"%s\n",que.front().c_str());   \
-    que.pop();                                      \
-  }
-#endif
-
 //-----------------------------------------------------------------------------
 // main
 //-----------------------------------------------------------------------------
 int
 main(int argc,char *argv[]){
+  uid=0;
   SIZE_T pid=atoi(argv[1]);
   BOOLEAN dump=FALSE;
 
@@ -82,33 +85,43 @@ main(int argc,char *argv[]){
       AddTickSortedData();
     if(0==stricmp("ADDR",argv[3]))
       AddAddrSortedData();
+    AddFunctionInfo();
   }else{
     // Basic number of arguments for a query
     if(argc<4)
       return(-1);
 
     FILE *f_query=0;
-    f_query=fopen(queryfile,"w");
+    if(0==stricmp("APPEND",argv[argc-1]))
+      f_query=fopen(queryfile,"a");
+    else
+      f_query=fopen(queryfile,"w");
     if(!f_query)
       return(-1);
 
     do{
       if(0==stricmp("THREADS",argv[3])){
         squeue &qtid=GetThreadIDs();
-        QUERYOUT(qtid);
+        while(!qtid.empty()){
+          if(f_query)
+            fprintf(f_query,"%s\n",qtid.front().c_str());
+          if(DEBUG)
+            fprintf(stdout,"%s\n",qtid.front().c_str());
+          qtid.pop();
+        }
         break;
       }
 
       if(argc<6)
         break;
       if(0==stricmp("TICK",argv[4])){
-        squeue &qtid=GetTickSortedValues(argv[3],atoi(argv[5]));
-        QUERYOUT(qtid);
+        squeue &qtick=GetTickSortedValues(argv[3],atoi(argv[5]));
+        AppendFunctionInfo(qtick,f_query);
         break;
       }
       if(0==stricmp("ADDR",argv[3])){
-        squeue &qtid=GetAddrSortedValues(argv[4],atoi(argv[5]));
-        QUERYOUT(qtid);
+        squeue &qaddr=GetAddrSortedValues(argv[4],atoi(argv[5]));
+        AppendFunctionInfo(qaddr,f_query);
         break;
       }
 
@@ -143,10 +156,9 @@ AddThreadIDs(hash_tid &h_tid){
 
     ret=pdb->open(pdb,NULL,dbfile,"TID",
                   DB_RECNO,
-                  DB_CREATE,
+                  DB_EXCL|DB_CREATE,
                   0644);
     if(ret){
-      pdb=0;
       break;
     }
 
@@ -186,68 +198,93 @@ AddThreadIDs(hash_tid &h_tid){
 }
 
 //-----------------------------------------------------------------------------
-// AddTickSortedData
+// GetTickSecondaryKey
 //-----------------------------------------------------------------------------
 int
-AddTickSortedData(void){
-  FILE *f_log=0;
-  f_log=fopen(logfile,"r");
-  if(!f_log)
+GetTickSecondaryKey(DB *pdb,const DBT *pkey,const DBT *pval,DBT *skey){
+  if(!pdb||!pkey||!pval||!pkey->size||!pkey->data)
+    return(DB_DONOTINDEX);
+  memset(skey,0,sizeof(DBT));
+
+  char *buff=0;
+  char pdata[1024];
+  memcpy(pdata,pval->data,pval->size);
+
+  buff=strtok(pdata,"|");
+  if(!buff)
+    return(DB_DONOTINDEX);
+
+  skey->size=strlen(buff)+1;
+  skey->data=buff;
+
+  return(0);
+}
+
+//-----------------------------------------------------------------------------
+// GetAddrSecondaryKey
+//-----------------------------------------------------------------------------
+int
+GetAddrSecondaryKey(DB *pdb,const DBT *pkey,const DBT *pval,DBT *skey){
+  if(!pdb||!pkey||!pval||!pkey->size||!pkey->data)
+    return(DB_DONOTINDEX);
+  memset(skey,0,sizeof(DBT));
+
+  char *buff=0;
+  char pdata[1024];
+  memcpy(pdata,pval->data,pval->size);
+
+  buff=strtok(pdata,"|");
+  if(!buff)
+    return(DB_DONOTINDEX);
+  buff=strtok(0,"|");
+  if(!buff)
+    return(DB_DONOTINDEX);
+
+  skey->size=strlen(buff)+1;
+  skey->data=buff;
+
+  return(0);
+}
+
+//-----------------------------------------------------------------------------
+// AddFunctionInfo
+//-----------------------------------------------------------------------------
+int
+AddFunctionInfo(void){
+  fstream f_fun;
+  f_fun.open(funcfile,ios::in|ios::nocreate);
+  if(!(f_fun.rdbuf())->is_open())
     return(-1);
 
   int ret=0;
   DB *pdb=0;
-  DBC *pdbc=0;
+
+  // Create primary database
   if(db_create(&pdb,NULL,0)){
-    fclose(f_log);
+    f_fun.close();
     return(-1);
   }
 
-  hash_tid h_tid;
   do{
-    // Set the flags for db table
-    ret=pdb->set_flags(pdb,DB_DUP|DB_DUPSORT);
-    if(ret){
-      DBERROR(pdb,ret,dbfile);
-      break;
-    }
-
-    // Set duplicate data compare to tick
-    ret=pdb->set_dup_compare(pdb,TickCompare);
-    if(ret){
-      DBERROR(pdb,ret,dbfile);
-      break;
-    }
-
-    ret=pdb->open(pdb,NULL,dbfile,"TID_FUNC_SORT_TICK",
-                  DB_BTREE,
-                  DB_CREATE,
+    unsigned int count=0;
+    ret=pdb->open(pdb,NULL,dbfile,"FUNCTION_INFO",
+                  DB_HASH,
+                  DB_EXCL|DB_CREATE,
                   0644);
     if(ret){
-      DBERROR(pdb,ret,dbfile);
-      pdb=0;
       break;
     }
-
-    // Truncate the contents if any
-    unsigned int count=0;
     ret=pdb->truncate(pdb,NULL,&count,0);
     if(ret)
       DBERROR(pdb,ret,"Truncate");
 
-    ret=pdb->cursor(pdb,NULL,&pdbc,0);
-    if(ret){
-      DBERROR(pdb,ret,dbfile);
-      pdb=0;
-      break;
-    }
-
     char *buff=0;
-    char orig[1024];
     char line[1024];
+    char *orig=(char *)calloc(1024,sizeof(char));
     const char *sep="|";
-    while(EOF!=fscanf(f_log,"%s",&line)){
-      sprintf(orig,"%s",line);
+    while(!f_fun.eof()){
+      f_fun.getline(line,1024,'\n');
+      strcpy(orig,line);
 
       buff=0;
       buff=strtok(line,sep);
@@ -260,20 +297,137 @@ AddTickSortedData(void){
 
       key.size=strlen(buff)+1;
       key.data=buff;
+
+      val.size=strlen(orig)-key.size+1;
+      val.data=orig+key.size;
+
+      ret=pdb->put(pdb,NULL,&key,&val,0);
+      if(ret)
+        DBERROR(pdb,ret,(char *)key.data);
+    }
+    if(orig)
+      free(orig);
+    orig=0;
+  }while(0);
+
+  f_fun.close();
+  if(pdb){
+    pdb->close(pdb,0);
+    pdb=0;
+  }
+
+  return(ret);
+}
+
+//-----------------------------------------------------------------------------
+// AddTickSortedData
+//-----------------------------------------------------------------------------
+int
+AddTickSortedData(void){
+  fstream f_log;
+  f_log.open(logfile,ios::in|ios::nocreate);
+  if(!(f_log.rdbuf())->is_open())
+    return(-1);
+
+  int ret=0;
+  DB *pdb=0;
+  DB *psdb=0;
+
+  // Create primary database
+  if(db_create(&pdb,NULL,0)){
+    f_log.close();
+    return(-1);
+  }
+
+  // Create secondary database
+  if(db_create(&psdb,NULL,0)){
+    f_log.close();
+    return(-1);
+  }
+
+  hash_tid h_tid;
+  do{
+    unsigned int count=0;
+    ret=pdb->open(pdb,NULL,dbfile,"TID_FUNC_SORT_TICK",
+                  DB_BTREE,
+                  DB_EXCL|DB_CREATE,
+                  0644);
+    if(ret){
+      break;
+    }
+    ret=pdb->truncate(pdb,NULL,&count,0);
+    if(ret)
+      DBERROR(pdb,ret,"Truncate");
+
+    // Set the flags for db table
+    ret=psdb->set_flags(psdb,DB_DUP|DB_DUPSORT);
+    if(ret){
+      DBERROR(psdb,ret,dbfile);
+      break;
+    }
+
+    // Set duplicate data compare to tick
+    ret=psdb->set_dup_compare(psdb,TickCompare);
+    if(ret){
+      DBERROR(psdb,ret,dbfile);
+      break;
+    }
+
+    ret=psdb->open(psdb,NULL,dbfile,"S_TID_FUNC_SORT_TICK",
+                   DB_BTREE,
+                   DB_EXCL|DB_CREATE,
+                   0644);
+    if(ret){
+      break;
+    }
+    ret=psdb->truncate(psdb,NULL,&count,0);
+    if(ret)
+      DBERROR(psdb,ret,"Truncate");
+
+    // Associate the secondary with the primary
+	ret=pdb->associate(pdb,NULL,psdb,GetTickSecondaryKey,0);
+    if(ret){
+      DBERROR(pdb,ret,"associate");
+      break;
+    }
+
+    char *buff=0;
+    char orig[1024];
+    char line[1024];
+    const char *sep="|";
+    while(!f_log.eof()){
+      f_log.getline(line,1024,'\n');
+      strcpy(orig,line);
+
+      buff=0;
+      buff=strtok(line,sep);
+      if(!buff)
+        continue;
+      DBT key;
+      DBT val;
+      memset(&key,0,sizeof(key));
+      memset(&val,0,sizeof(val));
+
+      // Unique primary key
+      uid++;
+      char skey[32];
+      key.size=sprintf(skey,"%ld",uid)+1;
+      key.data=skey;
+
       val.size=strlen(orig)+1;
       val.data=orig;
 
       h_tid[atoi(buff)]=1;
-      ret=pdbc->c_put(pdbc,&key,&val,DB_KEYLAST);
-      if(ret){
-        DBERROR(pdb,ret,dbfile);
-      }
+      ret=pdb->put(pdb,NULL,&key,&val,0);
+      if(ret)
+        DBERROR(pdb,ret,(char *)key.data);
     }
   }while(0);
 
-  if(pdbc){
-    pdbc->c_close(pdbc);
-    pdbc=0;
+  f_log.close();
+  if(psdb){
+    psdb->close(psdb,0);
+    psdb=0;
   }
 
   if(pdb){
@@ -292,48 +446,63 @@ AddTickSortedData(void){
 //-----------------------------------------------------------------------------
 int
 AddAddrSortedData(void){
-  FILE *f_log=0;
-  f_log=fopen(logfile,"r");
-  if(!f_log)
+  fstream f_log;
+  f_log.open(logfile,ios::in|ios::nocreate);
+  if(!(f_log.rdbuf())->is_open())
     return(-1);
 
   int ret=0;
   DB *pdb=0;
-  DBC *pdbc=0;
+  DB *psdb=0;
+
+  // Create primary database
   if(db_create(&pdb,NULL,0)){
-    fclose(f_log);
+    f_log.close();
+    return(-1);
+  }
+
+  // Create secondary database
+  if(db_create(&psdb,NULL,0)){
+    f_log.close();
     return(-1);
   }
 
   hash_tid h_tid;
   do{
-    // Set the flags for db table
-    ret=pdb->set_flags(pdb,DB_DUP|DB_DUPSORT);
-    if(ret){
-      DBERROR(pdb,ret,dbfile);
-      break;
-    }
-
-    ret=pdb->open(pdb,NULL,dbfile,"ADDR_FUNC_SORT",
+    unsigned int count=0;
+    ret=pdb->open(pdb,NULL,dbfile,"TID_FUNC_SORT_ADDR",
                   DB_BTREE,
-                  DB_CREATE,
+                  DB_EXCL|DB_CREATE,
                   0644);
     if(ret){
-      DBERROR(pdb,ret,dbfile);
-      pdb=0;
       break;
     }
-
-    // Truncate the contents if any
-    unsigned int count=0;
     ret=pdb->truncate(pdb,NULL,&count,0);
     if(ret)
       DBERROR(pdb,ret,"Truncate");
 
-    ret=pdb->cursor(pdb,NULL,&pdbc,0);
+    // Set the flags for db table
+    ret=psdb->set_flags(psdb,DB_DUP|DB_DUPSORT);
     if(ret){
-      DBERROR(pdb,ret,dbfile);
-      pdb=0;
+      DBERROR(psdb,ret,dbfile);
+      break;
+    }
+
+    ret=psdb->open(psdb,NULL,dbfile,"S_TID_FUNC_SORT_ADDR",
+                   DB_BTREE,
+                   DB_EXCL|DB_CREATE,
+                   0644);
+    if(ret){
+      break;
+    }
+    ret=psdb->truncate(psdb,NULL,&count,0);
+    if(ret)
+      DBERROR(psdb,ret,"Truncate");
+
+    // Associate the secondary with the primary
+	ret=pdb->associate(pdb,NULL,psdb,GetAddrSecondaryKey,0);
+    if(ret){
+      DBERROR(pdb,ret,"associate");
       break;
     }
 
@@ -341,13 +510,15 @@ AddAddrSortedData(void){
     char orig[1024];
     char line[1024];
     const char *sep="|";
-    while(EOF!=fscanf(f_log,"%s",&line)){
-      sprintf(orig,"%s",line);
+    while(!f_log.eof()){
+      f_log.getline(line,1024,'\n');
+      strcpy(orig,line);
 
       buff=0;
       buff=strtok(line,sep);
       if(!buff)
         continue;
+      h_tid[atoi(buff)]=1;
       buff=strtok(0,sep);
       if(!buff)
         continue;
@@ -357,28 +528,34 @@ AddAddrSortedData(void){
       memset(&key,0,sizeof(key));
       memset(&val,0,sizeof(val));
 
-      key.size=strlen(buff)+1;
-      key.data=buff;
+      // Unique primary key
+      uid++;
+      char skey[32];
+      key.size=sprintf(skey,"%ld",uid)+1;
+      key.data=skey;
+
       val.size=strlen(orig)+1;
       val.data=orig;
 
-      h_tid[atoi(buff)]=1;
-      ret=pdbc->c_put(pdbc,&key,&val,DB_KEYLAST);
-      if(ret){
-        DBERROR(pdb,ret,dbfile);
-      }
+      ret=pdb->put(pdb,NULL,&key,&val,0);
+      if(ret)
+        DBERROR(pdb,ret,(char *)key.data);
     }
   }while(0);
 
-  if(pdbc){
-    pdbc->c_close(pdbc);
-    pdbc=0;
+  f_log.close();
+  if(psdb){
+    psdb->close(psdb,0);
+    psdb=0;
   }
 
   if(pdb){
     pdb->close(pdb,0);
     pdb=0;
   }
+
+  // Add the thread IDs
+  AddThreadIDs(h_tid);
 
   return(ret);
 }
@@ -394,6 +571,7 @@ GetTickSortedValues(char *stid,unsigned int max){
 
   int ret=0;
   DB *pdb=0;
+
   if(db_create(&pdb,NULL,0))
     return(oque);
 
@@ -412,16 +590,55 @@ GetTickSortedValues(char *stid,unsigned int max){
       break;
     }
 
+    ret=pdb->open(pdb,NULL,dbfile,"S_TID_FUNC_SORT_TICK",
+                  DB_BTREE,
+                  DB_RDONLY,
+                  0644);
+    if(ret){
+      DBERROR(pdb,ret,dbfile);
+      break;
+    }
+    squeue pkeyque;
+    pkeyque=GetDuplicateKeyValues(pdb,stid,max);
+    if(pkeyque.empty())
+      break;
+
+    if(pdb)
+      pdb->close(pdb,0);
+    pdb=0;
+
+    if(db_create(&pdb,NULL,0))
+      break;
+
     ret=pdb->open(pdb,NULL,dbfile,"TID_FUNC_SORT_TICK",
                   DB_BTREE,
                   DB_RDONLY,
                   0644);
     if(ret){
       DBERROR(pdb,ret,dbfile);
-      pdb=0;
       break;
     }
-    oque=GetDuplicateKeyValues(pdb,stid,max);
+
+    DBT key,val;
+    char cpkey[32];
+    memset(&key,0,sizeof(key));
+    memset(&val,0,sizeof(val));
+    val.flags=DB_DBT_REALLOC;
+
+    while(!pkeyque.empty()){
+      sprintf(cpkey,pkeyque.front().c_str());
+      pkeyque.pop();
+
+      key.size=strlen(cpkey)+1;
+      key.data=cpkey;
+      ret=pdb->get(pdb,NULL,&key,&val,0);
+      if(ret){
+        DBERROR(pdb,ret,(char *)key.data);
+        continue;
+      }
+      oque.push((char *)val.data);
+    }
+    free(val.data);
   }while(0);
 
   if(pdb)
@@ -435,13 +652,14 @@ GetTickSortedValues(char *stid,unsigned int max){
 // GetAddrSortedValues
 //-----------------------------------------------------------------------------
 squeue
-GetAddrSortedValues(char *saddr,unsigned int max){
+GetAddrSortedValues(char *stid,unsigned int max){
   squeue oque;
-  if(!saddr)
+  if(!stid)
     return(oque);
 
   int ret=0;
   DB *pdb=0;
+
   if(db_create(&pdb,NULL,0))
     return(oque);
 
@@ -453,16 +671,55 @@ GetAddrSortedValues(char *saddr,unsigned int max){
       break;
     }
 
-    ret=pdb->open(pdb,NULL,dbfile,"ADDR_FUNC_SORT",
+    ret=pdb->open(pdb,NULL,dbfile,"S_TID_FUNC_SORT_ADDR",
                   DB_BTREE,
                   DB_RDONLY,
                   0644);
     if(ret){
       DBERROR(pdb,ret,dbfile);
-      pdb=0;
       break;
     }
-    oque=GetDuplicateKeyValues(pdb,saddr,max);
+    squeue pkeyque;
+    pkeyque=GetDuplicateKeyValues(pdb,stid,max);
+    if(pkeyque.empty())
+      break;
+
+    if(pdb)
+      pdb->close(pdb,0);
+    pdb=0;
+
+    if(db_create(&pdb,NULL,0))
+      break;
+
+    ret=pdb->open(pdb,NULL,dbfile,"TID_FUNC_SORT_ADDR",
+                  DB_BTREE,
+                  DB_RDONLY,
+                  0644);
+    if(ret){
+      DBERROR(pdb,ret,dbfile);
+      break;
+    }
+
+    DBT key,val;
+    char cpkey[32];
+    memset(&key,0,sizeof(key));
+    memset(&val,0,sizeof(val));
+    val.flags=DB_DBT_REALLOC;
+
+    while(!pkeyque.empty()){
+      sprintf(cpkey,pkeyque.front().c_str());
+      pkeyque.pop();
+
+      key.size=strlen(cpkey)+1;
+      key.data=cpkey;
+      ret=pdb->get(pdb,NULL,&key,&val,0);
+      if(ret){
+        DBERROR(pdb,ret,(char *)key.data);
+        continue;
+      }
+      oque.push((char *)val.data);
+    }
+    free(val.data);
   }while(0);
 
   if(pdb)
@@ -551,14 +808,12 @@ GetThreadIDs(void){
                   0644);
     if(ret){
       DBERROR(pdb,ret,dbfile);
-      pdb=0;
       break;
     }
 
     ret=pdb->cursor(pdb,NULL,&pdbc,0);
     if(ret){
       DBERROR(pdb,ret,dbfile);
-      pdb=0;
       break;
     }
 
@@ -566,24 +821,21 @@ GetThreadIDs(void){
     char ctid[32];
     memset(&key,0,sizeof(key));
     memset(&val,0,sizeof(val));
-    val.flags=DB_DBT_MALLOC;
+    val.flags=DB_DBT_REALLOC;
 
     ret=pdbc->c_get(pdbc,&key,&val,DB_FIRST);
     if(ret){
       DBERROR(pdb,ret,dbfile);
-      pdb=0;
       break;
     }
     sprintf(ctid,"%s",val.data);
-    free(val.data);
     oque.push(ctid);
 
     while(0==(ret=pdbc->c_get(pdbc,&key,&val,DB_NEXT))){
       sprintf(ctid,"%s",val.data);
-      free(val.data);
       oque.push(ctid);
     }
-
+    free(val.data);
     status=TRUE;
   }while(0);
 
@@ -622,24 +874,24 @@ GetDuplicateKeyValues(DB *pdb,char *keystr,unsigned int max){
     memset(&val,0,sizeof(val));
     key.size=strlen(keystr)+1;
     key.data=keystr;
-    val.flags=DB_DBT_MALLOC;
+    val.flags=DB_DBT_REALLOC;
 
-    ret=pdbc->c_get(pdbc,&key,&val,DB_SET);
+    ret=pdbc->c_get(pdbc,&key,&val,DB_SET_RANGE);
     if(ret){
       DBERROR(pdb,ret,keystr);
       break;
     }
+
     sprintf(cval,"%s",val.data);
-    free(val.data);
     oque.push(cval);
 
     while(0==(ret=pdbc->c_get(pdbc,&key,&val,DB_NEXT_DUP))){
       sprintf(cval,"%s",val.data);
-      free(val.data);
       oque.push(cval);
       if(max&&oque.size()==max)
         break;
     }
+    free(val.data);
 
   }while(0);
 
@@ -648,4 +900,64 @@ GetDuplicateKeyValues(DB *pdb,char *keystr,unsigned int max){
   pdbc=0;
 
   return(oque);
+}
+
+//-----------------------------------------------------------------------------
+// AppendFunctionInfo
+//-----------------------------------------------------------------------------
+void
+AppendFunctionInfo(squeue &ique,FILE *f_query){
+  int ret=0;
+  DB *pdb=0;
+
+  if(db_create(&pdb,NULL,0))
+    return;
+
+  do{
+    ret=pdb->open(pdb,NULL,dbfile,"FUNCTION_INFO",
+                  DB_HASH,
+                  DB_RDONLY,
+                  0644);
+    if(ret){
+      DBERROR(pdb,ret,dbfile);
+      break;
+    }
+    DBT key,val;
+    memset(&key,0,sizeof(DBT));
+    memset(&val,0,sizeof(DBT));
+    val.flags=DB_DBT_REALLOC;
+
+    char tid[32];
+    char addr[32];
+    char orig[1024];
+    while(!ique.empty()){
+      string line=ique.front();
+      ique.pop();
+
+      strcpy(orig,line.c_str());
+
+      char *buff=0;
+      buff=strtok(orig,"|");
+      if(!buff)
+        continue;
+      buff=strtok(0,"|");
+      if(!buff)
+        continue;
+
+      key.size=strlen(buff)+1;
+      key.data=buff;
+      ret=pdb->get(pdb,NULL,&key,&val,0);
+      line.insert(line.find("|")+1,(char *)val.data);
+      if(f_query)
+        fprintf(f_query,"%s\n",line.c_str());
+      if(DEBUG)
+        fprintf(stdout,"%s\n",line.c_str());
+    }
+  }while(0);
+
+  if(pdb)
+    pdb->close(pdb,0);
+  pdb=0;
+
+  return;
 }

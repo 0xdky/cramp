@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-23 17:52:52 dhruva>
+## Time-stamp: <2003-10-30 17:59:14 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -78,11 +78,11 @@ COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
       $(OBJDIR)/XMLParse.obj $(OBJDIR)/ipc.obj $(OBJDIR)/ipcmsg.obj
 POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj \
       $(OBJDIR)/ProfileLimit.obj
-UOBJS=$(OBJDIR)/proflog2db.obj
+UOBJS=$(OBJDIR)/profileDB.obj
 OBJS=$(COBJS) $(POBJS) $(UOBJS)
 
 # Add all query tools here
-UTILITIES=$(BINDIR)/proflog2db.exe
+UTILITIES=$(BINDIR)/profileDB.exe
 
 # Currently disabled base class build: Problem with SDK
 all: cramp
@@ -165,13 +165,13 @@ $(LIBSRCDIR)/ProfileLimit.h: $(DEPS)
 
 # Query utilities
 utils: $(UTILITIES)
-$(BINDIR)/proflog2db.exe: $(OBJDIR)/proflog2db.obj
-    @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(OBJDIR)/proflog2db.obj \
-             $(BDB_LIB) /OUT:$(BINDIR)/proflog2db.exe
-$(OBJDIR)/proflog2db.obj: $(UTILDIR)/proflog2db.cpp
-    @$(CPP)  /c $(E_CCFLAGS) $(UTILDIR)/proflog2db.cpp \
-             /Fo$(OBJDIR)/proflog2db.obj
-$(UTILDIR)/proflog2db.cpp: $(DEPS)
+$(BINDIR)/profileDB.exe: $(OBJDIR)/profileDB.obj
+    @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(OBJDIR)/profileDB.obj \
+             $(BDB_LIB) /OUT:$(BINDIR)/profileDB.exe
+$(OBJDIR)/profileDB.obj: $(UTILDIR)/profileDB.cpp
+    @$(CPP)  /c $(E_CCFLAGS) $(UTILDIR)/profileDB.cpp \
+             /Fo$(OBJDIR)/profileDB.obj
+$(UTILDIR)/profileDB.cpp: $(DEPS)
 
 # Base class for test cases
 baseclass: $(OBJDIR)/DPEBaseClass.obj
