@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-15 14:53:40 dhruva>
+## Time-stamp: <2003-10-16 11:18:50 dhruva>
 ##-----------------------------------------------------------------------------
 ## File: profinfo.pl
 ## Desc: PERL script to extract useful information from function profiler
@@ -8,18 +8,20 @@
 ## mm-dd-yyyy  History                                                      tri
 ## 09-30-2003  Cre                                                          dky
 ##-----------------------------------------------------------------------------
-if(!exists($ENV{"CRAMP_LOGPATH"})){
-    print("Please define the log path variable \"CRAMP_LOGPATH\"");
+# Profiler log file: profile.log
+my $f_logfile;
+if($#ARGV>=0){
+    $f_logfile=$ARGV[0];
+    $f_logfile=~tr/\\/\//;
+}else{
+    print(STDERR "Error: Please specify CRAMP profile log file");
     exit 1;
 }
-my $f_logpath=$ENV{"CRAMP_LOGPATH"};
-$f_logpath=~tr/\\/\//;
-die("Log Folder \"$f_logpath\" not found...") unless(-d $f_logpath);
 
-# Profiler log file: profile.log
-my $f_logfile="$f_logpath/profile.log";
-my $pos=rindex($f_logfile,".");
-my $f_xmlfile=substr($f_logfile,0,$pos).".xml";
+# Make xml file name
+my $f_xmlfile=$f_logfile;
+$f_xmlfile=~s/\..+$//g;
+$f_xmlfile.=".xml";
 
 die("Log File \"$f_logfile\" not found...") unless(-f $f_logfile);
 
