@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 12:18:04 dhruva>
+// Time-stamp: <2003-10-23 12:43:04 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -276,9 +276,11 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
                             const TICKS &entryTime){
   // Max call depth has reached
   long deep=callInfoStack.size();
-  InterlockedCompareExchange(&deep,0,g_l_calldepthlimit);
-  if(!deep)
-    return;
+  if(deep){
+    InterlockedCompareExchange(&deep,0,g_l_calldepthlimit);
+    if(!deep)
+      return;
+  }
 
   BOOLEAN ret=FALSE;
   callInfoStack.push_back(CallInfo());
