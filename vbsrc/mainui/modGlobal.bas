@@ -125,7 +125,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
     Dim nodeName As String
     Dim ii As Integer
     Dim bSuccess As Boolean
-    Dim Index As Integer
+    Dim index As Integer
     Dim tmpName As String
     
     Select Case tblType
@@ -139,9 +139,9 @@ Public Function NewRecordName(tblType As ObjectType) As String
         Case otTestcase
             nodeName = "Testcase."
     End Select
-    Index = 1
+    index = 1
     Do
-        tmpName = nodeName & Index
+        tmpName = nodeName & index
         bSuccess = True
         For ii = 0 To gIdCounter - 1
             If gNameList(ii) = tmpName Then
@@ -149,7 +149,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
                 Exit For
             End If
         Next ii
-        Index = Index + 1
+        index = index + 1
     Loop Until bSuccess = True
     
     NewRecordName = tmpName
@@ -396,7 +396,7 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
 End Sub
 
 Public Sub RenameFormWindow()
-    If frmMainui.tspMainUI.SelectedItem.Index = 2 Then
+    If frmMainui.tspMainUI.SelectedItem.index = 2 Then
         frmMainui.Caption = "CRAMP [" & _
         LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
         "]"
@@ -972,9 +972,11 @@ Public Sub RunPerlScriptWithCP()
     Dim retVal As Boolean
     Dim Response
         
-    MousePointer = 11
-    
-   If frmMainui.queryText.Text <> "" Then
+    Const SYNCHRONIZE = 1048576
+    Const NORMAL_PRIORITY_CLASS = &H20&
+    Const INFINITE = -1
+
+    If frmMainui.queryText.Text <> "" Then
      Command = gperlPath + gstrSpace + gperlScript + gstrSpace + frmMainui.queryText.Text
       gstrQueryArg = frmMainui.queryText.Text
     
@@ -998,6 +1000,4 @@ Public Sub RunPerlScriptWithCP()
    Else
      MsgBox "ERROR :: Query Argument Is Not Exists"
    End If
-   
-   MousePointer = 99
 End Sub
