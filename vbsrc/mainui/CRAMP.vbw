@@ -1,8 +1,7 @@
-frmMainui = 49, 77, 732, 760, Z, 13, 1, 640, 648, C
-modGlobal = 96, 26, 853, 757, 
+frmMainui = 49, 77, 732, 760, , 13, 1, 640, 648, C
+modGlobal = 96, 26, 853, 757, Z
 modXMLParse = 189, -4, 872, 613, C
 modDatabase = 17, 97, 759, 775, C
 Win32 = 124, 76, 807, 599, 
 modFileHandling = 109, 50, 846, 657, C
-mProcessID = 79, 103, 752, 607, 
-mInitialization = 164, 81, 837, 670, 
+modInitialization = 0, 0, 0, 0, C

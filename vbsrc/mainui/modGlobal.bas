@@ -124,7 +124,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
     Dim nodeName As String
     Dim ii As Integer
     Dim bSuccess As Boolean
-    Dim Index As Integer
+    Dim index As Integer
     Dim tmpName As String
     
     Select Case tblType
@@ -138,9 +138,9 @@ Public Function NewRecordName(tblType As ObjectType) As String
         Case otTestcase
             nodeName = "Testcase."
     End Select
-    Index = 1
+    index = 1
     Do
-        tmpName = nodeName & Index
+        tmpName = nodeName & index
         bSuccess = True
         For ii = 0 To gIdCounter - 1
             If gNameList(ii) = tmpName Then
@@ -148,7 +148,7 @@ Public Function NewRecordName(tblType As ObjectType) As String
                 Exit For
             End If
         Next ii
-        Index = Index + 1
+        index = index + 1
     Loop Until bSuccess = True
     
     NewRecordName = tmpName
@@ -395,7 +395,7 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
 End Sub
 
 Public Sub RenameFormWindow()
-    If frmMainui.tspMainUI.SelectedItem.Index = 2 Then
+    If frmMainui.tspMainUI.SelectedItem.index = 2 Then
         frmMainui.Caption = "CRAMP [" & _
         LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
         "]"
@@ -886,24 +886,24 @@ With frmMainui
   .queryLV.ColumnHeaders.Clear
 
   If .staCombo.Text = "STAT" Then
-    Set clm = .queryLV.ColumnHeaders.Add(, , "MODULE")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "FUNC-NAME")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "FUNC-ADDR")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "NO-CALLS")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "TOT-TICKS")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "MAXTIME")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Module")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Func - Name")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Func - Addr")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "No - Calls")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Tot - Ticks")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Max - Ticks")
   Else
-    Set clm = .queryLV.ColumnHeaders.Add(, , "THREAD")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "MODULE")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "FUNC-NAME")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "FUNC-ADDR")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "DEPTH")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "RET-STATUS")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "TIME(ns)")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Thread")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Module")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Func - Name")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Func - Addr")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Depth")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Ret - Status")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Time(ns)")
     If .staCombo.Text = "ADDR" And frmMainui.limitText.Text = -1 Then
-      Set clm = .queryLV.ColumnHeaders.Add(, , "COUNT")
+      Set clm = .queryLV.ColumnHeaders.Add(, , "Count")
     Else
-      Set clm = .queryLV.ColumnHeaders.Add(, , "TICKS")
+      Set clm = .queryLV.ColumnHeaders.Add(, , "Ticks")
     End If
   End If
 End With
