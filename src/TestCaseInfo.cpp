@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:23:45 dhruva>
+// Time-stamp: <2003-10-14 12:41:07 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -666,20 +666,22 @@ TestCaseInfo
 BOOLEAN
 TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
                                TestCaseInfo *ipGroup){
-  if(!ipGroup&&!ipGroup->GroupStatus()&&!ipGroup->PseudoGroupStatus())
+  if(!ipGroup&&!ipGroup->GroupStatus())
+    return(FALSE);
+  if(!ipEntry&&!ipEntry->GroupStatus()&&!ipEntry->PseudoGroupStatus())
     return(FALSE);
   BOOLEAN ret=TRUE;
-  ListOfTestCaseInfo &l_tc=ipGroup->BlockListOfTCI();
+  ListOfTestCaseInfo &l_tc=ipEntry->BlockListOfTCI();
   ListOfTestCaseInfo::iterator iter=l_tc.begin();
   for(;TRUE==ret&&iter!=l_tc.end();iter++){
     TestCaseInfo *ptc=(*iter);
     if(ptc->GroupStatus())
-      if(ipEntry->u_uid==ptc->u_uid)
+      if(ipGroup->u_uid==ptc->u_uid)
         ret=FALSE;
       else
         ret=IsReferenceValid(ipEntry,ptc);
   }
-  ipGroup->ReleaseListOfTCI();
+  ipEntry->ReleaseListOfTCI();
   return(ret);
 }
 
