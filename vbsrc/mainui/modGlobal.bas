@@ -835,7 +835,8 @@ With frmMainui
   .queryLV.View = lvwReport
     
   'run perl script
-  RunPerlScript
+  'RunPerlScript
+  RunPerlScriptWithCP
     
   'insert headers
   AddHeaders
@@ -959,3 +960,44 @@ Public Sub SetValueFromLV()
   End If
 End Sub
 
+Public Sub RunPerlScriptWithCP()
+   
+    Dim Command As String
+    Dim TaskID As Long
+    Dim pInfo As PROCESS_INFORMATION
+    Dim sInfo As STARTUPINFO
+    Dim sNull As String
+    Dim lSuccess As Long
+    Dim lRetValue As Long
+    Dim retVal As Boolean
+    Dim Response
+        
+    MousePointer = 11
+    
+   If frmMainui.queryText.Text <> "" Then
+     Command = gperlPath + gstrSpace + gperlScript + gstrSpace + frmMainui.queryText.Text
+      gstrQueryArg = frmMainui.queryText.Text
+    
+      sInfo.cb = Len(sInfo)
+      lSuccess = CreateProcess(sNull, _
+                              Command, _
+                              ByVal 0&, _
+                              ByVal 0&, _
+                              1&, _
+                              NORMAL_PRIORITY_CLASS, _
+                              ByVal 0&, _
+                              sNull, _
+                              sInfo, _
+                              pInfo)
+    
+      lRetValue = WaitForSingleObject(pInfo.hProcess, INFINITE)
+      retVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
+    
+      lRetValue = CloseHandle(pInfo.hThread)
+      lRetValue = CloseHandle(pInfo.hProcess)
+   Else
+     MsgBox "ERROR :: Query Argument Is Not Exists"
+   End If
+   
+   MousePointer = 99
+End Sub

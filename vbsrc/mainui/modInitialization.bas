@@ -109,7 +109,8 @@ Public Sub SetThreAndAddrCombo()
                            + strAll + gstrSpace + frmMainui.rtCombo.Text + gstrSpace + _
                            frmMainui.limitText.Text
   'run perl script to get all the threads
-  RunPerlScript
+  'RunPerlScript
+  RunPerlScriptWithCP
 
   IsFileExistAndSize giFileName, gIsFileExist, gFileSize
   If gIsFileExist <> False And gFileSize <> 0 Then
