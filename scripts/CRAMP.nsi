@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <03/11/25 13:38:51 dhruva>
+;; Time-stamp: <2003-11-26 13:31:57 dhruva>
 ;;-----------------------------------------------------------------------------
 
 ; HM NIS Edit Wizard helper defines
@@ -56,7 +56,7 @@ Function .onInit
   SetShellVarContext all
 FunctionEnd
 
-Section "CRAMP Engine" SEC01
+Section "!CRAMP Engine" SEC01
   SetOutPath "$INSTDIR\bin"
   SetOverwrite ifnewer
   File "..\bin\CRAMP.exe"
@@ -66,7 +66,7 @@ Section "CRAMP Engine" SEC01
   File "..\vbsrc\mainui\Attributes.txt"
   File "..\vbsrc\mainui\MostRecentFiles.txt"
   File "\tmp\CRAMP-Package\Support\*"
-  
+
   SetOutPath "$INSTDIR\docs"
   File "..\docs\CRAMP.ppt"
   File "..\docs\DPEBaseClass.ppt"
@@ -82,10 +82,18 @@ Section "CRAMP Engine" SEC01
   CreateShortCut "$SMPROGRAMS\CRAMP\docs\Test Baseclass.lnk" "$INSTDIR\docs\DPEBaseClass.ppt"
   CreateShortCut "$SMPROGRAMS\CRAMP\docs\CAA Interfaces.lnk" "$INSTDIR\docs\CAAV5ItfDoc.ppt"
 
+  push $R0
+  push $R1
+  GetFullPathName /SHORT $R0 $INSTDIR
+  GetFullPathName /SHORT $R1 $TEMP
+
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                    "CRAMP_PATH" $INSTDIR
+                    "CRAMP_PATH" $R0
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                    "CRAMP_LOGPATH" $TEMP
+                    "CRAMP_LOGPATH" $R1
+
+  pop $R1
+  pop $R0
 SectionEnd
 
 Section "CRAMP Profiler" SEC02
@@ -124,8 +132,6 @@ RegEntry:
               "CRAMP_PROFILE_EXCLUSION" 1
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
               "CRAMP_PROFILE_MAXCALLLIMIT" 0
-  WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                    "CRAMP_LOGPATH" $TEMP
 SectionEnd
 
 Section "STAF" SEC03
@@ -134,13 +140,16 @@ Section "STAF" SEC03
   File /r "\Applications\AutoTest\STAF\bin\*"
 
   CreateDirectory "$SMPROGRAMS\CRAMP"
-  CreateShortCut "$SMSTARTUP\STAF Server.lnk" "$INSTDIR\TOOLS\STAF\bin\STAFProc.exe" "" \
-                 "$INSTDIR\TOOLS\STAF\bin\STAFProc.ico" "" SW_SHOWMINIMIZED "" "STAF RPC server"
   CreateShortCut "$SMPROGRAMS\CRAMP\STAF Server.lnk" "$INSTDIR\TOOLS\STAF\bin\STAFProc.exe" "" \
                  "$INSTDIR\TOOLS\STAF\bin\STAFProc.ico" "" SW_SHOWMINIMIZED "" "STAF RPC server"
 
+  push $R0
+  GetFullPathName /SHORT $R0 $INSTDIR
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                    "STAF_PATH" "$INSTDIR\TOOLS\STAF"
+                    "STAF_PATH" "$R0\TOOLS\STAF"
+  WriteRegExpandStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
+                    "STAF Server" "%STAF_PATH%\bin\STAFProc.exe"
+  pop $R0
 SectionEnd
 
 Section "PERL" SEC04
@@ -170,7 +179,7 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
-  
+
   SetRebootFlag true
 SectionEnd
 
@@ -184,7 +193,9 @@ SectionEnd
 
 Function un.onUninstSuccess
   HideWindow
+  IfRebootFlag end
   MessageBox MB_ICONINFORMATION|MB_OK "$(^Name) was successfully removed from your computer."
+end:
 FunctionEnd
 
 Function un.onInit
@@ -194,9 +205,6 @@ Function un.onInit
 FunctionEnd
 
 Section Uninstall
-  SetRebootFlag true
-
-  Delete /REBOOTOK "$SMSTARTUP\STAFServer.bat"
   Delete /REBOOTOK "$DESKTOP\CRAMP.lnk"
   Delete /REBOOTOK "$INSTDIR\bin\*"
   Delete /REBOOTOK "$INSTDIR\TOOLS\STAF\bin\*"
@@ -208,14 +216,6 @@ Section Uninstall
   RMDir  /REBOOTOK "$SMPROGRAMS\CRAMP"
   RMDir  /REBOOTOK "$INSTDIR"
 
-  # If some files are in use?
-  ifErrors FileDeleteError RegClean
-
-FileDeleteError:
-  MessageBox MB_ICONINFORMATION|MB_SETFOREGROUND|MB_OK "Some files were in use, manually delete $INSTDIR later"
-  goto RegClean
-
-RegClean:
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                  "STAF_PATH"
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
@@ -234,8 +234,20 @@ RegClean:
                  "CRAMP_PROFILE_EXCLUSION"
   DeleteRegValue HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
                  "CRAMP_PROFILE_MAXCALLLIMIT"
-
+  DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
+                 "STAF Server"
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+
+  IfRebootFlag RestartMsg end
+
+RestartMsg:
+  MessageBox MB_ICONINFORMATION|MB_SETFOREGROUND|MB_YESNO|MB_DEFBUTTON2 \
+             "Reboot to complete $(^Name) uninstallation?" IDYES Restart IDNO end
+
+Restart:
+  Reboot
+
+end:
   SetAutoClose true
 SectionEnd
