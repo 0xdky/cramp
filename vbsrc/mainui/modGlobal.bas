@@ -908,8 +908,8 @@ Public Sub MoveDownNodeSelection()
     'Remove the previous node, will automatically remove its children
     frmMainui.tvwNodes.Nodes.Remove (nodNext.key)
     nodNew.EnsureVisible
-    tvwNodes.SelectedItem = nodCurrent
-    tvwNodes.Refresh
+    frmMainui.tvwNodes.SelectedItem = nodCurrent
+    frmMainui.tvwNodes.Refresh
 End Sub
 
 '***********************************************************
@@ -937,8 +937,8 @@ Public Sub MoveUpNodeSelection()
     'Remove the previous node, will automatically remove its children
     frmMainui.tvwNodes.Nodes.Remove (nodPrevious.key)
     nodNew.EnsureVisible
-    tvwNodes.SelectedItem = nodCurrent
-    tvwNodes.Refresh
+    frmMainui.tvwNodes.SelectedItem = nodCurrent
+    frmMainui.tvwNodes.Refresh
 End Sub
 
 
