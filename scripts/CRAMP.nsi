@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2003-11-27 15:37:07 dhruva>
+;; Time-stamp: <2003-11-27 15:53:13 dhruva>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -104,8 +104,8 @@ Section "!CRAMP Engine" SEC01
   GetFullPathName /SHORT $R0 $INSTDIR
   GetFullPathName /SHORT $R1 $TEMP
 
-  WriteRegExpandStr HKLM ENV_KEY "CRAMP_PATH" $R0
-  WriteRegExpandStr HKLM ENV_KEY "CRAMP_LOGPATH" $R1
+  WriteRegExpandStr HKLM "${ENV_KEY}" "CRAMP_PATH" $R0
+  WriteRegExpandStr HKLM "${ENV_KEY}" "CRAMP_LOGPATH" $R1
 
   pop $R1
   pop $R0
@@ -139,10 +139,10 @@ CreateLink:
   goto RegEntry
 
 RegEntry:
-  WriteRegStr HKLM ENV_KEY "CRAMP_PROFILE_LOGSIZE" 500
-  WriteRegStr HKLM ENV_KEY "CRAMP_PROFILE_CALLDEPTH" 0
-  WriteRegStr HKLM ENV_KEY "CRAMP_PROFILE_EXCLUSION" 1
-  WriteRegStr HKLM ENV_KEY "CRAMP_PROFILE_MAXCALLLIMIT" 0
+  WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_LOGSIZE" 500
+  WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_CALLDEPTH" 0
+  WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_EXCLUSION" 1
+  WriteRegStr HKLM "${ENV_KEY}" "CRAMP_PROFILE_MAXCALLLIMIT" 0
 SectionEnd
 
 Section "STAF" SEC03
@@ -158,7 +158,7 @@ Section "STAF" SEC03
 
   push $R0
   GetFullPathName /SHORT $R0 $INSTDIR
-  WriteRegExpandStr HKLM ENV_KEY "STAF_PATH" "$R0\TOOLS\STAF"
+  WriteRegExpandStr HKLM "${ENV_KEY}" "STAF_PATH" "$R0\TOOLS\STAF"
   WriteRegExpandStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
                     "STAF Server" "%STAF_PATH%\bin\STAFProc.exe"
   pop $R0
@@ -246,15 +246,15 @@ Section Uninstall
   RMDir  /REBOOTOK "$SMPROGRAMS\CRAMP"
   RMDir  /REBOOTOK "$INSTDIR"
 
-  DeleteRegValue HKLM ENV_KEY "STAF_PATH"
-  DeleteRegValue HKLM ENV_KEY "CRAMP_PATH"
-  DeleteRegValue HKLM ENV_KEY "CRAMP_LOGPATH"
-  DeleteRegValue HKLM ENV_KEY "CRAMP_DEBUG"
-  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE"
-  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE_LOGSIZE"
-  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE_CALLDEPTH"
-  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE_EXCLUSION"
-  DeleteRegValue HKLM ENV_KEY "CRAMP_PROFILE_MAXCALLLIMIT"
+  DeleteRegValue HKLM "${ENV_KEY}" "STAF_PATH"
+  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PATH"
+  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_LOGPATH"
+  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_DEBUG"
+  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE"
+  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_LOGSIZE"
+  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_CALLDEPTH"
+  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_EXCLUSION"
+  DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_MAXCALLLIMIT"
   DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
                  "STAF Server"
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
