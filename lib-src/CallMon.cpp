@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 18:46:03 dhruva>
+// Time-stamp: <2003-10-31 18:58:38 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -318,6 +318,8 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
     logExit(ci,false);          // Record exceptional exit
     callInfoStack.pop_back();
   }
+  if(callInfoStack.empty())
+    return;
   CallInfo &ci=callInfoStack.back();
   CallMonitor::queryTicks(&d_out);
   d_out=d_out-endTime;
