@@ -1,6 +1,7 @@
 Attribute VB_Name = "modGlobal"
 Option Explicit
 Public ADOXcatalog As New ADOX.Catalog
+Public gCRAMPPath As String
 Public gIdCounter As Long
 Public gIdList(1000) As String
 Public gNameList(1000) As String
@@ -259,9 +260,20 @@ End Sub
 
 Public Sub SetGlobalVariables()
     Dim CurDirectory As String
+    Dim TmpDir As String
+
+    gCRAMPPath = Environ("CRAMP_PATH")
+    If (0 = Len(gCRAMPPath)) Then
+        gCRAMPPath = App.Path & "\..\"
+    End If
+
+    TmpDir = Environ("CRAMP_LOGPATH")
+    If (0 = Len(TmpDir)) Then
+        TmpDir = gCRAMPPath & "\tmp"
+        MkDir TmpDir
+    End If
     
-    MakeDir App.Path & "\tmp"
-    gDatabaseName = App.Path & "\tmp\CRAMPDB.mdb"
+    gDatabaseName = TmpDir & "\CRAMPDB.mdb"
     
     frmMainui.mnuSave.Enabled = False
     frmMainui.cmdRun.Enabled = False
