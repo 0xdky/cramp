@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 16:17:05 dhruva>
+// Time-stamp: <2003-11-02 12:08:17 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -12,10 +12,8 @@
 #include "cramp.h"
 #include "CallMonLOG.h"
 
+#include <fstream.h>
 #include <imagehlp.h>
-#include <queue>
-#include <string>
-#include <hash_map>
 
 #ifndef CRAMP_LOG_BUFFER_LIMIT
 #define CRAMP_LOG_BUFFER_LIMIT 100000
@@ -226,9 +224,7 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
     if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
       // Couldn't retrieve symbol (no debug info?)
       strcpy(undName,"<unknown symbol>");
-    }
-    else
-    {
+    }else{
       // Unmangle name, throwing away decorations
       // that don't affect uniqueness:
       if(0==UnDecorateSymbolName(pSymbol->Name, undName,
@@ -242,9 +238,30 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
         strcpy(undName,pSymbol->Name);
     }
     SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
-    fprintf(g_CRAMP_Profiler.g_fFuncInfo,"%08X|%s|%s|%ld\n",
-            addr,modShortNameBuf,undName,calls);
-    ret=TRUE;
+
+    // Find if method is filtered
+    do{
+      ret=g_CRAMP_Profiler.g_exclusion;
+      if(g_CRAMP_Profiler.g_FilterList.empty())
+        break;
+      char lfunc[1024];
+      char lmodl[MAX_PATH];
+      strcpy(lfunc,undName);
+      strcpy(lmodl,modShortNameBuf);
+      _strlwr(lfunc);
+      _strlwr(lmodl);
+      std::list<std::string>::iterator iter;
+      iter=g_CRAMP_Profiler.g_FilterList.begin();
+      for(;iter!=g_CRAMP_Profiler.g_FilterList.end();iter++){
+        if(strstr(lmodl,(*iter).c_str())||strstr(lfunc,(*iter).c_str())){
+          ret=!ret;
+          break;
+        }
+      }
+    }while(0);
+    if(ret)
+      fprintf(g_CRAMP_Profiler.g_fFuncInfo,"%08X|%s|%s|%ld\n",
+              addr,modShortNameBuf,undName,calls);
   }while(0);
 
   if(h_proc){
@@ -252,10 +269,6 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
     CloseHandle(h_proc);
     h_proc=0;
   }
-  if(ret=FALSE)
-    fprintf(g_CRAMP_Profiler.g_fFuncInfo,
-            "%08X|<unknown module>|<unknown symbol>|%ld\n",
-            addr,calls);
 
   return(ret);
 }
@@ -287,17 +300,49 @@ OnProcessStart(void){
   char filename[256];
   CallMonitor::TICKS frequency=0;
 
+  g_CRAMP_Profiler.g_exclusion=TRUE;
   g_CRAMP_Profiler.g_fLogFile=0;
   g_CRAMP_Profiler.g_fFuncInfo=0;
   g_CRAMP_Profiler.g_pid=0;
   g_CRAMP_Profiler.g_l_profile=0;
   g_CRAMP_Profiler.g_l_stoplogging=0;
+  g_CRAMP_Profiler.g_l_maxcalllimit=0;
   g_CRAMP_Profiler.g_l_calldepthlimit=0;
 
   g_CRAMP_Profiler.g_pid=GetCurrentProcessId();
 
   if(getenv("CRAMP_LOGPATH"))
     sprintf(logpath,"%s",getenv("CRAMP_LOGPATH"));
+
+  // Get maximum call limit (ensure it is a number)
+  char *buff=getenv("CRAMP_PROFILE_MAXCALLLIMIT");
+  if(buff){
+    g_CRAMP_Profiler.g_l_maxcalllimit=atol(buff);
+    sprintf(filename,"%ld",g_CRAMP_Profiler.g_l_maxcalllimit);
+    if(strcmp(filename,buff))
+      g_CRAMP_Profiler.g_l_maxcalllimit=0;
+  }
+
+  if(getenv("CRAMP_PROFILE_EXCLUSION"))
+    g_CRAMP_Profiler.g_exclusion=TRUE;
+  if(getenv("CRAMP_PROFILE_INCLUSION"))
+    g_CRAMP_Profiler.g_exclusion=FALSE;
+
+  // Build the filter list
+  do{
+    sprintf(filename,"%s/cramp_profile.flt",logpath);
+    fstream f_flt;
+    f_flt.open(filename,ios::in|ios::nocreate);
+    if(!(f_flt.rdbuf())->is_open())
+      break;
+    while(!f_flt.eof()){
+      f_flt.getline(filename,1024,'\n');
+      if(!strlen(filename))
+        continue;
+      g_CRAMP_Profiler.g_FilterList.push_back(_strlwr(filename));
+    }
+    f_flt.close();
+  }while(0);
 
   do{
     sprintf(filename,"%s/cramp_profile#%d.log",

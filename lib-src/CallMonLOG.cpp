@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 17:29:21 dhruva>
+// Time-stamp: <2003-11-03 08:48:22 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -16,7 +16,6 @@
 #include <hash_map>
 
 extern Global_CRAMP_Profiler g_CRAMP_Profiler;
-extern BOOL WriteFuncInfo(unsigned int,unsigned long);
 
 //-----------------------------------------------------------------------------
 // CallMonLOG
@@ -55,15 +54,12 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
   EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
   iter=g_CRAMP_Profiler.g_hFuncCalls.find(ci.funcAddr);
   if(iter==g_CRAMP_Profiler.g_hFuncCalls.end()){
-    FuncInfo fi={1,TRUE,elapsedticks,elapsedticks};
-    fi._pending=WriteFuncInfo(ci.funcAddr,1);
-    g_CRAMP_Profiler.g_hFuncCalls[ci.funcAddr]=fi;
-  }else{
-    (*iter).second._calls++;
-    (*iter).second._totalticks+=elapsedticks;
-    if((*iter).second._maxticks<elapsedticks)
-      (*iter).second._maxticks=elapsedticks;
+    LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+    return;
   }
+  (*iter).second._totalticks+=elapsedticks;
+  if((*iter).second._maxticks<elapsedticks)
+    (*iter).second._maxticks=elapsedticks;
   LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
   // For stats only

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 17:29:00 dhruva>
+// Time-stamp: <2003-11-03 09:04:45 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -29,6 +29,7 @@ typedef CallMonitor::ADDR ADDR;
 // caller.
 static const unsigned OFFSET_CALL_BYTES=5;
 extern Global_CRAMP_Profiler g_CRAMP_Profiler;
+extern BOOL WriteFuncInfo(unsigned int,unsigned long);
 
 // Start of MSVC-specific code
 
@@ -258,15 +259,63 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
                             ADDR funcAddr,
                             ADDR *retAddrPtr,
                             const TICKS &entryTime){
-  // Max call depth has reached
+
+  // Stuff to be done for NON FIRST CALL
   long deep=callInfoStack.size();
   if(deep){
+    // Max call depth has reached
     InterlockedCompareExchange(&deep,0,g_CRAMP_Profiler.g_l_calldepthlimit);
     if(!deep)
       return;
   }
 
-  BOOLEAN ret=FALSE;
+  BOOLEAN filtered=FALSE;
+  do{
+    std::hash_map<ADDR,FuncInfo>::iterator iter;
+    EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+
+    iter=g_CRAMP_Profiler.g_hFuncCalls.find(funcAddr);
+    if(iter==g_CRAMP_Profiler.g_hFuncCalls.end()){
+      FuncInfo fi={1,FALSE,!g_CRAMP_Profiler.g_exclusion,
+                   0,0};
+
+      // Any error/filtered, ignore profiling the method in the future
+      fi._filtered=!WriteFuncInfo(funcAddr,1);
+      g_CRAMP_Profiler.g_hFuncCalls[funcAddr]=fi;
+
+      // If the first call is filtered
+      if(fi._filtered){
+        filtered=TRUE;
+        break;
+      }
+    }else{
+      if((*iter).second._filtered){
+        filtered=TRUE;
+        break;
+      }else if(g_CRAMP_Profiler.g_l_maxcalllimit&&
+               (*iter).second._calls>=g_CRAMP_Profiler.g_l_maxcalllimit){
+        (*iter).second._filtered=TRUE;
+        filtered=TRUE;
+        break;
+      }else{
+        (*iter).second._calls++;
+      }
+    }
+  }while(0);
+  LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+
+  // Handle filtered methods
+  if(filtered){
+    if(deep){
+      CallInfo &prev=callInfoStack.back();
+      TICKS leave=0;
+      CallMonitor::queryTicks(&leave);
+      leave=leave-entryTime;
+      prev.ProfilingTicks+=leave;
+    }
+    return;
+  }
+
   callInfoStack.push_back(CallInfo());
   CallInfo &ci=callInfoStack.back();
   ci.funcAddr=funcAddr;

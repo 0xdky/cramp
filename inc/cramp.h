@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 19:19:42 dhruva>
+// Time-stamp: <2003-11-02 11:44:58 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <process.h>
 
+#include <list>
 #include <queue>
 #include <string>
 #include <hash_map>
@@ -29,20 +30,25 @@
 typedef struct{
   unsigned long _calls;
   BOOLEAN _pending;
+  BOOLEAN _filtered;
   __int64 _maxticks;
   __int64 _totalticks;
 }FuncInfo;
 
 typedef struct{
+  BOOLEAN g_exclusion;
+
   FILE *g_fLogFile;
   FILE *g_fFuncInfo;
 
   unsigned int g_pid;
   long g_l_profile;
   long g_l_stoplogging;
+  long g_l_maxcalllimit;
   long g_l_calldepthlimit;
 
   std::queue<std::string> g_LogQueue;
+  std::list<std::string> g_FilterList;
   std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
 
   CRITICAL_SECTION g_cs_log;
