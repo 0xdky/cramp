@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-25 10:55:06 dky>
+## Time-stamp: <2004-02-25 12:27:35 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -139,23 +139,32 @@ sub ThreadCompare{
 sub CallStackSort{
   my $nd;
   my $cd=-1;
-  my $cc=0;
+  my $cc=-1;
+  my $found=0;
   my @sp=();
   my @retlist=();
 
   foreach (@_) {
     @sp=split(/\|/,$_);
-    if (-1 == $cd) {            # First time...
+    if (-1 == $cc) {            # First time...
       $cd=$sp[3];               # Depth field
+      $cc=0;
       next;
     }
     $nd=$sp[3];                 # Depth field
     if ($nd <= $cd) {
       push(@retlist,splice(@_,$cc,1));
-      push(@retlist,CallStackSort(@_));
+      $found=1;
+      if ($#_>=0) {
+        push(@retlist,CallStackSort(@_));
+      }
       last;
     }
     $cc++;
+  }
+
+  if (!$found) {
+    push(@retlist,$_[0]);
   }
 
   return(@retlist);
@@ -179,10 +188,7 @@ sub GetCallStack{
   }
 
   # Passing the reversed list
-  my @callstack=();
-  @callstack=reverse(CallStackSort(@limit));
-
-  return @callstack;
+  return(reverse(CallStackSort(@limit)));
 }
 
 ##-----------------------------------------------------------------------------
@@ -345,16 +351,20 @@ sub ProcessArgs{
         }
       } elsif ($ARGV[3]=~/STACK/) {
         $max=10;
-        $key=$ARGV[4];
+        $key=abs($ARGV[4]);
         if ($#ARGV>=5) {
-          $max=$ARGV[5];
+          $max=abs($ARGV[5]);
         }
-        $key=$key-$max;         # Call stack is reverse order of return order
-        if ($key < 0) {
+
+        if (($key-$max) < 0) {
+          $max=$key;
           $key=0;
+        } else {
+          $key-=$max;           # Call stack is reverse order of return order
+          $max+=$key;
         }
-        @values=GetCallStack(GetRawValuesFromIDs($tidlist[0],
-                                                 ($key..$key+$max)));
+        @values=GetCallStack(GetRawValuesFromIDs($tidlist[0],0,
+                                                 ($key..$max)));
       }
     }
 
