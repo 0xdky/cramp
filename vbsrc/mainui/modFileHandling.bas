@@ -325,7 +325,8 @@ Public Function GetUNCPath(strPath As String, _
     Dim retVal As Integer
     Dim resShared As Boolean
     Dim Msg, Style, Title, Response, MyString
-      
+    Dim strAbsFilePath As String
+         
     If Left$(strPath, 2) = "\\" Then
         strReturnString = strPath
         GetUNCPath = True
@@ -379,9 +380,14 @@ Public Function GetUNCPath(strPath As String, _
     Call NetApiBufferFree(bufptr)
     
     If resShared Then
+        strAbsFilePath = Right$(strPath, (Len(strPath) - Len(strSearch)))
+        If Left$(strAbsFilePath, 1) = "\" Then
+            strAbsFilePath = Right$(strAbsFilePath, _
+                           Len(strAbsFilePath) - 1)
+        End If
+        
         strReturnString = bServer & "\" & _
-                            strShareName & "\" & _
-                            Right$(strPath, (Len(strPath) - Len(strSearch)))
+                            strShareName & "\" & strAbsFilePath
         GetUNCPath = True
     Else
         strFilePath = Left$(strPath, (Len(strPath) - Len(ParseFileName(strPath))))
