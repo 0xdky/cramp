@@ -18,7 +18,7 @@ Begin VB.Form frmMainui
       TabIndex        =   2
       Top             =   600
       Visible         =   0   'False
-      Width           =   7212
+      Width           =   7450
       Begin VB.Frame Frame3 
          Caption         =   "Result"
          Height          =   3852
@@ -488,7 +488,7 @@ Private Sub cmdRun_Click()
     Dim sNull As String
     Dim lSuccess As Long
     Dim lRetValue As Long
-    Dim RetVal As Boolean
+    Dim retVal As Boolean
     Dim Response
     
     SaveFunction gCurFileName
@@ -510,7 +510,7 @@ Private Sub cmdRun_Click()
                             pInfo)
     
     lRetValue = WaitForSingleObject(pInfo.hProcess, INFINITE)
-    RetVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
+    retVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
     
     If lRetValue = 0 Then
         Response = MsgBox("Scenario Run : Successful!!", , "Status")
