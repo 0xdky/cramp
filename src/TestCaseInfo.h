@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 10:40:42 dhruva>
+// Time-stamp: <2003-10-08 12:03:41 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -13,9 +13,9 @@
 #include "Windows.h"
 #include <process.h>
 
-// Collection classes
 #include <list>
 #include <string>
+#include <fstream.h>
 
 // User defined Unique ID's cannot be greater than this
 #define AUTO_UNIQUE_BASE 55555
@@ -89,8 +89,10 @@ public:
   SIZE_T NumberOfRuns(void);
   void NumberOfRuns(SIZE_T iNumberOfRuns);
 
-  // Internal methods...
-  // Not to be used other than in cramp.cpp
+  void AddLog(std::string ilog);
+  BOOLEAN DumpLog(ofstream &ifout);
+
+  // Internal methods: Not to be used other than in main engine
   TestCaseInfo *Reference(void);
   void Reference(TestCaseInfo *ipRefTC);
   void SetDelTimer(HANDLE ihTimer);
@@ -115,6 +117,7 @@ private:
   TestCaseInfo *p_refertc;          // Pointer to reference element
   TestCaseInfo *p_scenario;         // Head pointer to search based on UID
 
+  std::list<std::string> l_log;     // Test case Log list
   std::list<TestCaseInfo *> l_gc;   // For garbage collection:At Scenerio
   std::list<TestCaseInfo *> l_tci;  // For groups, test cases are stored here
 

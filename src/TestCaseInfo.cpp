@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 11:13:19 dhruva>
+// Time-stamp: <2003-10-08 12:08:00 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -569,4 +569,27 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
         ret=IsReferenceValid(ipEntry,ptc);
   }
   return(ret);
+}
+
+//-----------------------------------------------------------------------------
+// AddLog
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::AddLog(std::string ilog){
+  l_log.push_back(ilog);
+  return;
+}
+
+//-----------------------------------------------------------------------------
+// DumpLog
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::DumpLog(ofstream &ifout){
+  if(!ifout.is_open())
+    return(FALSE);
+  std::list<std::string>::iterator iter=l_log.begin();
+  for(;iter!=l_log.end();iter++){
+    ifout << (*iter).c_str() << endl;
+  }
+  return(TRUE);
 }
