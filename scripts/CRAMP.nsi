@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2004-02-29 13:12:20 dky>
+;; Time-stamp: <2004-03-01 09:46:43 dky>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -183,6 +183,7 @@ Section "STAF" SEC03
   push $R0
   GetFullPathName /SHORT $R0 $INSTDIR
   WriteRegExpandStr HKLM "${ENV_KEY}" "STAF_PATH" "$R0\TOOLS\STAF"
+  WriteRegExpandStr HKLM "${ENV_KEY}" "STAFCONVDIR" "%STAF_PATH%\bin"
   WriteRegExpandStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
                     "STAF Server" "%STAF_PATH%\bin\STAFProc.exe"
 
@@ -290,6 +291,7 @@ Section Uninstall
   RMDir  /REBOOTOK "$INSTDIR"
 
   DeleteRegValue HKLM "${ENV_KEY}" "STAF_PATH"
+  DeleteRegValue HKLM "${ENV_KEY}" "STAFCONVDIR"
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PATH"
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_LOGPATH"
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_DEBUG"
