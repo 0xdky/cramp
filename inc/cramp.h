@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-24 14:48:24 dhruva>
+// Time-stamp: <2003-12-02 17:51:52 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -52,6 +52,8 @@ typedef struct{
   std::list<std::string> g_FilterList;
   std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
 
+  HANDLE g_h_mailslot;
+  HANDLE g_h_mailslotTH;
   HANDLE g_h_logsizemonTH;
   CRITICAL_SECTION g_cs_log;
   CRITICAL_SECTION g_cs_prof;
