@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-05 17:21:47 dhruva>
+## Time-stamp: <2004-01-05 19:55:03 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -49,7 +49,7 @@ $progname=~s,.*/,,;
 ## usage
 ##-----------------------------------------------------------------------------
 sub usage{
-  print"usage : $progname ARGS
+  print STDERR "usage : $progname ARGS
 ARGS  : PID DUMP ALL|TICK|ADDR
         PID QUERY STAT [APPEND]
         PID QUERY THREADS [APPEND]
@@ -72,9 +72,10 @@ sub PrintTime{
   my @curr=localtime();
   $curr[4]+=1;
   $curr[5]+=1900;
-  print "@_ => $curr[4]/$curr[3]/$curr[5] at $curr[2]:$curr[1]:$curr[0] :: ";
+  print STDOUT
+    "@_ => $curr[4]/$curr[3]/$curr[5] at $curr[2]:$curr[1]:$curr[0] :: ";
   @curr=times();
-  print "User:$curr[0] System:$curr[1]\n";
+  print STDOUT "User:$curr[0] System:$curr[1]\n";
 
   return;
 }
@@ -98,12 +99,12 @@ sub SetDBFilters{
 
 ##-----------------------------------------------------------------------------
 ## TickCompare
-##  Removed explicit conversion to "int" in regexp. Guess, it is not required
+##  For use in sort, use $a and $b instead of $_[0] and $_[1]
 ##-----------------------------------------------------------------------------
 sub TickCompare{
-  $g_tie_RAW[$a]=~/([0-9]+)$/;
+  $g_tie_RAW[$_[0]]=~/([0-9]+)$/;
   my $k1=$1;
-  $g_tie_RAW[$b]=~/([0-9]+)$/;
+  $g_tie_RAW[$_[1]]=~/([0-9]+)$/;
 
   if ($k1 < $1) {
     return 1;
@@ -253,7 +254,9 @@ sub ProcessArgs{
       }
 
       if ($ARGV[3]=~/TICK/) {
-        $max=$ARGV[4];
+        if ($#ARGV>=4) {
+          $max=$ARGV[4];
+        }
         foreach (@tidlist) {
           push(@values,GetTickSortedValues($_,$max));
         }
@@ -272,7 +275,6 @@ sub ProcessArgs{
             @idx=($min);
           } else {
             @idx=($min..$max);
-            print "$#idx: $min $max\n";
           }
         }
         foreach (@tidlist) {
@@ -599,6 +601,8 @@ sub AddAddrSortedData{
         $h_func{$key}="$_";
       }
     }
+    undef $g_db_RAW;
+    untie @g_tie_RAW;
 
     my $db;
     my %tie_h_func;
@@ -620,8 +624,7 @@ sub AddAddrSortedData{
     %tie_h_func=%h_func;
 
     undef $db;
-    undef $g_db_RAW;
-    untie @g_tie_RAW;
+    untie %tie_h_func;
   } continue {
     if (defined($db)) {
       undef $db;
@@ -695,22 +698,24 @@ sub GetAddrSortedData{
 ## AddTickSortedData
 ##-----------------------------------------------------------------------------
 sub AddTickSortedData{
-  return AddSortedData("TICK",\&TickCompare);
-}
+  my $db;
+  $db=new BerkeleyDB::Btree
+    -Filename    => $f_logdb,
+      -Subname     => "TICK",
+        -Flags       => DB_CREATE,
+          -Property    => DB_DUP|DB_DUPSORT,
+            -DupCompare  => \&TickCompare
+              || die("Error: $BerkeleyDB::Error");
+  if (!defined($db)) {
+    return 1;
+  }
+  if (SetDBFilters($db)) {
+    return 1;
+  }
 
-##-----------------------------------------------------------------------------
-## GetTickSortedValues
-##  0 => The sub database name, 1 => Thread ID, 2 => Max size (0 for all)
-##-----------------------------------------------------------------------------
-sub GetTickSortedValues{
-  return GetSortedData("TICK",$_[0],$_[1]-1);
-}
+  my $count=0;
+  $db->truncate($count);
 
-##-----------------------------------------------------------------------------
-## AddSortedData
-##-----------------------------------------------------------------------------
-sub AddSortedData{
-  my ($base,$func)=@_;
   foreach (GetThreadIDs()) {
     my $tid=$_;
     $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
@@ -725,48 +730,76 @@ sub AddSortedData{
       last;
     }
 
-    my @tie_SORT=();
-    my $dbw=tie(@tie_SORT,'BerkeleyDB::Recno',
-                -Filename    => $f_logdb,
-                -Subname     => "$base#$tid",
-                -Flags       => DB_CREATE)
-      || next;
-    if (!defined($dbw)) {
-      next;
+    my $key;
+    foreach (0..$#g_tie_RAW) {
+      $key=$tid;
+      $db->db_put($key,$_);
     }
-    if (SetDBFilters($dbw)) {
-      next;
-    }
-
-    my $count=0;
-    $dbw->truncate($count);
-
-    @tie_SORT=sort $func (0..$#g_tie_RAW);
-
-    undef $dbw;
-    untie @tie_SORT;
 
     undef $g_db_RAW;
     untie @g_tie_RAW;
   } continue {
+    undef $g_db_RAW;
+    untie @g_tie_RAW;
   }
+
+  undef $db;
 
   return 0;
 }
 
 ##-----------------------------------------------------------------------------
-## GetSortedData
+## GetDuplicateKeyValues
+##  0 => Handle to DB, 1 => Key, 2 => Max size (0 for all)
 ##-----------------------------------------------------------------------------
-sub GetSortedData{
-  my ($base,$tid,$max)=@_;
+sub GetDuplicateKeyValues{
+  if (!defined($_[0])) {
+    warn("GetDuplicateKeyValues: Undefined DB handle");
+    return ();
+  }
 
+  my($k,$v)=($_[1],"");
+  my $dbc=$_[0]->db_cursor();
+  if (0!=$dbc->c_get($k,$v,DB_SET)) {
+    undef $dbc;
+    return ();
+  }
+
+  my $max=0;
+  $dbc->c_count($max);
+  if ($_[2] && $_[2]<$max) {
+    $max=$_[2];
+  }
+
+  my $cc=1;
+  my @results=();
+  push(@results,$v);
+
+  while (0==$dbc->c_get($k,$v,DB_NEXT_DUP)) {
+    if ($cc==$max) {
+      last;
+    }
+    $cc++;
+    push(@results,$v);
+  }
+  undef $dbc;
+
+  return @results;
+}
+
+##-----------------------------------------------------------------------------
+## GetTickSortedValues
+##  0 => The sub database name, 1 => Thread ID, 2 => Max size (0 for all)
+##-----------------------------------------------------------------------------
+sub GetTickSortedValues{
   my $db;
-  my @tie_DATA=();
-  $db=tie(@tie_DATA,'BerkeleyDB::Recno',
-          -Filename    => $f_logdb,
-          -Subname     => "$base#$tid",
-          -Flags       => DB_RDONLY)
-    || die("Error: $BerkeleyDB::Error");
+  $db=new BerkeleyDB::Btree
+    -Filename    => $f_logdb,
+      -Subname     => "TICK",
+        -Flags       => DB_RDONLY,
+          -Property    => DB_DUP|DB_DUPSORT,
+            -DupCompare  => \&TickCompare
+              || die("Error: $BerkeleyDB::Error");
   if (!defined($db)) {
     return ();
   }
@@ -774,37 +807,12 @@ sub GetSortedData{
     return ();
   }
 
-  my $data_sz=$#tie_DATA;
-  if ($data_sz<0) {
-    return ();
-  }
-
-  if (!defined($max) || $max<0 || $max>$data_sz) {
-    $max=$data_sz;
-  }
-
-  $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
-                -Filename    => $f_logdb,
-                -Subname     => "RAW#$tid",
-                -Flags       => DB_RDONLY)
-    || return ();
-  if (!defined($g_db_RAW)) {
-    return ();
-  }
-  if (SetDBFilters($g_db_RAW)) {
-    return ();
-  }
-
-  my @results=();
-  foreach (@tie_DATA[0..$max]) {
-    push(@results,$_."|".$g_tie_RAW[$_]);
-  }
-
+  my @results=GetDuplicateKeyValues($db,$_[0],$_[1]);
   undef $db;
-  untie @tie_DATA;
 
-  undef $g_db_RAW;
-  untie @g_tie_RAW;
+  if ($#results>=0) {
+    @results=GetRawValuesFromIDs($_[0],0,@results);
+  }
 
   return @results;
 }
