@@ -1,9 +1,9 @@
 #!perl
-## Time-stamp: <2003-11-19 20:51:25 dhruva>
+## Time-stamp: <2003-11-20 11:21:13 dhruva>
 ##-----------------------------------------------------------------------------
-## File  : cramp_staf.pl
+## File  : crampstaf.pl
 ## Desc  : PERL script to run testcases on a pool of computers using STAF
-## Usage : perl -S cramp_staf.pl scenario.list
+## Usage : perl -S crampstaf.pl scenario.list
 ##-----------------------------------------------------------------------------
 ## mm-dd-yyyy  History                                                      tri
 ## 11-18-2003  Cre                                                          dky
@@ -11,9 +11,11 @@
 use Config;
 use Sys::Hostname;
 
+my $HOST;
 my $STAF_EXEC;
 my $STAF_PATH;
 my $STAF_POOL;
+my $CRAMP_LOGPATH;
 
 my $STAF_WL;
 my $complete=0;
@@ -28,7 +30,19 @@ if($Config{useithreads} || $Config{usethreads}){
     share(%h_staf_pool);
     share(%h_cramp_path);
 }else{
-    print(STDERR "PERL $] NOT built with Thread support\n");
+    print STDERR "PERL $] NOT built with Thread support\n";
+    exit -1;
+}
+
+if(exists($ENV{'CRAMP_LOGPATH'})){
+    $CRAMP_LOGPATH=$ENV{'CRAMP_LOGPATH'};
+    $CRAMP_LOGPATH=~s/\\/\//g;
+    $CRAMP_LOGPATH=~s/\/+$//g;
+    if(! -d $CRAMP_LOGPATH){
+        exit -1;
+    }
+}else{
+    print STDERR "Define CRAMP_LOGPATH to copy test logs\n";
     exit -1;
 }
 
@@ -41,19 +55,59 @@ if(exists($ENV{'STAF_PATH'})){
     }
     $STAF_EXEC="$STAF_PATH/bin/cstaf.exe";
     $STAF_POOL="$STAF_PATH/bin/stafpool.cfg";
+    if(!(-f $STAF_EXEC && -f $STAF_POOL)){
+        exit -1;
+    }
 }else{
+    print STDERR "Define STAF_PATH to run remote tests\n";
     exit -1;
 }
 
-if(!(-f $STAF_EXEC && -f $STAF_POOL)){
-    exit -1;
+##-----------------------------------------------------------------------------
+## GetDirTree
+##-----------------------------------------------------------------------------
+sub GetDirTree()
+{
+    my $dir=@_[0];
+    if(! -d $dir){
+        return ();
+    }
+
+    opendir(DIR,$dir)||return ();
+    my @dflist=grep{!/^\./} readdir(DIR);
+    closedir(DIR);
+
+    my @tdflist=@dflist;
+    map {$_="$dir/$_";} @dflist;
+    foreach(@tdflist){
+        if(-d "$dir/$_"){
+            push(@dflist,GetDirTree("$dir/$_"));
+        }
+    }
+    return(@dflist);
 }
 
 ##-----------------------------------------------------------------------------
 ## Init
 ##-----------------------------------------------------------------------------
 sub Init{
-    $STAF_WL="CRAMP_".uc(hostname())."#".$$;
+    $HOST=uc(hostname());
+    $STAF_WL="CRAMP_".$HOST."#".$$;
+    $CRAMP_LOGPATH.="/$STAF_WL";
+    if(-d $CRAMP_LOGPATH){
+        foreach(reverse &GetDirTree($CRAMP_LOGPATH)){
+            if(-d $_){
+                rmdir $_;
+            }elsif(-f $_){
+                unlink $_;
+            }
+        }
+    }else{
+        mkdir($CRAMP_LOGPATH);
+        if($?){
+            return -1;
+        }
+    }
     return 0;
 }
 
@@ -108,9 +162,8 @@ sub STAFPing{
 sub GetSTAFPool{
     open(POOL,"<$STAF_POOL") || return -1;
     my $cc=0;
-    my $staf_cmd;
     my @loc=();
-    push(@loc,uc(hostname()));
+    my $staf_cmd;
 
     while(<POOL>){
         chomp();
@@ -307,22 +360,13 @@ sub STAFJobDispatcher{
 ##  Copies the remote CRAMP logs to local computer
 ##-----------------------------------------------------------------------------
 sub STAFCopyCRAMPLogs{
-    my $host=uc(hostname());
     my $comp;
     my $logpath;
-    my $llogpath;
     my $staf_cmd;
     my $retval=0;
 
-    if(!exists($h_cramp_path{$host})){
-        return -1;
-    }
-
-    $llogpath=$h_cramp_path{$host};
-    $llogpath=~s/.+\|//g;
-
     foreach(keys %h_staf_pool){
-        if($host eq $_){
+        if($HOST eq $_){
             next;
         }
         my $err=0;
@@ -332,7 +376,7 @@ sub STAFCopyCRAMPLogs{
 
         # Copy the remote log files to local computer
         $staf_cmd="$STAF_EXEC $comp FS COPY DIRECTORY $logpath ";
-        $staf_cmd.="TODIRECTORY $llogpath/$comp RECURSE";
+        $staf_cmd.="TODIRECTORY $CRAMP_LOGPATH/$comp RECURSE";
         open(STAF_PROC,"$staf_cmd 2>&1 |") || eval{$retval++;next};
         while(<STAF_PROC>){
             if(/^Error/i){
@@ -358,9 +402,9 @@ sub STAFCopyCRAMPLogs{
 ##---------------------------------------------------------------------------##
 ##                          BEGIN ACTUAL EXECUTION                           ##
 ##---------------------------------------------------------------------------##
-my $retval=0;
-Init();
+Init()==0||exit $?;
 GetSTAFPool()==0||exit $?;
+my $retval=0;
 $retval=STAFJobDispatcher($ARGV[0]);
 foreach(keys %h_staf_pool){
     STAFPing($_)==0 || next;
