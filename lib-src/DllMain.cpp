@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-15 17:09:58 dky>
+// Time-stamp: <2004-03-19 15:49:11 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -76,7 +76,7 @@ extern "C" __declspec(dllexport)
             g_CRAMP_Profiler.g_pid);
 
     csp.enter();
-    f_stat=fopen(filename,"wc");
+    f_stat=fopen(filename,"a+");
     if(!f_stat){
         DEBUGCHK(0);
         return;
