@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-03-13 15:49:48 dky>
+## Time-stamp: <2004-03-13 17:47:50 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -224,6 +224,7 @@ basetest: baseclass $(BINDIR)/DPEBaseClassTest.exe
 $(BINDIR)/TestProf.exe: library $(OBJDIR)/TestProf.obj
     @$(LINK) /DEBUG $(OBJDIR)/TestProf.obj $(BINDIR)/$(PROFLIB).lib \
              /OUT:$(BINDIR)/TestProf.exe
+    @$(COPY) $(UTILDIR)\dbghelp.dll $(BINDIR)
 $(BINDIR)/DPEBaseClassTest.exe: $(OBJDIR)/DPEBaseClass.obj \
                                 $(OBJDIR)/DPEBaseClassTest.obj
     @$(LINK) $(LINK_DEBUG) $(OBJDIR)/DPEBaseClassTest.obj \
