@@ -487,12 +487,13 @@ Private Sub mnuMRU_Click(index As Integer)
     
     Dim sScenarioName As String
     sScenarioName = gMRUList(0, index)
-    
+    Dim tmpStr As String
     CleanAndRestart
     
     CreateDatabase
 
-    gCurScenarioName = sScenarioName
+    gCurScenarioName = GetFileNameWithoutExt(sScenarioName)
+    
     gCurFileName = sScenarioName
     mnuSave.Enabled = True
     LoadScenario gCurFileName
