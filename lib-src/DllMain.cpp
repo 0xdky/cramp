@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-01-21 16:52:30 dky>
+// Time-stamp: <2004-01-27 16:23:24 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -44,6 +44,8 @@ extern "C" __declspec(dllexport)
   void CRAMP_FlushProfileLogs(void){
   // Usually this iscalled to collect all logs
   // Hence, flush all logs before getting logs
+  CallMonitor::TICKS frequency=0;
+  CallMonitor::queryTickFreq(&frequency);
 
   if(g_CRAMP_Profiler.g_fLogFile)
     fflush(g_CRAMP_Profiler.g_fLogFile);
@@ -61,9 +63,10 @@ extern "C" __declspec(dllexport)
   iter=g_CRAMP_Profiler.g_hFuncCalls.begin();
   for(;iter!=g_CRAMP_Profiler.g_hFuncCalls.end();iter++){
     if(f_stat)
-      fprintf(f_stat,"%08X|%d|%I64d|%I64d\n",
+      fprintf(f_stat,"%08X|%d|%I64d|%I64d|%I64d\n",
               (*iter).first,
               (*iter).second._calls,
+              frequency,
               (*iter).second._totalticks,
               (*iter).second._maxticks);
 
@@ -252,7 +255,6 @@ OnProcessStart(void){
     return;
 
   char filename[256];
-  CallMonitor::TICKS frequency=0;
 
   g_CRAMP_Profiler.g_exclusion=TRUE;
   g_CRAMP_Profiler.g_fLogFile=0;
@@ -329,7 +331,6 @@ OnProcessStart(void){
     if(!g_CRAMP_Profiler.g_fFuncInfo)
       break;
 
-    CallMonitor::queryTickFreq(&frequency);
     if(getenv("CRAMP_PROFILE"))
       InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,1);
     else

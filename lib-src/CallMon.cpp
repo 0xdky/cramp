@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-01-23 10:45:00 dky>
+// Time-stamp: <2004-01-27 16:09:49 dky>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -161,11 +161,9 @@ extern "C" __declspec(dllexport) __declspec(naked)
 #endif
 
 #ifdef PENTIUM
-void CallMonitor::queryTickFreq(TICKS *t)
-{
+void CallMonitor::queryTickFreq(TICKS *t){
   static TICKS ticksPerSec=0;
-  if (!ticksPerSec)
-  {
+  if(!ticksPerSec){
     static const int NUM_LOOPS=100;
     LARGE_INTEGER freq;
     QueryPerformanceFrequency(&freq);
@@ -182,7 +180,7 @@ void CallMonitor::queryTickFreq(TICKS *t)
     long double ratio = ((long double)qcTicks)/((long double)qpcTicks);
     ticksPerSec = ratio * (long double)freq.QuadPart;
   }
-  *t = ticksPerSec;
+  *t=ticksPerSec;
 }
 #endif
 // End of MSVC-specific code
@@ -282,8 +280,11 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
 
     iter=g_CRAMP_Profiler.g_hFuncCalls.find(funcAddr);
     if(iter==g_CRAMP_Profiler.g_hFuncCalls.end()){
-      FuncInfo fi={1,FALSE,!g_CRAMP_Profiler.g_exclusion,
-                   0,0};
+      FuncInfo fi;
+      memset(&fi,0,sizeof(FuncInfo));
+      fi._calls=1;
+      fi._pending=FALSE;
+      fi._filtered=!g_CRAMP_Profiler.g_exclusion;
 
       // Any error/filtered, ignore profiling the method in the future
       fi._filtered=!WriteFuncInfo(funcAddr,1);
