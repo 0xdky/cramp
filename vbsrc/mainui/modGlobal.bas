@@ -890,18 +890,18 @@ With frmMainui
 
   If .staCombo.Text = "STAT" Then
     Set clm = .queryLV.ColumnHeaders.Add(, , "Module")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Func - Name")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Func - Addr")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "No - Calls")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Tot - Ticks")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Max - Ticks")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Function")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Address")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Number")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Total ticks")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Max ticks")
   Else
     Set clm = .queryLV.ColumnHeaders.Add(, , "Thread")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Module")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Func - Name")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Func - Addr")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Function")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Address")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Depth")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Ret - Status")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Exception")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Time(ns)")
     If .staCombo.Text = "ADDR" And frmMainui.limitText.Text = -1 Then
       Set clm = .queryLV.ColumnHeaders.Add(, , "Count")
@@ -941,13 +941,13 @@ Public Sub SetValueFromLV()
   If frmMainui.staCombo.Text = "ADDR" Then
     'address
     If Not IsNumeric(frmMainui.queryLV.SelectedItem) Then
-      If frmMainui.queryLV.ColumnHeaders(3) = "Func - Name" Or _
-         frmMainui.queryLV.ColumnHeaders(3) = "Func - Addr" Then
+      If frmMainui.queryLV.ColumnHeaders(3) = "Function" Or _
+         frmMainui.queryLV.ColumnHeaders(3) = "Address" Then
         lvValue = frmMainui.queryLV.SelectedItem.SubItems(2)
         frmMainui.addrCombo.Text = lvValue
       End If
     Else
-      If frmMainui.queryLV.ColumnHeaders(4) = "Func - Addr" Then
+      If frmMainui.queryLV.ColumnHeaders(4) = "Address" Then
         lvValue = frmMainui.queryLV.SelectedItem.SubItems(3)
         frmMainui.addrCombo.Text = lvValue
       End If

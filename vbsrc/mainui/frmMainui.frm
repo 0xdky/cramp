@@ -26,6 +26,14 @@ Begin VB.Form frmMainui
          TabIndex        =   33
          Top             =   240
          Width           =   6852
+         Begin VB.CommandButton stopCommand 
+            Caption         =   "Stop"
+            Height          =   288
+            Left            =   4440
+            TabIndex        =   40
+            Top             =   480
+            Width           =   972
+         End
          Begin VB.CommandButton flushproCommand 
             Caption         =   "Flush"
             Height          =   288
@@ -34,17 +42,17 @@ Begin VB.Form frmMainui
             Top             =   480
             Width           =   972
          End
-         Begin VB.CommandButton startstopCommand 
+         Begin VB.CommandButton startCommand 
             Caption         =   "Start"
             Height          =   288
-            Left            =   3960
+            Left            =   3240
             TabIndex        =   38
             Top             =   480
             Width           =   972
          End
          Begin VB.TextBox pidText 
             Height          =   288
-            Left            =   2280
+            Left            =   2040
             TabIndex        =   36
             Top             =   480
             Width           =   972
@@ -59,13 +67,13 @@ Begin VB.Form frmMainui
          Begin VB.Label procidLabel 
             Caption         =   "Pid"
             Height          =   252
-            Left            =   2280
+            Left            =   2040
             TabIndex        =   37
             Top             =   240
-            Width           =   1452
+            Width           =   972
          End
          Begin VB.Label compnameLabel 
-            Caption         =   "CompName.DomName"
+            Caption         =   "Profile Host"
             Height          =   252
             Left            =   120
             TabIndex        =   35
@@ -1054,7 +1062,7 @@ End Sub
 '***********************************************************
 ' start-stop
 '***********************************************************
-Private Sub startstopCommand_Click()
+Private Sub startCommand_Click()
   
   If compnameText.Text = "" Then
     MsgBox "ERROR :: Null computer name"
@@ -1066,17 +1074,24 @@ Private Sub startstopCommand_Click()
     Exit Sub
   End If
   
-  If starstopBool = True Then
-    startstopCommand.Caption = "Stop"
-    starstopBool = False
-    'start profiling
-    DoProfiling ("START")
-  Else
-    'stop profiling
-    DoProfiling ("STOP")
-    startstopCommand.Caption = "Start"
-    starstopBool = True
+  'start profiling
+  DoProfiling ("START")
+End Sub
+
+Private Sub stopCommand_Click()
+  If compnameText.Text = "" Then
+    MsgBox "ERROR :: Null computer name"
+    Exit Sub
   End If
+  
+  If pidText.Text = "" Then
+    MsgBox "ERROR :: Null pid value"
+    Exit Sub
+  End If
+  
+  'stop profiling
+  DoProfiling ("STOP")
+
 End Sub
 
 Private Sub flushproCommand_Click()
@@ -1095,11 +1110,9 @@ Private Sub flushproCommand_Click()
   DoProfiling ("FLUSH")
 End Sub
 
-Private Sub queryLV_Click()
-  
+Private Sub queryLV_DblClick()
   If queryLV.ColumnHeaders.Count <> 0 Then
     SetValueFromLV
   End If
 End Sub
-
 
