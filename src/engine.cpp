@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 12:17:01 dhruva>
+// Time-stamp: <2003-10-15 12:37:21 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -141,6 +141,7 @@ TestCaseInfo
         // Create a Sub proc
         psp=pGroup->AddTestCase(0,FALSE,TRUE);
         DEBUGCHK(psp);
+        psp->TestCaseName("Monitoring only");
         psp->TestCaseExec(exec.c_str());
         psp->ProcessInfo((*lpiniter));
       }
