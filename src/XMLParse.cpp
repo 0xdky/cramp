@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 12:16:29 dhruva>
+// Time-stamp: <2003-10-15 14:41:14 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -52,7 +52,8 @@ typedef enum{
   STOPONFIRSTFAILURE,
   EXECPATH,
   NUMRUNS,
-  SUBPROC
+  SUBPROC,
+  MONINTERVAL
 }AttributeEnum;
 
 // Internal map between value and attribute
@@ -69,24 +70,27 @@ typedef struct{
 }ElemAttr;
 
 ElemAttr g_ElemAttrMap[]={
-  SCENARIO, "ID"                  ,   ID                  ,//0
-  SCENARIO, "NAME"                ,   NAME                ,//1
-  SCENARIO, "RELEASE"             ,   RELEASE             ,//2
-  SCENARIO, "MAXRUNTIME"          ,   MAXRUNTIME          ,//6
-  SCENARIO, "PROFILING"           ,   PROFILING           ,//7
-  GROUP   , "ID"                  ,   ID                  ,//8
-  GROUP   , "NAME"                ,   NAME                ,//9
-  GROUP   , "BLOCK"               ,   BLOCK               ,//10
-  GROUP   , "REINITIALIZEDATA"    ,   REINITIALIZEDATA    ,//11
-  GROUP   , "STOPONFIRSTFAILURE"  ,   STOPONFIRSTFAILURE  ,//12
-  GROUP   , "PROFILING"           ,   PROFILING           ,//13
-  TESTCASE, "ID"                  ,   ID                  ,//14
-  TESTCASE, "EXECPATH"            ,   EXECPATH            ,//15
-  TESTCASE, "NUMRUNS"             ,   NUMRUNS             ,//16
-  TESTCASE, "NAME"                ,   NAME                ,//17
-  TESTCASE, "PROFILING"           ,   PROFILING           ,//18
-  TESTCASE, "BLOCK"               ,   BLOCK               ,//19
-  TESTCASE, "SUBPROC"             ,   SUBPROC             ,//20
+  SCENARIO, "ID"                  ,   ID                  ,
+  SCENARIO, "NAME"                ,   NAME                ,
+  SCENARIO, "RELEASE"             ,   RELEASE             ,
+  SCENARIO, "MAXRUNTIME"          ,   MAXRUNTIME          ,
+  SCENARIO, "PROFILING"           ,   PROFILING           ,
+  SCENARIO, "MONINTERVAL"         ,   MONINTERVAL         ,
+  GROUP   , "ID"                  ,   ID                  ,
+  GROUP   , "NAME"                ,   NAME                ,
+  GROUP   , "BLOCK"               ,   BLOCK               ,
+  GROUP   , "MAXRUNTIME"          ,   MAXRUNTIME          ,
+  GROUP   , "REINITIALIZEDATA"    ,   REINITIALIZEDATA    ,
+  GROUP   , "STOPONFIRSTFAILURE"  ,   STOPONFIRSTFAILURE  ,
+  GROUP   , "PROFILING"           ,   PROFILING           ,
+  TESTCASE, "ID"                  ,   ID                  ,
+  TESTCASE, "EXECPATH"            ,   EXECPATH            ,
+  TESTCASE, "NUMRUNS"             ,   NUMRUNS             ,
+  TESTCASE, "NAME"                ,   NAME                ,
+  TESTCASE, "PROFILING"           ,   PROFILING           ,
+  TESTCASE, "MAXRUNTIME"          ,   MAXRUNTIME          ,
+  TESTCASE, "BLOCK"               ,   BLOCK               ,
+  TESTCASE, "SUBPROC"             ,   SUBPROC             ,
   0,0};
 
 //-----------------------------------------------------------------------------
@@ -357,8 +361,14 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
           break;
         case MAXRUNTIME:
         {
-          int time=atoi((*from).attrvalue);
+          SIZE_T time=atol((*from).attrvalue);
           pChild->MaxTimeLimit(time);
+          break;
+        }
+        case MONINTERVAL:
+        {
+          SIZE_T time=atol((*from).attrvalue);
+          pChild->MonitorInterval(time);
           break;
         }
         case PROFILING:
@@ -382,7 +392,7 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
           break;
         case NUMRUNS:
         {
-          int time=atoi((*from).attrvalue);
+          SIZE_T time=atol((*from).attrvalue);
           pChild->NumberOfRuns(time);
           break;
         }

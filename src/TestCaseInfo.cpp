@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 12:18:56 dhruva>
+// Time-stamp: <2003-10-15 13:58:05 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -26,6 +26,7 @@
 
 // Initialize static
 ListOfTestCaseInfo TestCaseInfo::l_gc;
+SIZE_T TestCaseInfo::u_moninterval=1000;
 TestCaseInfo *TestCaseInfo::p_remote=0;
 TestCaseInfo *TestCaseInfo::p_scenario=0;
 
@@ -456,6 +457,23 @@ TestCaseInfo::MaxTimeLimit(void){
 void
 TestCaseInfo::MaxTimeLimit(SIZE_T iMaxTimeLimit){
   u_maxtimelimit=iMaxTimeLimit;
+  return;
+}
+
+//-----------------------------------------------------------------------------
+// MonitorInterval
+//-----------------------------------------------------------------------------
+SIZE_T
+TestCaseInfo::MonitorInterval(void){
+  return(TestCaseInfo::u_moninterval);
+}
+
+//-----------------------------------------------------------------------------
+// MonitorInterval
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::MonitorInterval(SIZE_T iMonitorInterval){
+  TestCaseInfo::u_moninterval=iMonitorInterval;
   return;
 }
 

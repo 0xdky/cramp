@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 09:24:08 dhruva>
+// Time-stamp: <2003-10-15 13:56:27 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -98,6 +98,10 @@ public:
   std::string &TestCaseExec(void);
   void TestCaseExec(const char *iExec);
 
+  // In milli seconds
+  SIZE_T MonitorInterval(void);
+  void MonitorInterval(SIZE_T iMonitorInterval);
+
   SIZE_T MaxTimeLimit(void);
   void MaxTimeLimit(SIZE_T iTime);
 
@@ -146,6 +150,7 @@ private:
   HANDLE h_deltimer;                // Timer to kill proc if time limited
 
   // Static declarations
+  static SIZE_T u_moninterval;           // Memory monitoring interval
   static TestCaseInfo *p_scenario;       // Head pointer to search based on UID
   static TestCaseInfo *p_remote;         // For remote data collection
   static std::list<TestCaseInfo *> l_gc; // For garbage collection

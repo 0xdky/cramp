@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 12:46:38 dhruva>
+// Time-stamp: <2003-10-15 14:41:31 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -304,7 +304,14 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
     if(blocked){
       ResumeThread(pi.hThread);
       CloseHandle(pi.hThread);
-      WaitForSingleObject(pi.hProcess,INFINITE);
+      SIZE_T maxwait=porigtc->MaxTimeLimit();
+      if(!maxwait)
+        maxwait=INFINITE;
+      dwret=WaitForSingleObject(pi.hProcess,maxwait);
+      if(WAIT_TIMEOUT==dwret){
+        porigtc->AddLog("MESSAGE|ERROR|PROC|Exceeded time limit");
+        TerminateProcess(pi.hProcess,dwret);
+      }
     }else{
       ppi[psz]=pi;
       psz++;
@@ -326,8 +333,17 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
       CloseHandle(ppi[cc].hThread);
     }
 
-    dwret=WaitForMultipleObjects(psz+numgroups,ptharr,TRUE,INFINITE);
-
+    SIZE_T maxwait=pTopTC->MaxTimeLimit();
+    if(!maxwait)
+      maxwait=INFINITE;
+    dwret=WaitForMultipleObjects(psz+numgroups,ptharr,TRUE,maxwait);
+    if(WAIT_TIMEOUT==dwret){
+      pTopTC->AddLog("MESSAGE|ERROR|PROC|Exceeded time limit");
+      for(int yy=0;yy<psz;yy++)
+        TerminateProcess(ptharr[yy],dwret);
+      for(int zz=0;zz<numgroups;zz++)
+        TerminateThread(tharr[zz],dwret);
+    }
     delete [] ppi;
     delete [] tharr;
     delete [] ptharr;
@@ -375,11 +391,13 @@ MemoryPollTH(LPVOID lpParameter){
     DEBUGCHK(0);
     return(1);
   }
+  SIZE_T monint=0;
+  monint=g_pScenario->MonitorInterval();
   while(1){
     WaitForSingleObject(h_mutex,INFINITE);
     ActiveProcessMemoryDetails(pScenario,pmsg);
     ReleaseMutex(h_mutex);
-    Sleep(2000);
+    Sleep(monint);
   }
   CloseHandle(h_mutex);
   return(0);
