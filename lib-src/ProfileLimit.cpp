@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 19:09:43 dhruva>
+// Time-stamp: <2003-10-20 19:57:17 dhruva>
 //-----------------------------------------------------------------------------
 // File : ProfileLimit.cpp
 // Desc : Limit the profile data per thread basis. The latest entries are kept
@@ -62,11 +62,11 @@ ProfileLimit::AddLog(__int64 iTicks,std::string iLog,BOOLEAN iForce){
           ret=TRUE;
         }
         break;
+      }else{
+        // We are sure to add this, create space
+        _lprofdata.pop_back();
       }
     }else{
-      // We are sure to add this, create space
-      _lprofdata.pop_back();
-
       // If it is greater than the greatest, add it to top
       if(iTicks>_lprofdata.front()._ticks){
         ProfileData pd;
@@ -83,11 +83,8 @@ ProfileLimit::AddLog(__int64 iTicks,std::string iLog,BOOLEAN iForce){
     pdata._ticks=iTicks;
     pdata._log=iLog;
 
-
-    BOOLEAN fdir=TRUE;
-
-
     // Find a suitable traversal direction, crude optimization
+    BOOLEAN fdir=TRUE;
     if(pdata._ticks<(_lprofdata.front()._ticks+_lprofdata.back()._ticks)/2){
       fdir=FALSE;
       _lprofdata.reverse();
@@ -114,6 +111,10 @@ ProfileLimit::AddLog(__int64 iTicks,std::string iLog,BOOLEAN iForce){
 
     ret=TRUE;
   }while(0);
+
+  // Something that should never happen
+  if(_lprofdata.size()>_limit)
+    _lprofdata.resize(_limit);
 
   return(ret);
 }
