@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-10 12:21:05 dhruva>
+// Time-stamp: <2003-12-10 15:15:06 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Desc  : Create a job, process inside the job which may create further
@@ -225,7 +225,6 @@ UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
                                          0))
       break;
 
-    char msg[1024];
     char qstr[1024];
     PDH_HQUERY hQuery=0;
     PDH_HCOUNTER c_pid=0;
@@ -246,7 +245,9 @@ UpdatePIDCounterHash(std::list<DWORD> &iListOfPID){
       SIZE_T hash=0;
       char inst[256];
 
-      hash=hashstring(szThisInstance);
+      // Handle mixed case exec names as 1
+      strcpy(qstr,szThisInstance);
+      hash=hashstring(_strlwr(qstr));
       iiter=h_inst.find(hash);
       if(iiter!=h_inst.end()){
         (*iiter).second++;
