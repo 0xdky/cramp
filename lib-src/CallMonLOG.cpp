@@ -1,11 +1,12 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 08:48:22 dhruva>
+// Time-stamp: <2003-11-07 08:18:55 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
 //-----------------------------------------------------------------------------
 // mm-dd-yyyy  History                                                      tri
-// 09-30-2003  Mod                                                          dky
+// 09-30-2003  Cre                                                          dky
+// 09-30-2003  Mod  Made time in micro seconds                              dky
 //-----------------------------------------------------------------------------
 #define __CALLMONLOG_SRC
 
@@ -72,7 +73,7 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
           ci.funcAddr,
           callInfoStack.size(),
           !normalRet,
-          elapsedticks/(ticksPerSecond/1000),
+          elapsedticks/(ticksPerSecond/1000000),
           elapsedticks);
   LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_log);
 
