@@ -13,9 +13,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
-      Left            =   600
+      Left            =   5640
       TabIndex        =   2
-      Top             =   600
+      Top             =   -6600
       Visible         =   0   'False
       Width           =   7450
       Begin MSComctlLib.ImageList SortIconImageList 
@@ -361,15 +361,15 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   0
-      Left            =   600
+      Left            =   720
       TabIndex        =   1
-      Top             =   7920
+      Top             =   840
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
          Left            =   6000
          TabIndex        =   12
-         Top             =   4320
+         Top             =   4920
          Width           =   1215
       End
       Begin VB.CommandButton cmdBrowse 
@@ -386,7 +386,7 @@ Begin VB.Form frmMainui
          Height          =   285
          Left            =   6000
          TabIndex        =   10
-         Top             =   5520
+         Top             =   5880
          Visible         =   0   'False
          Width           =   1215
       End
@@ -397,7 +397,7 @@ Begin VB.Form frmMainui
          List            =   "frmMainui.frx":01AE
          TabIndex        =   9
          Text            =   "TRUE"
-         Top             =   4920
+         Top             =   5400
          Visible         =   0   'False
          Width           =   1215
       End
@@ -406,7 +406,7 @@ Begin VB.Form frmMainui
          Height          =   495
          Left            =   6000
          TabIndex        =   8
-         Top             =   3240
+         Top             =   2520
          Width           =   1215
       End
       Begin VB.CommandButton cmdDelete 
@@ -414,7 +414,7 @@ Begin VB.Form frmMainui
          Height          =   495
          Left            =   6000
          TabIndex        =   7
-         Top             =   2280
+         Top             =   1800
          Width           =   1215
       End
       Begin VB.CommandButton cmdAddTc 
@@ -422,7 +422,7 @@ Begin VB.Form frmMainui
          Height          =   495
          Left            =   6000
          TabIndex        =   6
-         Top             =   1320
+         Top             =   1080
          Width           =   1215
       End
       Begin VB.CommandButton cmdAddGroup 
@@ -472,6 +472,8 @@ Begin VB.Form frmMainui
          LabelEdit       =   1
          Style           =   7
          Appearance      =   1
+         OLEDragMode     =   1
+         OLEDropMode     =   1
       End
    End
    Begin MSComctlLib.TabStrip tspMainUI 
@@ -567,12 +569,25 @@ Begin VB.Form frmMainui
          Caption         =   "Stack"
       End
    End
+   Begin VB.Menu mnuNodeRightCL 
+      Caption         =   "NodeRightCL"
+      Visible         =   0   'False
+      Begin VB.Menu mnuNodeMoveUp 
+         Caption         =   "Move Up"
+      End
+      Begin VB.Menu mnuNodeMoveDown 
+         Caption         =   "Move Down"
+      End
+   End
 End
 Attribute VB_Name = "frmMainui"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+Dim SelNode As Node
+Dim Draging As Boolean
+
 '***********************************************************
 '
 '***********************************************************
@@ -682,8 +697,10 @@ Private Sub cmdDelete_Click()
     Dim selectedNode As Node
     Dim selectedType As ObjectType
     
+    cmdDelete.SetFocus
     Set selectedNode = tvwNodes.SelectedItem
-    selectedType = nodetype(selectedNode)
+    lvwAttributes_LostFocus
+    selectedType = nodeType(selectedNode)
     DeleteNode selectedNode
     DeleteRecord selectedNode
         
@@ -956,10 +973,10 @@ Private Sub mnuMRU_Click(index As Integer)
     
     If Not FileExists(sScenarioName) Then
         Dim Msg, Style, Title, Response, MyString
-        Msg = "Scenario file " & Chr(13) & Chr(34) & _
+        Msg = "ERROR: Scenario file " & Chr(13) & Chr(34) & _
               sScenarioName & Chr(34) & Chr(13) & _
               " does not exist"
-        Style = vbExclamation + vbOKOnly
+        Style = vbCritical + vbOKOnly
         Title = "CRAMP Error"
         MsgBox Msg, Style, Title
         Exit Sub
@@ -1001,6 +1018,58 @@ Private Sub mnuNew_Click()
         
     AddNodeInTreeView , otScenario
     
+End Sub
+
+Private Sub mnuNodeMoveDown_Click()
+    Dim nodCurrent As Node, nodNext As Node
+    Dim nodNew As Node
+    Dim boolExpPosition As Boolean
+    
+    Set nodCurrent = tvwNodes.SelectedItem
+    
+    'See if previous node exists
+    Set nodNext = nodCurrent.Next
+    If nodNext Is Nothing Then
+        Exit Sub
+    End If
+    boolExpPosition = nodNext.Expanded
+    'Create new node at the desired position.
+    Set nodNew = tvwNodes.Nodes.Add(nodCurrent, tvwPrevious, "NewNode", "")
+    
+    'Copy the children of the previous node
+    CopyNodeWithChildren nodNew, nodNext
+    nodNew.Expanded = boolExpPosition
+    'Remove the previous node, will automatically remove its children
+    tvwNodes.Nodes.Remove (nodNext.key)
+    nodNew.EnsureVisible
+    tvwNodes.SelectedItem = nodCurrent
+    tvwNodes.Refresh
+End Sub
+
+Private Sub mnuNodeMoveUp_Click()
+    Dim nodCurrent As Node, nodPrevious As Node
+    Dim nodNew As Node
+    Dim boolExpPosition As Boolean
+    
+    Set nodCurrent = tvwNodes.SelectedItem
+    
+    'See if previous node exists
+    Set nodPrevious = nodCurrent.Previous
+    If nodPrevious Is Nothing Then
+        Exit Sub
+    End If
+    boolExpPosition = nodPrevious.Expanded
+    'Create new node at the desired position.
+    Set nodNew = tvwNodes.Nodes.Add(nodCurrent, tvwNext, "NewNode", "")
+    
+    'Copy the children of the previous node
+    CopyNodeWithChildren nodNew, nodPrevious
+    nodNew.Expanded = boolExpPosition
+    'Remove the previous node, will automatically remove its children
+    tvwNodes.Nodes.Remove (nodPrevious.key)
+    nodNew.EnsureVisible
+    tvwNodes.SelectedItem = nodCurrent
+    tvwNodes.Refresh
 End Sub
 
 '***********************************************************
@@ -1071,6 +1140,56 @@ Private Sub tspMainUI_Click()
     fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
     
     RenameFormWindow
+End Sub
+
+Private Sub tvwNodes_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+    If Button = vbRightButton Then
+      PopupMenu mnuNodeRightCL
+    End If
+End Sub
+
+Private Sub tvwNodes_OLEDragDrop(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single)
+    Dim strKey As String, strText As String
+    Dim nodNew As Node, nodDragged As Node
+    Dim nodType As ObjectType
+    'If nothing is selected for drag, do nothing.
+    If tvwNodes.SelectedItem Is Nothing Then
+    Else
+        'Reference the selected node as the one being dragged.
+        Set nodDragged = tvwNodes.SelectedItem
+        If nodDragged.index <> tvwNodes.DropHighlight.index Then
+            'Set the drop target as the selected node's parent.
+            nodType = nodeType(tvwNodes.DropHighlight)
+            If nodType = otGroup Or nodType = otScenario Then
+                Set nodDragged.Parent = tvwNodes.DropHighlight
+            Else
+                Dim Msg, Style, Title, Response, MyString
+                Msg = "ERROR: " & "Invalid target" & Chr(13) & _
+                      "Target must be group/scenario node."
+                Style = vbCritical + vbOKOnly
+                Title = "CRAMP Error"
+                MsgBox Msg, Style, Title
+            End If
+            
+        End If
+    End If
+    'Deselect the node
+    Set nodDragged = Nothing
+    'Unhighlight the nodes.
+    Set tvwNodes.DropHighlight = Nothing
+End Sub
+
+Private Sub tvwNodes_OLEDragOver(Data As MSComctlLib.DataObject, Effect As Long, Button As Integer, Shift As Integer, x As Single, y As Single, State As Integer)
+    'If no node is selected, select the first node you dragged over.
+    If tvwNodes.SelectedItem Is Nothing Then
+        Set tvwNodes.SelectedItem = tvwNodes.HitTest(x, y)
+    End If
+    'Highlight the node being dragged over as a potential drop target.
+    Set tvwNodes.DropHighlight = tvwNodes.HitTest(x, y)
+End Sub
+
+Private Sub tvwNodes_OLEStartDrag(Data As MSComctlLib.DataObject, AllowedEffects As Long)
+    tvwNodes.SelectedItem = Nothing
 End Sub
 
 '***********************************************************
@@ -1377,7 +1496,7 @@ End Sub
 '***********************************************************
 ' pop up menu when right click in the listview
 '***********************************************************
-Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
   If queryLV.ColumnHeaders.Count > 0 Then
     If Button = vbRightButton Then
       PopupMenu mnuLVRigCL

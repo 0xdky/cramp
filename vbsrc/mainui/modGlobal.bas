@@ -52,17 +52,17 @@ End Type
 '****************************************************
 ' Return the node's object type
 '****************************************************
-Public Function nodetype(testNode As Node) As ObjectType
+Public Function nodeType(testNode As Node) As ObjectType
     If testNode Is Nothing Then
-        nodetype = otNone
+        nodeType = otNone
     Else
         Select Case Left$(testNode.key, 1)
             Case "s"
-                nodetype = otScenario
+                nodeType = otScenario
             Case "g"
-                nodetype = otGroup
+                nodeType = otGroup
             Case "t"
-                nodetype = otTestcase
+                nodeType = otTestcase
         End Select
     End If
 End Function
@@ -239,34 +239,37 @@ End Sub
 '************************************************************
 Public Sub SetActionButtons()
     Dim selectedNode As Node
-    Dim nodeName As String
-
+    'Dim nodeName As String
+    Dim nodType As ObjectType
+    
     Set selectedNode = frmMainui.tvwNodes.SelectedItem
 
     If selectedNode Is Nothing Then
         Exit Sub
     End If
 
-    nodeName = selectedNode.key
-
-    Select Case Left$(nodeName, 1)
-        Case "s"
+    'nodeName = selectedNode.key
+    nodType = nodeType(selectedNode)
+    
+    Select Case nodType
+        Case otScenario
             frmMainui.cmdAddGroup.Enabled = True
             frmMainui.cmdAddTc.Enabled = True
             frmMainui.cmdDelete.Enabled = False
             frmMainui.cmdDelete.Caption = "&Delete"
-        Case "g"
+            
+        Case otGroup
             frmMainui.cmdAddGroup.Enabled = True
             frmMainui.cmdAddTc.Enabled = True
             frmMainui.cmdDelete.Enabled = True
             frmMainui.cmdDelete.Caption = "&Delete Group"
-
-        Case "t"
+            
+        Case otTestcase
             frmMainui.cmdAddGroup.Enabled = False
             frmMainui.cmdAddTc.Enabled = False
             frmMainui.cmdDelete.Enabled = True
             frmMainui.cmdDelete.Caption = "&Delete Testcase"
-
+            
     End Select
 
 End Sub
@@ -397,7 +400,7 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
     Dim cnn As New ADODB.Connection
     Dim rst As New ADODB.Recordset
 
-    tblType = nodetype(nodeElement)
+    tblType = nodeType(nodeElement)
     tblName = ReturnTableName(tblType)
     uId = nodeElement.key
 
@@ -661,8 +664,8 @@ Public Function NodeCanBeAdded(parentNode As Node, _
 
         'MsgBox childNode.Text
         'selectedType = nodetype(frmMainui.tvwNodes.SelectedItem)
-        If nodetype(frmMainui.tvwNodes.SelectedItem) = _
-                nodetype(childNode) Then
+        If nodeType(frmMainui.tvwNodes.SelectedItem) = _
+                nodeType(childNode) Then
            gIdRef.Add childNode.Text, childNode.key
         End If
 
@@ -675,7 +678,7 @@ Public Sub UpdateNodeName(strName As String)
     Dim tblType As ObjectType
     Dim curName, newName As String
     
-    tblType = nodetype(frmMainui.tvwNodes.SelectedItem)
+    tblType = nodeType(frmMainui.tvwNodes.SelectedItem)
     curName = frmMainui.tvwNodes.SelectedItem.Text
     
     Select Case tblType
@@ -1217,7 +1220,7 @@ Public Sub CreateDictionary()
     'Close file
     MyFileStream.Close
   Else
-    'MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
+    MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
     'clean up ui
     gDicCountLower = 0
     frmMainui.miniLabel.Caption = gDicCountLower

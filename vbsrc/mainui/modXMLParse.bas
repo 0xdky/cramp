@@ -70,7 +70,7 @@ Public Sub WriteChildrenToXMLFile(ByVal nodeElement As Node, _
             Set childNode = childNode.Next
         End If
         
-        tblType = nodetype(childNode)
+        tblType = nodeType(childNode)
         nodeName = GetNodeName(tblType)
         Set XMLChildElement = _
                 XMLElement.ownerDocument.createElement(nodeName)
@@ -280,6 +280,40 @@ Public Sub CreateTreeViewAndDB(ByVal nodeElement As IXMLDOMElement, _
         CreateTreeViewAndDB childNode, tvwNode
         
     Next index
+    
+End Sub
+
+Public Sub CopyNodeWithChildren(ByVal nodCopy As Node, _
+                                ByVal nodOrg As Node)
+    
+    Dim ii As Integer
+    Dim strKey As String, strText As String
+    Dim nodChild As Node, nodNew As Node
+    
+    For ii = 0 To nodOrg.children - 1
+        'Get the child node
+        If ii = 0 Then
+            Set nodChild = nodOrg.Child
+        Else
+            Set nodChild = nodChild.Next
+        End If
+        
+        'Add the node to nodCopy
+        Set nodNew = frmMainui.tvwNodes.Nodes.Add(nodCopy, tvwChild, _
+                                    "NewNode" & ii, "")
+        'Recurse for nodChild's children
+        CopyNodeWithChildren nodNew, nodChild
+        
+    Next ii
+    
+    'Get the key and text of original node
+    strKey = nodOrg.key
+    strText = nodOrg.Text
+    
+    nodOrg.key = nodOrg.key & "Deleted"
+    nodCopy.key = strKey
+    nodCopy.Text = strText
+    
     
 End Sub
 
