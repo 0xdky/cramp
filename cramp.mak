@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-02-28 17:28:49 dky>
+## Time-stamp: <2004-02-29 13:02:14 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -229,8 +229,10 @@ $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
 # Compile CRAMP VB project
 vb: $(BINDIR)/CRAMP.exe
-$(BINDIR)/CRAMP.exe: $(VBDIR)/mainui/*
-$(VBDIR)/mainui/CRAMP.vbp: $(MAKEFILE)
+$(BINDIR)/CRAMP.exe: $(VBDIR)/mainui/CRAMP.vbw
+$(VBDIR)/mainui/CRAMP.vbw: $(VBDIR)/mainui/CRAMP.vbp
+$(VBDIR)/mainui/CRAMP.vbp: $(MAKEFILE) $(VBDIR)/mainui/*.bas \
+                           $(VBDIR)/mainui/*.frm $(VBDIR)/mainui/*.frx
     @$(ECHO) Compiling VB project $(VBDIR)/mainui/CRAMP.vbp
     @$(VB) /make /outdir $(BINDIR) $(VBDIR)/mainui/CRAMP.vbp
 
