@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-09-30 17:09:48 dhruva>
+// Time-stamp: <2003-10-07 14:01:53 pmistry>
 //-----------------------------------------------------------------------------
 // File : XMLParse.h
 // Desc : Header file for scenario file parsing
@@ -23,12 +23,13 @@ public :
   virtual ~XMLParse();
 
   bool ParseXMLFile(void);
-	TestCaseInfo *GetScenario(void);
+  TestCaseInfo *GetScenario(void);
 
 private :
   const char      *_pXMLFileName;
-	TestCaseInfo    *_pParent;
+  TestCaseInfo    *_pRoot;
+  TestCaseInfo    *_pCurrentParent;
 
-	void ScanXMLFile( DOMNode * parentchnode, int type );
-	void ScanForAttributes(DOMNode *rootnode, int type );
+  void ScanXMLFile( DOMNode * parentchnode, int type );
+  void ScanForAttributes(DOMNode *rootnode, int type );
 };
