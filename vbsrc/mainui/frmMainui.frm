@@ -5,47 +5,47 @@ Begin VB.Form frmMainui
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
    ClientHeight    =   8220
-   ClientLeft      =   5325
+   ClientLeft      =   5328
    ClientTop       =   3060
-   ClientWidth     =   8655
+   ClientWidth     =   8652
    LinkTopic       =   "Form1"
    ScaleHeight     =   8220
-   ScaleWidth      =   8655
+   ScaleWidth      =   8652
    Begin VB.Frame fraMainUI 
       Caption         =   "Results"
       Height          =   6900
       Index           =   1
-      Left            =   7080
+      Left            =   720
       TabIndex        =   2
-      Top             =   -6480
+      Top             =   960
       Visible         =   0   'False
       Width           =   7450
       Begin VB.Label Label1 
          AutoSize        =   -1  'True
-         Caption         =   "Developing"
+         Caption         =   "Developing...."
          BeginProperty Font 
             Name            =   "MS Sans Serif"
-            Size            =   13.5
+            Size            =   13.8
             Charset         =   0
             Weight          =   700
             Underline       =   0   'False
             Italic          =   0   'False
             Strikethrough   =   0   'False
          EndProperty
-         Height          =   360
+         Height          =   348
          Left            =   2520
          TabIndex        =   12
          Top             =   3240
-         Width           =   3075
+         Width           =   1944
       End
    End
    Begin VB.Frame fraMainUI 
       Caption         =   "Scenario"
       Height          =   6900
       Index           =   0
-      Left            =   600
+      Left            =   360
       TabIndex        =   1
-      Top             =   840
+      Top             =   7680
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -128,8 +128,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   4048
+         _ExtentX        =   9716
+         _ExtentY        =   4043
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -147,8 +147,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   360
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   6165
+         _ExtentX        =   9716
+         _ExtentY        =   6160
          _Version        =   393217
          HideSelection   =   0   'False
          Style           =   7
@@ -161,8 +161,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8175
-      _ExtentX        =   14420
-      _ExtentY        =   13785
+      _ExtentX        =   14415
+      _ExtentY        =   13780
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
