@@ -1,9 +1,12 @@
 #!perl
-## Time-stamp: <2003-10-27 10:57:25 dhruva>
+## Time-stamp: <2003-10-27 12:34:51 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
-## Usage : perl profileDB.pl PID DUMP|QUERY THREADS|TID SORT|RAW COUNT
+## Usage : perl profileDB.pl PID DUMP|QUERY
+##                           THREADS|TID
+##                           SORT|RAW|ADDR
+##                           COUNT|-1 (for count info only)
 ##         Results are writte to query.psf
 ## Desc  : Call SetDBFilters on all DB handles
 ##-----------------------------------------------------------------------------
@@ -19,6 +22,7 @@
 ##  FUNC_INFO: HASH of function address VS module name and function name
 ##  TID_FUNC: HASH of thread ID VS function call details
 ##  TID_FUNC_SORT_TICK: BTREE of thread ID VS tick sorted function calls
+##  ADDR_FUNC_SORT: BTREE of thread ID VS address sorted functions
 ##-----------------------------------------------------------------------------
 use DB_File;
 use BerkeleyDB;
@@ -86,23 +90,31 @@ sub ProcessArgs{
         }
 
         my $key=0;
-        foreach(@tids){
-            if($_==$ARGV[2]){
-                $key=$_;
-                last;
+        my $max=$ARGV[4];
+        if($ARGV[2]=~/[0-9]+/){
+            foreach(@tids){
+                if($_==$ARGV[2]){
+                    $key=$_;
+                    last;
+                }
+            }
+            if(!$key){
+                print STDERR "Error: Thread ID not found";
+                return 1;
+            }
+
+            if("SORT" eq $ARGV[3]){
+                @values=GetTickSortedValues($key,$max);
+            }elsif("RAW" eq $ARGV[3]){
+                @values=GetRawValues($key,$max);
+            }
+        }elsif("COUNT" eq $ARGV[2]){
+            if($ARGV[3]=~/[0-9ABCDEF]+/i){
+                $key=$ARGV[3];
+                @values=GetFunctionCalls($key,$max);
             }
         }
-        if(!$key){
-            print STDERR "Error: Thread ID not found";
-            return 1;
-        }
 
-        my $max=$ARGV[4];
-        if("SORT" eq $ARGV[3]){
-            @values=GetTickSortedValues("TID_FUNC_SORT_TICK",$key,$max);
-        }elsif("RAW" eq $ARGV[3]){
-            @values=GetRawValues("TID_FUNC",$key,$max);
-        }
         AppendFuncInfoToLogs(@values);
         return WriteResults(@values);
     }else{
@@ -208,7 +220,7 @@ sub GetRawValues{
     my $db;
     $db=new BerkeleyDB::Hash
         -Filename    => $f_logdb,
-        -Subname     => @_[0],
+        -Subname     => "TID_FUNC",
         -Flags       => DB_RDONLY,
         -Property    => DB_DUP
         || die("Error: $BerkeleyDB::Error");
@@ -219,7 +231,7 @@ sub GetRawValues{
         return ();
     }
 
-    my @results=GetDuplicateKeyValues($db,@_[1],@_[2]);
+    my @results=GetDuplicateKeyValues($db,@_[0],@_[1]);
     undef $db;
     return @results;
 }
@@ -232,7 +244,7 @@ sub GetTickSortedValues{
     my $db;
     $db=new BerkeleyDB::Btree
         -Filename    => $f_logdb,
-        -Subname     => @_[0],
+        -Subname     => "TID_FUNC_SORT_TICK",
         -Flags       => DB_RDONLY,
         -Property    => DB_DUP|DB_DUPSORT,
         -Compare     => \&TickCompare,
@@ -245,7 +257,7 @@ sub GetTickSortedValues{
         return ();
     }
 
-    my @results=GetDuplicateKeyValues($db,@_[1],@_[2]);
+    my @results=GetDuplicateKeyValues($db,@_[0],@_[1]);
     undef $db;
     return @results;
 }
@@ -263,7 +275,6 @@ sub GetDuplicateKeyValues{
     my($k,$v)=(@_[1],"");
     my $dbc=@_[0]->db_cursor();
     if(0!=$dbc->c_get($k,$v,DB_SET)){
-        warn("Key \"$k\" not found");
         undef $dbc;
         return ();
     }
@@ -315,6 +326,46 @@ sub GetThreadIDs{
         push(@results,$_);
     }
     untie @tie_TID;
+    undef $db;
+
+    return @results;
+}
+
+##-----------------------------------------------------------------------------
+## GetFunctionCalls
+##-----------------------------------------------------------------------------
+sub GetFunctionCalls{
+    my $db;
+    $db=new BerkeleyDB::Btree
+        -Filename    => $f_logdb,
+        -Subname     => "ADDR_FUNC_SORT",
+        -Flags       => DB_RDONLY,
+        -Property    => DB_DUP|DB_DUPSORT
+        || die("Error: $BerkeleyDB::Error");
+    if(!defined($db)){
+        return ();
+    }
+    if(SetDBFilters($db)){
+        return ();
+    }
+
+    my($k,$v)=(@_[0],"");
+    my $dbc=$db->db_cursor();
+    if(0!=$dbc->c_get($k,$v,DB_SET)){
+        undef $dbc;
+        return ();
+    }
+    my $count=0;
+    $dbc->c_count($count);
+    undef $dbc;
+
+    my @results=();
+    if(@_[1]<0){
+        push(@results,"0|@_[0]|0|0|0|$count");
+    }else{
+        @results=GetDuplicateKeyValues($db,@_[0],@_[1]);
+    }
+
     undef $db;
 
     return @results;
@@ -426,6 +477,40 @@ sub AddThreadIDs{
 }
 
 ##-----------------------------------------------------------------------------
+## AddAddrSortedData
+##-----------------------------------------------------------------------------
+sub AddAddrSortedData{
+    open(LOGTXT,$f_logtxt) || die("Cannot open \"$f_logtxt\" for read");
+    my $db;
+    $db=new BerkeleyDB::Btree
+        -Filename    => $f_logdb,
+        -Subname     => "ADDR_FUNC_SORT",
+        -Flags       => DB_CREATE,
+        -Property    => DB_DUP|DB_DUPSORT
+        || die("Error: $BerkeleyDB::Error");
+    if(!defined($db)){
+        return 1;
+    }
+    if(SetDBFilters($db)){
+        return 1;
+    }
+    my $count=0;
+    $db->truncate($count);
+
+    while(<LOGTXT>){
+        chomp();
+        my @tokens=split(/\|/,$_);
+        my $key=$tokens[1];
+        my $val=join('|',@tokens);
+        $db->db_put($key,$val);
+    }
+    close(LOGTXT);
+    undef $db;
+
+    return 0;
+}
+
+##-----------------------------------------------------------------------------
 ## AddTickSortedData
 ##-----------------------------------------------------------------------------
 sub AddTickSortedData{
@@ -500,6 +585,8 @@ sub AddFunctionInformation{
 sub DumpLogsToDB{
     if(AddRawLogs()){
         print STDERR "Error: Failed in adding raw logs to DB";
+    }elsif(AddAddrSortedData()){
+        print STDERR "Error: Failed in adding sorted logs to DB";
     }elsif(AddTickSortedData()){
         print STDERR "Error: Failed in adding sorted logs to DB";
     }elsif(AddFunctionInformation()){
