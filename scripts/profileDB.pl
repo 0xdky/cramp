@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-31 15:41:47 dhruva>
+## Time-stamp: <2003-12-12 10:50:16 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -11,7 +11,7 @@
 ## 09-30-2003  Cre                                                          dky
 ##-----------------------------------------------------------------------------
 ## Log file syntax:
-##  Thread ID|Function address|Depth|Return status|Time in Ms|Ticks
+##  Thread ID|Function address|Depth|Raw Ticks|Time in Ns|Ticks
 ## Function information syntax:
 ##  Function Address|Module name|Function name|Total number of calls
 ## Stat file syntax:
