@@ -1,5 +1,4 @@
-
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0"?>
 
 <SCENARIO ID="S-001" NAME="DPE Test Scenario_01"
           RELEASE="D5R" MAXRUNTIME="2000" >
