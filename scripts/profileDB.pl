@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-12-17 12:29:53 dhruva>
+## Time-stamp: <2003-12-17 17:58:34 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -710,9 +710,7 @@ sub AddSortedData{
     $count=0;
     $dbw->truncate($count);
 
-    foreach (sort $func (0..$#g_tie_RAW)) {
-      push(@tie_SORT,$_);
-    }
+    @tie_SORT=sort $func (0..$#g_tie_RAW);
 
     undef $dbw;
     untie @tie_SORT;
