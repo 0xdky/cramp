@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-25 12:27:35 dky>
+## Time-stamp: <2004-02-28 14:10:27 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -35,11 +35,16 @@ my $g_pid;
 my $f_logdb;
 my $f_logtxt;
 my $f_logfin;
+my $f_filter;
 my $f_logstat;
 my $f_queryout;
 my $g_append=0;
 my $cramplogdir=".";
 my $progname=$0;
+
+my $g_exclude=exists($ENV{'CRAMP_PROFILE_EXCLUSION'});
+my $g_filterstring=0;
+my %g_filteredhash=();
 
 my @g_TIDs=();
 my $g_BUFFER_LIMIT=50000;
@@ -265,11 +270,13 @@ sub ProcessArgs{
   $g_pid=$ARGV[0];
 
   $f_logdb="$cramplogdir/cramp#$g_pid.db";
+  $f_filter="$cramplogdir/cramp_profile.flt";
   $f_logtxt="$cramplogdir/cramp_profile#$g_pid.log";
   $f_logfin="$cramplogdir/cramp_funcinfo#$g_pid.log";
   $f_logstat="$cramplogdir/cramp_stat#$g_pid.log";
 
   if ($ARGV[1]=~/DUMP/) {
+    ApplyFilter();
     foreach ($ARGV[2]..$ARGV[-1]) {
       UpdateDB($_);
     }
@@ -364,7 +371,7 @@ sub ProcessArgs{
           $max=$key;
           $key=0;
         } else {
-          $key-=$max;	 # Call stack is reverse order of return order
+          $key-=$max;           # Call stack is reverse order of return order
           $max+=$key;
         }
         @values=GetCallStack(GetRawValuesFromIDs($tidlist[0],0,
@@ -638,7 +645,7 @@ sub GetThreadIDs{
           -Filename    => $f_logdb,
           -Subname     => "TID",
           -Flags       => DB_RDONLY)
-    || die("Error: $BerkeleyDB::Error",caller);
+    || return ();
   if (!defined($db)) {
     return ();
   }
@@ -949,6 +956,157 @@ sub AppendFuncInfoToLogs{
     s/($3)/$val|$1/;
   }
   undef $db;
+
+  return 0;
+}
+
+##-----------------------------------------------------------------------------
+## Filter
+##-----------------------------------------------------------------------------
+## MakeFilterString
+##-----------------------------------------------------------------------------
+sub MakeFilterString{
+  $g_filterstring=0;
+
+  open(FILTER,"<$f_filter") ||
+    return 1;
+
+  my %filterhash=();
+  while (<FILTER>) {
+    chomp();
+    if (length($_)) {
+      s/\s//g;
+      $filterhash{$_}=1;
+    }
+  }
+  close(FILTER);
+
+  foreach (keys %filterhash) {
+    $g_filterstring="$_|".$g_filterstring;
+  }
+
+  if (0==length($g_filterstring)) {
+    return 1;
+  }
+
+  return 0;
+}
+
+##-----------------------------------------------------------------------------
+## ApplyFilterOnFuncInfo
+##-----------------------------------------------------------------------------
+sub ApplyFilterOnFuncInfo{
+  open(I_FUNC,"<$f_logfin")
+    || return 1;
+  open(O_FUNC,">$f_logfin.fo")
+    || return 1;
+
+  my $addr;
+  while (<I_FUNC>) {
+    chomp();
+    if (/$g_filterstring/o) {
+      $addr=$_;
+      $addr=~s/\|.+//g;
+      if (!$g_exclude) {
+        print O_FUNC "$_\n";
+      }
+      $g_filteredhash{$addr}=1;
+    }
+  }
+  close(O_FUNC);
+  close(I_FUNC);
+
+  if (0==scalar(keys(%g_filteredhash))) {
+    return 1;
+  }
+
+  return 0;
+}
+
+##-----------------------------------------------------------------------------
+## ApplyFilterOnProfile
+##-----------------------------------------------------------------------------
+sub ApplyFilterOnProfile{
+  open(I_PROF,"<$f_logtxt")
+    || return 1;
+  open(O_PROF,">$f_logtxt.fo")
+    || return 1;
+
+  my $addr;
+  my $filtered;
+  while (<I_PROF>) {
+    chomp();
+    $_=~/^([0-9]+)(\|)([0-9a-fA-F]+)/;
+    $addr=$3;
+    $filtered=exists($g_filteredhash{$addr});
+
+    if ($g_exclude && !$filtered) {
+      print O_PROF "$_\n";
+    } elsif (!$g_exclude && $filtered) {
+      print O_PROF "$_\n";
+    }
+  }
+  close(O_PROF);
+  close(I_PROF);
+
+  return 0;
+}
+
+##-----------------------------------------------------------------------------
+## ApplyFilterOnStat
+##-----------------------------------------------------------------------------
+sub ApplyFilterOnStat{
+  open(I_STAT,"<$f_logstat")
+    || return 1;
+  open(O_STAT,">$f_logstat.fo")
+    || return 1;
+
+  my $addr;
+  my $filtered;
+  while (<I_STAT>) {
+    chomp();
+    $_=~/^([0-9a-fA-F]+)/;
+    $addr=$1;
+    $filtered=exists($g_filteredhash{$addr});
+
+    if ($g_exclude && !$filtered) {
+      print O_STAT "$_\n";
+    } elsif (!$g_exclude && $filtered) {
+      print O_STAT "$_\n";
+    }
+  }
+  close(O_STAT);
+  close(I_STAT);
+
+  return 0;
+}
+
+##-----------------------------------------------------------------------------
+## ApplyFilter
+##-----------------------------------------------------------------------------
+sub ApplyFilter{
+  if (MakeFilterString()) {
+    return 1;
+  }
+  if (ApplyFilterOnFuncInfo()) {
+    return 1;
+  }
+  if (ApplyFilterOnProfile()) {
+    return 1;
+  }
+  if (ApplyFilterOnStat()) {
+    return 1;
+  }
+
+  # If all goes well, overwrite the files
+  if (!exists($ENV{'CRAMP_DEBUG'})) {
+    unlink($f_logtxt);
+    unlink($f_logfin);
+    unlink($f_logstat);
+    rename("$f_logtxt.fo",$f_logtxt);
+    rename("$f_logfin.fo",$f_logfin);
+    rename("$f_logstat.fo",$f_logstat);
+  }
 
   return 0;
 }
