@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-02-28 14:24:35 dky>
+// Time-stamp: <2004-03-09 10:56:53 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -7,6 +7,7 @@
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
 // 02-28-2004  Mod Disable filtering, filter during dumping thru PERL       dky
+// 03-09-2004  Mod Moved generation of function info to flush               dky
 //-----------------------------------------------------------------------------
 #define __DLLMAIN_SRC
 
@@ -28,7 +29,7 @@ Global_CRAMP_Profiler g_CRAMP_Profiler;
 
 void OnProcessStart(void);
 void OnProcessEnd(void);
-BOOL WriteFuncInfo(unsigned int,unsigned long);
+BOOL WriteFuncInfo(unsigned int,unsigned long,FILE *f_func);
 void LogFileSizeMonTH(void *);
 DWORD WINAPI ProfilerMailSlotServerTH(LPVOID);
 
@@ -49,12 +50,26 @@ extern "C" __declspec(dllexport)
     EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
     FILE *f_stat=0;
+    FILE *f_func=0;
     char filename[MAX_PATH];
     sprintf(filename,"%s/cramp_stat#%d.log",
             g_CRAMP_Profiler.logpath,
             g_CRAMP_Profiler.g_pid);
     f_stat=fopen(filename,"wc");
-    DEBUGCHK(f_stat);
+    if(!f_stat){
+        DEBUGCHK(0);
+        return;
+    }
+
+    sprintf(filename,"%s/cramp_funcinfo#%d.log",
+            g_CRAMP_Profiler.logpath,
+            g_CRAMP_Profiler.g_pid);
+    f_func=fopen(filename,"wc");
+    if(!f_func){
+        DEBUGCHK(0);
+        fclose(f_stat);
+        return;
+    }
 
     std::hash_map<unsigned int,FuncInfo>::iterator iter;
     iter=g_CRAMP_Profiler.g_hFuncCalls.begin();
@@ -63,32 +78,29 @@ extern "C" __declspec(dllexport)
         if((*iter).second._filtered)
             continue;
 
-        if(f_stat)
-            fprintf(f_stat,"%08X|%d|%I64d|%I64d|%I64d\n",
-                    (*iter).first,
-                    (*iter).second._calls,
-                    frequency,
-                    (*iter).second._totalticks,
-                    (*iter).second._maxticks);
+        // Collect the function details at end
+        WriteFuncInfo((*iter).first,(*iter).second._calls,f_func);
+
+        // Dump statistics information
+        fprintf(f_stat,"%08X|%d|%I64d|%I64d|%I64d\n",
+                (*iter).first,
+                (*iter).second._calls,
+                frequency,
+                (*iter).second._totalticks,
+                (*iter).second._maxticks);
 
         // Ensure, you do not revisit between calls
         if(!(*iter).second._pending)
             continue;
         (*iter).second._pending=FALSE;
+    }
 
-        if(!g_CRAMP_Profiler.g_fFuncInfo)
-            WriteFuncInfo((*iter).first,(*iter).second._calls);
-    }
-    if(f_stat){
-        fflush(f_stat);
-        fclose(f_stat);
-    }
+    // Flush and close the file handles
+    fclose(f_stat);
+    fclose(f_func);
 
     // Unlock the hash
     LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
-
-    if(g_CRAMP_Profiler.g_fFuncInfo)
-        fflush(g_CRAMP_Profiler.g_fFuncInfo);
 
     return;
 }
@@ -138,8 +150,10 @@ extern "C" __declspec(dllexport)
 // WriteFuncInfo
 //-----------------------------------------------------------------------------
 BOOL
-WriteFuncInfo(unsigned int addr,unsigned long calls){
-    if(!g_CRAMP_Profiler.g_fFuncInfo)
+WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
+    if(!f_func)
+        f_func=g_CRAMP_Profiler.g_fFuncInfo;
+    if(!f_func)
         return(FALSE);
 
     BOOL ret=FALSE;
@@ -240,7 +254,7 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
         ret=TRUE;
 #endif
         if(ret)
-            fprintf(g_CRAMP_Profiler.g_fFuncInfo,"%08X|%s|%s|%ld\n",
+            fprintf(f_func,"%08X|%s|%s|%ld\n",
                     addr,modShortNameBuf,undName,calls);
     }while(0);
 
@@ -335,12 +349,14 @@ OnProcessStart(void){
                 break;
         }
 
+#ifdef HAVE_FILTER
         sprintf(filename,"%s/cramp_funcinfo#%d.log",
                 g_CRAMP_Profiler.logpath,
                 g_CRAMP_Profiler.g_pid);
         g_CRAMP_Profiler.g_fFuncInfo=fopen(filename,"wc");
         if(!g_CRAMP_Profiler.g_fFuncInfo)
             break;
+#endif
 
         if(getenv("CRAMP_PROFILE"))
             InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,1);
