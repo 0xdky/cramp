@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-02 12:31:38 dhruva>
+## Time-stamp: <2004-01-03 10:21:58 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -586,12 +586,12 @@ sub AddAddrSortedData{
   foreach (GetThreadIDs()) {
     my $tid=$_;
     my $db;
-    $db=new BerkeleyDB::Btree
-      -Filename    => $f_logdb,
-        -Subname     => "FUNCALL#$tid",
-          -Flags       => DB_CREATE,
-            -Property    => DB_DUP
-              || die("Error: $BerkeleyDB::Error");
+    my %tie_h_func=();
+    $db=tie(%tie_h_func,'BerkeleyDB::Hash',
+            -Filename    => $f_logdb,
+            -Subname     => "FUNCALL#$tid",
+            -Flags       => DB_CREATE)
+      || die("Error: $BerkeleyDB::Error");
     if (!defined($db)) {
       next;
     }
@@ -618,7 +618,11 @@ sub AddAddrSortedData{
     foreach (0..$#g_tie_RAW) {
       $g_tie_RAW[$_]=~/^([0-9]+)(\|)([0-9A-F]+)/;
       $key=$3;
-      $db->db_put($key,$_);
+      if (exists($tie_h_func{$key})) {
+        $tie_h_func{$key}.=" $_";
+      } else {
+        $tie_h_func{$key}="$_";
+      }
     }
 
     undef $db;
@@ -631,6 +635,7 @@ sub AddAddrSortedData{
     if (defined($g_db_RAW)) {
       undef $g_db_RAW;
     }
+    untie %tie_h_func;
     untie @g_tie_RAW;
   }
 
@@ -647,36 +652,43 @@ sub GetAddrSortedData{
   }
 
   my $db;
-  $db=new BerkeleyDB::Btree
-    -Filename    => $f_logdb,
-      -Subname     => "FUNCALL#$tid",
-        -Flags       => DB_RDONLY,
-          -Property    => DB_DUP
-            || die("Error: $BerkeleyDB::Error");
+  my %tie_h_func=();
+  $db=tie(%tie_h_func,'BerkeleyDB::Hash',
+          -Filename    => $f_logdb,
+          -Subname     => "FUNCALL#$tid",
+          -Flags       => DB_RDONLY)
+    || die("Error: $BerkeleyDB::Error");
   if (!defined($db)) {
+    untie %tie_h_func;
     return ();
   }
   if (SetDBFilters($db)) {
+    undef $db;
+    untie %tie_h_func;
     return ();
   }
-
-  my $v="";
-  my $dbc=$db->db_cursor();
-  if (0!=$dbc->c_get($key,$v,DB_SET)) {
-    undef $dbc;
-    return ();
-  }
-
-  my $count=0;
-  $dbc->c_count($count);
-  undef $dbc;
 
   my @addr_idx=();
-  @addr_idx=GetDuplicateKeyValues($db,$key,$max);
+  if (exists($tie_h_func{$key})) {
+    @addr_idx=split(/ /,$tie_h_func{$key});
+    if ($max>$#addr_idx) {
+      $max=0;
+    }
+  }
+
   undef $db;
+  untie %tie_h_func;
+
+  if ($#addr_idx<0) {
+    return ();
+  }
 
   my @results=();
-  @results=GetRawValuesFromIDs($tid,0,@addr_idx);
+  if ($max) {
+    @results=GetRawValuesFromIDs($tid,0,@addr_idx[0..$max-1]);
+  } else {
+    @results=GetRawValuesFromIDs($tid,0,@addr_idx);
+  }
 
   return @results;
 }
