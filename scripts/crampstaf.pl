@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-11-19 20:26:53 dhruva>
+## Time-stamp: <2003-11-19 20:38:40 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : cramp_staf.pl
 ## Desc  : PERL script to run testcases on a pool of computers using STAF
@@ -52,7 +52,7 @@ if(!(-f $STAF_EXEC && -f $STAF_POOL)){
 ## Init
 ##-----------------------------------------------------------------------------
 sub Init{
-    $STAF_WL="CRAMP_".hostname()."#".$$;
+    $STAF_WL="CRAMP_".uc(hostname())."#".$$;
     return 0;
 }
 
@@ -109,11 +109,11 @@ sub GetSTAFPool{
     my $cc=0;
     my $staf_cmd;
     my @loc=();
-    push(@loc,hostname());
+    push(@loc,uc(hostname()));
 
     while(<POOL>){
         chomp();
-        push(@loc,$_);
+        push(@loc,uc($_));
     }
     close(POOL);
 
@@ -306,7 +306,7 @@ sub STAFJobDispatcher{
 ##  Copies the remote CRAMP logs to local computer
 ##-----------------------------------------------------------------------------
 sub STAFCopyCRAMPLogs{
-    my $host=hostname();
+    my $host=uc(hostname());
     my $comp;
     my $logpath;
     my $llogpath;
