@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 17:09:26 dhruva>
+// Time-stamp: <2003-11-03 16:03:39 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -151,12 +151,8 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
     sprintf(msg,"MESSAGE|OKAY|SCENARIO|File: %s",scenario);
     g_CRAMP_Engine.g_pScenario->AddLog(msg);
-    if(!CreateManagedProcesses(g_CRAMP_Engine.g_pScenario))
-      g_CRAMP_Engine.g_pScenario->AddLog(
-        "MESSAGE|ERROR|SCENARIO|Unsuccessful run");
-    else
-      g_CRAMP_Engine.g_pScenario->AddLog(
-        "MESSAGE|OKAY|SCENARIO|Successful run");
+    ret=CreateManagedProcesses(g_CRAMP_Engine.g_pScenario);
+
 
     // Kill the threads
     DEBUGCHK(ResetEvent(h_event));
@@ -166,6 +162,13 @@ WINAPI WinMain(HINSTANCE hinstExe,
     WaitForMultipleObjects(2,h_arr,TRUE,INFINITE);
     TerminateThread(h_arr[3],0);
 
+    if(ret)
+      g_CRAMP_Engine.g_pScenario->AddLog(
+        "MESSAGE|OKAY|SCENARIO|Successful run");
+    else
+      g_CRAMP_Engine.g_pScenario->AddLog(
+        "MESSAGE|ERROR|SCENARIO|Unsuccessful run");
+
     // Clean up everything properly
     CloseHandle(g_CRAMP_Engine.g_hIOCP);
     for(SIZE_T xx=0;h_arr[xx];xx++){
@@ -174,7 +177,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
     }
 
     // Return OKAY
-    ret=0;
+    ret=!ret;
   }while(0);
 
   if(pSlotMsg){

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 15:53:50 dhruva>
+// Time-stamp: <2003-11-03 16:13:45 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -303,7 +303,9 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
       if(!maxwait)
         maxwait=INFINITE;
       dwret=WaitForSingleObject(pi.hProcess,maxwait);
-      if(WAIT_TIMEOUT==dwret){
+      if(WAIT_OBJECT_0==dwret||!dwret){
+        dwret=1;
+      }else if(WAIT_TIMEOUT==dwret){
         porigtc->AddLog("MESSAGE|ERROR|PROC|Exceeded time limit");
         TerminateProcess(pi.hProcess,dwret);
         dwret=1;
@@ -704,13 +706,17 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
       DWORD bsz=0;
       MEMORY_BASIC_INFORMATION mbi={0};
       bsz=VirtualQueryEx(pin.hProcess,pbase,&mbi,sizeof(mbi));
-      DEBUGCHK(bsz);
+      if(!bsz)
+        break;
+
       PVOID pvRgnBaseAddress=mbi.AllocationBase;
       PVOID pvAddressBlk=pvRgnBaseAddress;
       SIZE_T freesz=0,commitsz=0,reservesz=0;
       do{
         bsz=VirtualQueryEx(pin.hProcess,pvAddressBlk,&mbi,sizeof(mbi));
-        DEBUGCHK(bsz);
+        if(bsz)
+          break;
+
         switch(mbi.State){
           case MEM_COMMIT:
             commitsz+=mbi.RegionSize;
@@ -726,6 +732,11 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
         }
         pvAddressBlk=(PVOID)((PBYTE) pvAddressBlk+mbi.RegionSize);
       }while(mbi.AllocationBase==pvRgnBaseAddress);
+
+      // To handle error in walking through module's memory
+      if(!bsz)
+        continue;
+
       sprintf(msg,"LOG|MEMORY|MOD|VM|Commit %ld,Free %ld,Reserve %ld",
               commitsz,freesz,reservesz);
       ipTestCase->AddLog(msg);
