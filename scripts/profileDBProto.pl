@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-05 12:12:16 dhruva>
+## Time-stamp: <2004-01-05 17:21:47 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -72,7 +72,7 @@ sub PrintTime{
   my @curr=localtime();
   $curr[4]+=1;
   $curr[5]+=1900;
-  print "$curr[4]/$curr[3]/$curr[5] at $curr[2]:$curr[1]:$curr[0] :: ";
+  print "@_ => $curr[4]/$curr[3]/$curr[5] at $curr[2]:$curr[1]:$curr[0] :: ";
   @curr=times();
   print "User:$curr[0] System:$curr[1]\n";
 
@@ -311,24 +311,27 @@ sub DumpLogsToDB{
   my @curr=();
   my $table=$_[0];
 
+  PrintTime("Dump started");
   if (! -f $f_logdb) {
-    PrintTime();
+    PrintTime("Entering Raw");
     AddRawLogs($f_logtxt);
-    PrintTime();
+    PrintTime("Entering Func Info");
     AddFunctionInformation();
-    PrintTime();
   }
 
   if ($table=~/TICK/) {
+    PrintTime("Entering Tick");
     AddTickSortedData();
   } elsif ($table=~/ADDR/) {
+    PrintTime("Entering Addr");
     AddAddrSortedData();
   } elsif ($table=~/ALL/) {
+    PrintTime("Entering Tick");
     AddTickSortedData();
-    PrintTime();
+    PrintTime("Entering Addr");
     AddAddrSortedData();
   }
-  PrintTime();
+  PrintTime("Dump Completed");
 
   return 0;
 }
