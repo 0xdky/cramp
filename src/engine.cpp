@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 14:41:31 dhruva>
+// Time-stamp: <2003-10-15 17:11:24 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -44,6 +44,7 @@ DWORD WINAPI JobNotifyTH(LPVOID);
 DWORD WINAPI CreateManagedProcesses(LPVOID);
 DWORD WINAPI MemoryPollTH(LPVOID);
 TestCaseInfo *GetTestCaseInfos(const char *);
+BOOLEAN GetTestCaseMemoryDetails(HANDLE &,TestCaseInfo *&);
 BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *,CRAMPMessaging *);
 PROC_INFO *GetHandlesToActiveProcesses(HANDLE);
 SIZE_T GetProcessHandleFromName(const char *,std::list<PROCESS_INFORMATION> &);
@@ -113,8 +114,16 @@ TestCaseInfo
     return(0);
   TestCaseInfo *pScenario=0;
   pScenario=xml.GetScenario();
-  ListOfTestCaseInfo lgc=pScenario->BlockListOfGC();
-  pScenario->ReleaseListOfGC();
+
+  ListOfTestCaseInfo lgc;
+  try{
+    lgc=pScenario->BlockListOfGC();
+    pScenario->ReleaseListOfGC();
+  }
+  catch(CRAMPException excep){
+    DEBUGCHK(0);
+    return(0);
+  }
   ListOfTestCaseInfo::iterator iter=lgc.begin();
   for(;iter!=lgc.end();iter++){
     TestCaseInfo *ptc=0;
@@ -147,7 +156,6 @@ TestCaseInfo
       }
     }while(0);
   }
-
   return(pScenario);
 }
 
@@ -413,41 +421,58 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario,CRAMPMessaging *ioMsg){
   DEBUGCHK(ipScenario);
   if(!ipScenario)
     return(ret);
+
+  ListOfTestCaseInfo lgc;
   try{
-    ListOfTestCaseInfo &lgc=ipScenario->BlockListOfGC();
-    ListOfTestCaseInfo::iterator iter=lgc.begin();
-    for(;iter!=lgc.end();iter++){
-      TestCaseInfo *ptc=(*iter);
-      PROCESS_MEMORY_COUNTERS pmc={0};
-      PROCESS_INFORMATION pin=ptc->ProcessInfo();
-      if(!pin.hProcess)
-        continue;
-      DWORD pstat=0;
-      GetExitCodeProcess(pin.hProcess,&pstat);
-      if(STILL_ACTIVE!=pstat)
-        continue;
-      do{
-        if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc)))
-          break;;
-        // Actual RAM pmc.WorkingSetSize;
-        char msg[256];
-        sprintf(msg,"LOG|MEMORY|RAM|%ld",pmc.WorkingSetSize);
-        ptc->AddLog(msg);
-
-#ifdef CRAMP_DEBUG
-        // Some large data
-        ioMsg->Message(msg);
-        WriteToMailSlot(ioMsg);
-#endif
-
-      }while(0);
-    }
+    // Copy it to improve performance
+    lgc=ipScenario->BlockListOfGC();
     ipScenario->ReleaseListOfGC();
-    ret=TRUE;
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
   }
+
+  if(!lgc.size())
+    return(TRUE);
+
+  // Get the memory snap shot
+  HANDLE h_snapshot=0;
+  h_snapshot=CreateToolhelp32Snapshot(TH32CS_SNAPALL,0);
+  DEBUGCHK(!(h_snapshot==INVALID_HANDLE_VALUE));
+
+  ListOfTestCaseInfo::iterator iter=lgc.begin();
+  for(;iter!=lgc.end();iter++){
+    TestCaseInfo *ptc=(*iter);
+    GetTestCaseMemoryDetails(h_snapshot,ptc);
+
+#if 0
+    PROCESS_MEMORY_COUNTERS pmc={0};
+    PROCESS_INFORMATION pin=ptc->ProcessInfo();
+    if(!pin.hProcess)
+      continue;
+    DWORD pstat=0;
+    GetExitCodeProcess(pin.hProcess,&pstat);
+    if(STILL_ACTIVE!=pstat)
+      continue;
+    do{
+      if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc)))
+        break;;
+      // Actual RAM pmc.WorkingSetSize;
+      char msg[256];
+      sprintf(msg,"LOG|MEMORY|RAM|%ld",pmc.WorkingSetSize);
+      ptc->AddLog(msg);
+
+#ifdef CRAMP_DEBUG
+      // Some large data
+      ioMsg->Message(msg);
+      WriteToMailSlot(ioMsg);
+#endif
+
+    }while(0);
+#endif
+  }
+  CloseHandle(h_snapshot);
+  ret=TRUE;
   return(ret);
 }
 
@@ -652,4 +677,92 @@ DumpLogsToXML(char *logfile){
   }
   XMLPlatformUtils::Terminate();
   return(0);
+}
+
+//-----------------------------------------------------------------------------
+// GetTestCaseMemoryDetails
+//-----------------------------------------------------------------------------
+BOOLEAN
+GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
+  if(!h_snapshot||!ipTestCase)
+    return(FALSE);
+
+  PROCESS_MEMORY_COUNTERS pmc={0};
+  PROCESS_INFORMATION pin=ipTestCase->ProcessInfo();
+  if(!pin.hProcess)
+    return(TRUE);
+  DWORD pstat=0;
+  GetExitCodeProcess(pin.hProcess,&pstat);
+  if(STILL_ACTIVE!=pstat)
+    return(TRUE);
+
+  BOOLEAN ret=FALSE;
+  PROCESSENTRY32 ppe={0};
+  ppe.dwSize=sizeof(PROCESSENTRY32);
+  ret=Process32First(h_snapshot,&ppe);
+  char msg[BUFSIZE];
+  for(;ret;ret=Process32Next(h_snapshot,&ppe)){
+    if(pin.dwProcessId!=ppe.th32ProcessID)
+      continue;
+    sprintf(msg,"LOG|MEMORY|PROC|SUMMARY|Count %d,Threads %d",
+            ppe.cntUsage,ppe.cntThreads);
+    ipTestCase->AddLog(msg);
+    // Add process's RAM, later PDH
+    do{
+      if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc)))
+        break;
+      // Actual RAM pmc.WorkingSetSize;
+      sprintf(msg,"LOG|MEMORY|PROC|RAM|%ld",pmc.WorkingSetSize);
+      ipTestCase->AddLog(msg);
+    }while(0);
+
+    // Get a module snap shot... this could be cached in the test case
+    HANDLE h_snapmod=0;
+    h_snapmod=CreateToolhelp32Snapshot(TH32CS_SNAPMODULE,ppe.th32ProcessID);
+    DEBUGCHK(!(h_snapmod==INVALID_HANDLE_VALUE));
+    MODULEENTRY32 me={0};
+    me.dwSize=sizeof(MODULEENTRY32);
+    BOOLEAN mret=FALSE;
+    mret=Module32First(h_snapmod,&me);
+    for(;mret;mret=Module32Next(h_snapmod,&me)){
+      sprintf(msg,"LOG|MEMORY|MOD|SUMMARY|Name %s",me.szModule);
+      ipTestCase->AddLog(msg);
+      sprintf(msg,"LOG|MEMORY|MOD|ACCESS|Global Count %ld,Local Count %ld",
+              me.GlblcntUsage,me.ProccntUsage);
+      ipTestCase->AddLog(msg);
+
+      // Walk the module memory
+      BYTE *pbase=me.modBaseAddr;
+      DWORD bsz=0;
+      MEMORY_BASIC_INFORMATION mbi={0};
+      bsz=VirtualQueryEx(pin.hProcess,pbase,&mbi,sizeof(mbi));
+      DEBUGCHK(bsz);
+
+      PVOID pvRgnBaseAddress=mbi.AllocationBase;
+      PVOID pvAddressBlk=pvRgnBaseAddress;
+      SIZE_T freesz=0,commitsz=0,reservesz=0;
+      do{
+        bsz=VirtualQueryEx(pin.hProcess,pvAddressBlk,&mbi,sizeof(mbi));
+        DEBUGCHK(bsz);
+        switch(mbi.State){
+          case MEM_COMMIT:
+            commitsz+=mbi.RegionSize;
+            break;
+          case MEM_FREE:
+            freesz+=mbi.RegionSize;
+            break;
+          case MEM_RESERVE:
+            reservesz+=mbi.RegionSize;
+            break;
+          default:
+            break;
+        }
+        pvAddressBlk=(PVOID)((PBYTE) pvAddressBlk+mbi.RegionSize);
+      }while(mbi.AllocationBase==pvRgnBaseAddress);
+      sprintf(msg,"LOG|MEMORY|MOD|VM|Commit %ld,Free %ld,Reserved %ld",
+              commitsz,freesz,reservesz);
+      ipTestCase->AddLog(msg);
+    }
+  }
+  return(TRUE);
 }

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 11:54:45 dhruva>
+// Time-stamp: <2003-10-15 15:44:15 dhruva>
 //-----------------------------------------------------------------------------
 // File : engine.h
 // Desc : engine header file
@@ -59,6 +59,7 @@ extern DWORD WINAPI JobNotifyTH(LPVOID);
 extern DWORD WINAPI CreateManagedProcesses(LPVOID);
 extern DWORD WINAPI MemoryPollTH(LPVOID);
 extern TestCaseInfo *GetTestCaseInfos(const char *);
+extern BOOLEAN GetTestCaseMemoryDetails(HANDLE &,TestCaseInfo *&);
 extern BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *,CRAMPMessaging *);
 extern PROC_INFO *GetHandlesToActiveProcesses(HANDLE);
 extern SIZE_T GetProcessHandleFromName(const char *,
