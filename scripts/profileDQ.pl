@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-28 14:10:27 dky>
+## Time-stamp: <2004-02-28 14:27:26 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -42,7 +42,7 @@ my $g_append=0;
 my $cramplogdir=".";
 my $progname=$0;
 
-my $g_exclude=exists($ENV{'CRAMP_PROFILE_EXCLUSION'});
+my $g_exclude=!exists($ENV{'CRAMP_PROFILE_INCLUSION'});
 my $g_filterstring=0;
 my %g_filteredhash=();
 
