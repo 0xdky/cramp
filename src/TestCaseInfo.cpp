@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 16:32:43 dhruva>
+// Time-stamp: <2003-10-09 12:12:43 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -40,6 +40,7 @@ TestCaseInfo::Init(void){
   b_refer=FALSE;
   b_block=TRUE;
   b_group=FALSE;
+  b_subproc=FALSE;
   b_pseudogroup=FALSE;
 
   s_name.erase();
@@ -70,13 +71,35 @@ TestCaseInfo::TestCaseInfo(){
 TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
                            const char *iUniqueID,
                            BOOLEAN iGroup,
-                           BOOLEAN iBlock){
+                           BOOLEAN iBlock,
+                           BOOLEAN iSubProc){
   Init();
+
+  // Spin count may be used if on multi-processor
+  if(!InitializeCriticalSectionAndSpinCount(&cs_log,4000L)){
+    CRAMPException excep;
+    excep._message="ERROR: Unable to initialize log critical section";
+    excep._error=GetLastError();
+    throw(excep);
+  }
+  if(!InitializeCriticalSectionAndSpinCount(&cs_tci,4000L)){
+    CRAMPException excep;
+    excep._message="ERROR: Unable to initialize tci critical section";
+    excep._error=GetLastError();
+    throw(excep);
+  }
+  if(!InitializeCriticalSectionAndSpinCount(&cs_pin,4000L)){
+    CRAMPException excep;
+    excep._message="ERROR: Unable to initialize pin critical section";
+    excep._error=GetLastError();
+    throw(excep);
+  }
 
   if(iUniqueID)
     u_uid=hashstring(iUniqueID);
   b_block=iBlock;
   b_group=iGroup;
+  b_subproc=iSubProc;
   p_pgroup=ipParentGroup;
   p_scenario=(p_pgroup)?p_pgroup->Scenario():this;
 
@@ -99,8 +122,10 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   // Add this at end or you will find it and create a CYCLIC link!!
   if(p_pgroup){
     try{
-      ListOfTestCaseInfo &lgc=BlockListOfGC();
+      EnterCriticalSection(&cs_tci);
       p_pgroup->l_tci.push_back(this);
+      LeaveCriticalSection(&cs_tci);
+      ListOfTestCaseInfo &lgc=BlockListOfGC();
       lgc.push_back(this);
       if(!u_uid)
         u_uid=AUTO_UNIQUE_BASE+lgc.size();
@@ -110,14 +135,20 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
       throw(excep);
     }
   }
+
 }
 
 //-----------------------------------------------------------------------------
 // ~TestCaseInfo
 //-----------------------------------------------------------------------------
 TestCaseInfo::~TestCaseInfo(){
+  EnterCriticalSection(&cs_log);
+  l_log.clear();
+  LeaveCriticalSection(&cs_log);
   if(GroupStatus()||PseudoGroupStatus()){
+    EnterCriticalSection(&cs_tci);
     l_tci.clear();
+    LeaveCriticalSection(&cs_tci);
   }else{
     // Do not check for thread, it is closed after creation
     // to avoid holding on to threads which have spawned other
@@ -125,6 +156,9 @@ TestCaseInfo::~TestCaseInfo(){
     if(pi_procinfo.hProcess)
       CloseHandle(pi_procinfo.hProcess);
   }
+  DeleteCriticalSection(&cs_log);
+  DeleteCriticalSection(&cs_tci);
+  DeleteCriticalSection(&cs_pin);
   Init();
 }
 
@@ -224,7 +258,7 @@ TestCaseInfo
     return(0);
   TestCaseInfo *pTCG=0;
   try{
-    pTCG=new TestCaseInfo(this,iUniqueID,TRUE,iBlock);
+    pTCG=new TestCaseInfo(this,iUniqueID,TRUE,iBlock,FALSE);
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
@@ -236,12 +270,14 @@ TestCaseInfo
 // AddTestCase
 //-----------------------------------------------------------------------------
 TestCaseInfo
-*TestCaseInfo::AddTestCase(const char *iUniqueID,BOOLEAN iBlock){
-  if(!GroupStatus()&&!PseudoGroupStatus())
+*TestCaseInfo::AddTestCase(const char *iUniqueID,
+                           BOOLEAN iBlock,
+                           BOOLEAN iSubProc){
+  if(!iSubProc&&!GroupStatus()&&!PseudoGroupStatus())
     return(0);
   TestCaseInfo *pTC=0;
   try{
-    pTC=new TestCaseInfo(this,iUniqueID,FALSE,iBlock);
+    pTC=new TestCaseInfo(this,iUniqueID,FALSE,iBlock,iSubProc);
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
@@ -300,6 +336,14 @@ TestCaseInfo::BlockStatus(BOOLEAN iIsBlocked){
 }
 
 //-----------------------------------------------------------------------------
+// SubProcStatus
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::SubProcStatus(void){
+  return(b_subproc);
+}
+
+//-----------------------------------------------------------------------------
 // ReferStatus
 //-----------------------------------------------------------------------------
 BOOLEAN
@@ -339,11 +383,13 @@ void
 TestCaseInfo::NumberOfRuns(SIZE_T iNumberOfRuns){
   if(u_numruns==iNumberOfRuns)
     return;
-  ListOfTestCaseInfo ltc=GetListOfTCI();
+  ListOfTestCaseInfo &ltc=BlockListOfTCI();
   ListOfTestCaseInfo::iterator iter=ltc.begin();
   for(;iter!=ltc.end();iter++)
     delete (*iter);
   ltc.clear();
+  ReleaseListOfTCI();
+
   u_numruns=iNumberOfRuns;
   if(u_numruns<2)
     return;
@@ -439,7 +485,9 @@ PROCESS_INFORMATION
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::ProcessInfo(PROCESS_INFORMATION iProcInfo){
+  EnterCriticalSection(&cs_pin);
   pi_procinfo=iProcInfo;
+  LeaveCriticalSection(&cs_pin);
   return;
 }
 
@@ -482,11 +530,21 @@ TestCaseInfo::ReleaseListOfGC(void){
 }
 
 //-----------------------------------------------------------------------------
-// GetListOfTCI
+// BlockListOfTCI
 //-----------------------------------------------------------------------------
 ListOfTestCaseInfo
-&TestCaseInfo::GetListOfTCI(void){
+&TestCaseInfo::BlockListOfTCI(void){
+  EnterCriticalSection(&cs_tci);
   return(l_tci);
+}
+
+//-----------------------------------------------------------------------------
+// ReleaseListOfTCI
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::ReleaseListOfTCI(void){
+  LeaveCriticalSection(&cs_tci);
+  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -499,12 +557,16 @@ TestCaseInfo
 
 //-----------------------------------------------------------------------------
 // Reference
+//  Gets the deep reference. Immediate reference is not useful
 //-----------------------------------------------------------------------------
 TestCaseInfo
 *TestCaseInfo::Reference(void){
   if(!ReferStatus())
     return(0);
-  return(p_refertc);
+  TestCaseInfo *ptc=p_refertc;
+  while(ptc->ReferStatus())
+    ptc=ptc->p_refertc;
+  return(ptc);
 }
 
 //-----------------------------------------------------------------------------
@@ -532,18 +594,37 @@ TestCaseInfo
       if(!lgc.size())
         break;
       ListOfTestCaseInfo::iterator iter=lgc.begin();
-      for(;iter!=lgc.end();iter++){
-        TestCaseInfo *pttc=(*iter);
-        if(!pttc)
-          continue;
-        if(pttc->UniqueID()==iuid){
-          if(pttc->ReferStatus())
-            ptc=pttc->Reference();
-          else
-            ptc=pttc;
-          break;
-        }
-      }
+      for(;!ptc&&iter!=lgc.end();iter++)
+        if((*iter)&&((*iter)->UniqueID()==iuid))
+          ptc=(*iter);
+    }while(0);
+    ReleaseListOfGC();
+  }
+  catch(CRAMPException excep){
+    DEBUGCHK(ptc);
+  }
+  return(ptc);
+}
+
+//-----------------------------------------------------------------------------
+// FindTCFromPID
+//-----------------------------------------------------------------------------
+TestCaseInfo
+*TestCaseInfo::FindTCFromPID(SIZE_T ipid){
+  TestCaseInfo *pscenario=Scenario();
+  if(!pscenario)
+    return(0);
+
+  TestCaseInfo *ptc=0;
+  try{
+    ListOfTestCaseInfo &lgc=BlockListOfGC();
+    do{
+      if(!lgc.size())
+        break;
+      ListOfTestCaseInfo::iterator iter=lgc.begin();
+      for(;!ptc&&iter!=lgc.end();iter++)
+        if((*iter)&&((*iter)->ProcessInfo().dwProcessId==ipid))
+          ptc=(*iter);
     }while(0);
     ReleaseListOfGC();
   }
@@ -562,7 +643,7 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
   if(!ipGroup||!ipGroup->GroupStatus())
     return(FALSE);
   BOOLEAN ret=TRUE;
-  ListOfTestCaseInfo l_tc=ipGroup->GetListOfTCI();
+  ListOfTestCaseInfo &l_tc=ipGroup->BlockListOfTCI();
   ListOfTestCaseInfo::iterator iter=l_tc.begin();
   for(;TRUE==ret&&iter!=l_tc.end();iter++){
     TestCaseInfo *ptc=(*iter);
@@ -572,6 +653,7 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
       else
         ret=IsReferenceValid(ipEntry,ptc);
   }
+  ipGroup->ReleaseListOfTCI();
   return(ret);
 }
 
@@ -580,7 +662,9 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::AddLog(std::string ilog){
+  EnterCriticalSection(&cs_log);
   l_log.push_back(ilog);
+  LeaveCriticalSection(&cs_log);
   return;
 }
 
@@ -592,9 +676,11 @@ TestCaseInfo::DumpLog(ofstream &ifout){
   if(!ifout.is_open())
     return(FALSE);
 
+  EnterCriticalSection(&cs_log);
   std::list<std::string>::iterator liter=l_log.begin();
   for(;liter!=l_log.end();liter++)
     ifout << (*liter).c_str() << endl;
+  LeaveCriticalSection(&cs_log);
 
   ListOfTestCaseInfo::iterator iter=l_tci.begin();
   for(;iter!=l_tci.end();iter++)

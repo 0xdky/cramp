@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 16:57:33 dhruva>
+// Time-stamp: <2003-10-09 12:21:27 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -12,12 +12,15 @@
 //-----------------------------------------------------------------------------
 #include "cramp.h"
 #include "engine.h"
+
 #include "TestCaseInfo.h"
 #include "XMLParse.h"
 
 #include <stdio.h>
 #include <tchar.h>
 #include <malloc.h>
+#include <Tlhelp32.h>
+#include <WindowsX.h>
 
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 void InitGlobals(void);
@@ -127,13 +130,18 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
 
   DWORD dwret=1;
   SIZE_T psz=0;
+  char msg[256];
   HANDLE *tharr=0;
+  std::string str;
   SIZE_T numgroups=0;
-  PROCESS_INFORMATION *ppi=0;
   ListOfTestCaseInfo l_tci;
-
+  PROCESS_INFORMATION *ppi=0;
   TestCaseInfo *pTopTC=(TestCaseInfo *)ipTestCaseInfo;
-  l_tci=pTopTC->GetListOfTCI();
+
+  // Make a copy... better performance
+  l_tci=pTopTC->BlockListOfTCI();
+  pTopTC->ReleaseListOfTCI();
+
   BOOLEAN blocked=pTopTC->BlockStatus();
   if(!blocked){
     ppi=new PROCESS_INFORMATION[l_tci.size()];
@@ -148,12 +156,15 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
 
   ListOfTestCaseInfo::iterator iter=l_tci.begin();
   for(SIZE_T tc=0;iter!=l_tci.end();iter++){
+    // Sub processes are not executed!
+    if((*iter)->SubProcStatus())
+      continue;
+
     TestCaseInfo *ptc=(*iter);
     TestCaseInfo *porigtc=ptc;
-    while(ptc&&ptc->ReferStatus())
+    if(ptc->ReferStatus())
       ptc=ptc->Reference();
-    if(!ptc)
-      continue;
+    DEBUGCHK(ptc);
 
     // If it is a group OR original is a pseudo group
     // call recursively
@@ -169,7 +180,7 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
 
     STARTUPINFO si={sizeof(si)};
     PROCESS_INFORMATION pi={0};
-    std::string str=ptc->TestCaseExec();
+    str=ptc->TestCaseExec();
     if(!CreateProcess(NULL,
                       (char *)str.c_str(),
                       NULL,
@@ -181,6 +192,7 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
                       &si,
                       &pi)){
       dwret=0;
+      ptc->AddLog("MESSAGE|ERROR|PROCESS|Could not create process");
       continue;
     }
 
@@ -194,11 +206,13 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
     if(!ret){
       TerminateProcess(pi.hProcess,1);
       dwret=0;
+      ptc->AddLog("MESSAGE|ERROR|JOB|Could not attach process to job");
       continue;
     }
 
     // Set some process information
     porigtc->ProcessInfo(pi);
+    ptc->AddLog("MESSAGE|OKAY|PROCESS|Created process");
 
     if(blocked){
       ResumeThread(pi.hThread);
@@ -290,10 +304,7 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
           break;;
         // Actual RAM pmc.WorkingSetSize;
         char msg[256];
-        sprintf(msg,"%s|%d|Memory usage|%d",
-                (char *)ptc->TestCaseExec().c_str(),
-                pin.dwProcessId,
-                pmc.WorkingSetSize);
+        sprintf(msg,"LOG|MEMORY|RAM|%ld",pmc.WorkingSetSize);
         ptc->AddLog(msg);
       }while(0);
     }
@@ -327,16 +338,69 @@ JobNotifyTH(PVOID){
 
     // The app is shutting down, exit this thread
     fDone=(CompKey==COMPKEY_TERMINATE);
+    TestCaseInfo *ptc=0;
 
     if(CompKey==COMPKEY_JOBOBJECT){
       switch(dwBytesXferred){
         case JOB_OBJECT_MSG_NEW_PROCESS:
+          ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
+          // Test case created a sub process
+          do{
+            if(ptc)
+              break;
+            // Get the parent process and the test case to append to
+            HANDLE h_snap=0;
+            h_snap=CreateToolhelp32Snapshot(TH32CS_SNAPALL,0);
+            DEBUGCHK(!(h_snap==INVALID_HANDLE_VALUE));
+            PROCESSENTRY32 ppe={0};
+            ppe.dwSize=sizeof(PROCESSENTRY32);
+            SIZE_T ppid=(SIZE_T)po;
+            BOOLEAN ret=FALSE;
+            ret=Process32First(h_snap,&ppe);
+            for(;ret;ret=Process32Next(h_snap,&ppe)){
+              if(ppe.th32ProcessID==(SIZE_T)po){
+                ppid=ppe.th32ParentProcessID;
+                break;
+              }
+            }
+            CloseHandle(h_snap);
+            if(ppid==(SIZE_T)po)
+              break;
+
+            ptc=g_pScenario->FindTCFromPID(ppid);
+            if(!ptc)
+              break;
+            HANDLE h_proc=0;
+            // May not find handle if process is too short
+            // Hence, do not check the handle!
+            h_proc=OpenProcess(PROCESS_QUERY_INFORMATION|
+                               PROCESS_VM_READ,
+                               FALSE,(SIZE_T)po);
+            PROCESS_INFORMATION pin={0};
+            pin.hProcess=h_proc;
+            pin.dwProcessId=(SIZE_T)po;
+            TestCaseInfo *pctc=0;
+            try{
+              pctc=ptc->AddTestCase(0,FALSE,TRUE);
+              DEBUGCHK(pctc);
+              pctc->ProcessInfo(pin);
+              char msg[256];
+              pctc->TestCaseName("Sub Process");
+              pctc->TestCaseExec(ppe.szExeFile);
+              sprintf(msg,"MESSAGE|OKAY|SUBPROC|Added:%s",ppe.szExeFile);
+              ptc->AddLog(msg);
+            }
+            catch(CRAMPException excep){
+            }
+          }while(0);
           // fprintf(g_LogFile,"%d:Process added\n",(SIZE_T)po);
           break;
         case JOB_OBJECT_MSG_EXIT_PROCESS:
+          ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
           // fprintf(g_LogFile,"%d:Process terminated\n",(SIZE_T)po);
           break;
         case JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS:
+          ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
           // fprintf(g_LogFile,"%d:Process abnormally terminated\n",
           //         (SIZE_T)po);
           break;
@@ -432,12 +496,12 @@ WINAPI WinMain(HINSTANCE hinstExe,
     h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,(PVOID)g_pScenario,0,NULL);
     DEBUGCHK(h_arr[2]);
 
-    sprintf(msg,"Starting scenario:%s",scenario);
+    sprintf(msg,"MESSAGE|OKAY|SCENARIO|File: %s",scenario);
     g_pScenario->AddLog(msg);
     if(!CreateManagedProcesses(g_pScenario))
-      g_pScenario->AddLog("Error running Scenario");
+      g_pScenario->AddLog("MESSAGE|ERROR|SCENARIO|Unsuccessful run");
     else
-      g_pScenario->AddLog("Successfully ran Scenario");
+      g_pScenario->AddLog("MESSAGE|OKAY|SCENARIO|Successful run");
 
     // Post msg to terminate job monitoring thread and wait for termination
     PostQueuedCompletionStatus(g_hIOCP,0,COMPKEY_TERMINATE,NULL);

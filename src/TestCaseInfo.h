@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 16:00:05 dhruva>
+// Time-stamp: <2003-10-09 11:23:31 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -52,18 +52,20 @@ public:
                          BOOLEAN iBlock=TRUE);
   // Must be called from the Scenario or a group
   TestCaseInfo *AddTestCase(const char *ipUniqueID=0,
-                            BOOLEAN iBlock=TRUE);
+                            BOOLEAN iBlock=TRUE,
+                            BOOLEAN iSub=FALSE);
 
   TestCaseInfo *GetParentGroup(void);
-  std::list<TestCaseInfo *> &GetListOfTCI(void);
 
   // Use this to ensure thread safety
   // Call ReleaseListOfGC() after using the list
   // Can throw CRAMPException on error
   std::list<TestCaseInfo *> &BlockListOfGC(void);
+  std::list<TestCaseInfo *> &BlockListOfTCI(void);
   // Call this to release the MUTEX object
   // Can throw CRAMPException on error
   void ReleaseListOfGC(void);
+  void ReleaseListOfTCI(void);
 
   TestCaseInfo *Scenario(void);
 
@@ -71,6 +73,8 @@ public:
   // To support group like behaviour for
   // multi run entities
   BOOLEAN PseudoGroupStatus(void);
+
+  BOOLEAN SubProcStatus(void);
 
   BOOLEAN BlockStatus(void);
   void BlockStatus(BOOLEAN iIsBlocked);
@@ -98,12 +102,14 @@ public:
   void SetDelTimer(HANDLE ihTimer);
   PROCESS_INFORMATION &ProcessInfo(void);
   void ProcessInfo(PROCESS_INFORMATION iProcInfo);
+  TestCaseInfo *FindTCFromPID(SIZE_T ipid);
 
 private:
   BOOLEAN b_gc;                     // Marked for deletion
   BOOLEAN b_refer;                  // Should I refer an existing test case
   BOOLEAN b_group;                  // Is this a group
   BOOLEAN b_block;                  // Blocking or non blocking run
+  BOOLEAN b_subproc;                // Sub process, no execution
   BOOLEAN b_pseudogroup;            // Test case with multi run
 
   SIZE_T u_uid;                     // Unique ID to build references
@@ -125,17 +131,21 @@ private:
   PROCESS_INFORMATION pi_procinfo;  // Test case's process information
   HANDLE h_deltimer;                // Timer to kill proc if time limited
 
-public:
   // For garbage collection:At Scenerio
   static std::list<TestCaseInfo *> l_gc;
 
+  // Critical sections
+  CRITICAL_SECTION cs_log;          // Critical section for logging
+  CRITICAL_SECTION cs_tci;          // Critical section for TCI
+  CRITICAL_SECTION cs_pin;          // Critical section for Process Info
 private:
   TestCaseInfo();
   // Throws an exception of type CRAMPException on error
   TestCaseInfo(TestCaseInfo *ipParent,
                const char *iUniqueID=0,
                BOOLEAN iGroup=FALSE,
-               BOOLEAN iBlock=TRUE);
+               BOOLEAN iBlock=TRUE,
+               BOOLEAN iSubProc=FALSE);
 
   // Internal methods
   inline void Init(void);
