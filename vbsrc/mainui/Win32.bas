@@ -396,7 +396,7 @@ Private Sub CreateNewKey(sNewKeyName As String, lPredefinedKey As Long)
    End Sub
 
 
-Private Sub SetKeyValue(sKeyName As String, sValueName As String, _
+Public Sub SetKeyValue(sKeyName As String, sValueName As String, _
    vValueSetting As Variant, lValueType As Long)
        Dim lRetVal As Long         'result of the SetValueEx function
        Dim hKey As Long         'handle of open key

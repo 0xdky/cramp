@@ -374,3 +374,17 @@ FillVarError:
     Resume Next
     
 End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Public Sub ShowUserVar()
+    
+    frmVarEdit.Move frmMainui.Left + frmMainui.cmdEdit.Left, _
+                    frmMainui.Top + frmMainui.cmdEdit.Top
+    frmVarEdit.txtVarName.Text = frmMainui.lvwVariables.SelectedItem
+    frmVarEdit.txtVarValue.SelText = frmMainui.lvwVariables.SelectedItem.SubItems(1)
+    frmVarEdit.Visible = True
+    frmVarEdit.txtVarValue.SetFocus
+    
+End Sub

@@ -876,12 +876,8 @@ End Sub
 '
 '***********************************************************
 Private Sub cmdEdit_Click()
-    frmVarEdit.Visible = True
-    frmVarEdit.Move frmMainui.Left + cmdEdit.Left, _
-                    frmMainui.Top + cmdEdit.Top
-    frmVarEdit.txtVarName.Text = frmMainui.lvwVariables.SelectedItem
-    frmVarEdit.txtVarValue.SelText = frmMainui.lvwVariables.SelectedItem.SubItems(1)
-    frmVarEdit.txtVarValue.SetFocus
+    
+    ShowUserVar
     
 End Sub
 
@@ -1106,6 +1102,10 @@ Private Sub lvwAttributes_LostFocus()
     
     WriteIntoDB
     
+End Sub
+
+Private Sub lvwVariables_DblClick()
+    ShowUserVar
 End Sub
 
 '***********************************************************
