@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-02 19:31:47 dhruva>
+// Time-stamp: <2003-12-03 10:42:13 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -387,6 +387,9 @@ OnProcessStart(void){
     g_CRAMP_Profiler.g_h_mailslotTH=chBEGINTHREADEX(NULL,0,
                                                     ProfilerMailSlotServerTH,
                                                     NULL,0,NULL);
+    if(g_CRAMP_Profiler.g_h_mailslotTH)
+      SetThreadPriority(g_CRAMP_Profiler.g_h_mailslotTH,
+                        THREAD_PRIORITY_BELOW_NORMAL);
 
     // Set this if all succeeds
     valid=TRUE;
@@ -537,7 +540,7 @@ ProfilerMailSlotServerTH(LPVOID idata){
                                                MAILSLOT_WAIT_FOREVER,
                                                NULL);
   if(INVALID_HANDLE_VALUE==g_CRAMP_Profiler.g_h_mailslot)
-    return(1);
+    DEBUGCHK(0);
 
   // Mail slot server loop
   DWORD wstate=-1;
@@ -581,12 +584,12 @@ ProfilerMailSlotServerTH(LPVOID idata){
       if(!fResult||!strlen(lpszBuffer))
         break;
 
-      // Process the result HERE
-      if(!stricmp("STOP",lpszBuffer))
+      // Process the message HERE
+      if(!stricmp(lpszBuffer,"STOP"))
         CRAMP_DisableProfile();
-      else if(!stricmp("START",lpszBuffer))
+      else if(!stricmp(lpszBuffer,"START"))
         CRAMP_EnableProfile();
-      else if(!stricmp("FLUSH",lpszBuffer))
+      else if(!stricmp(lpszBuffer,"FLUSH"))
         CRAMP_FlushProfileLogs();
 
       GlobalFree((HGLOBAL)lpszBuffer);
