@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-20 19:36:28 dhruva>
+## Time-stamp: <2003-10-21 15:29:55 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -15,8 +15,8 @@ XMLBASE=F:/Applications/xerces
 XMLBASE1=E:/Applications/xerces
 
 # Berkeley Database
-DBBASE=F:/Applications/db
-DBBASE1=E:/Applications/db
+BDBBASE=F:/Applications/bdb
+BDBBASE1=E:/Applications/bdb
 
 # DPE Cominc folder for DPE server header files
 DPE_COMINC=../../DPE/Cominc
@@ -47,12 +47,14 @@ NOLOGO=/nologo
 !MESSAGE Compiling with NO debug symbols, only for release
 MT_DEBUG=/MT
 XML_LIB=xerces-c_2.lib
+BDB_LIB=libdb41s.lib
 !ELSE
 !MESSAGE Compiling with debug options
 CPP_DEBUG=/ZI /DCRAMP_DEBUG
 MT_DEBUG=/MTd
 LINK_DEBUG=/DEBUG
 XML_LIB=xerces-c_2D.lib
+BDB_LIB=libdb41sd.lib
 !ENDIF
 
 INCLUDE=.;./inc;$(INCLUDE)
@@ -63,12 +65,12 @@ LDFLAGS=$(LDFLAGS) /VERSION:$(VERSION)
 
 # For engine
 E_CFLAGS=$(CFLAGS) $(NOLOGO) /I$(XMLBASE)/include /I$(XMLBASE1)/include
-E_CFLAGS=$(E_CFLAGS) /I$(DBBASE)/include /I$(DBBASE1)/include
-E_CFLAGS=$(E_CFLAGS) /I$(DBBASE)/include/dbinc /I$(DBBASE1)/include/dbinc
+E_CFLAGS=$(E_CFLAGS) /I$(BDBBASE)/include /I$(BDBBASE1)/include
+E_CFLAGS=$(E_CFLAGS) /I$(BDBBASE)/include/dbinc /I$(BDBBASE1)/include/dbinc
 E_CCFLAGS=$(E_CFLAGS) $(CPP_DEBUG) $(MT_DEBUG) /GX
 E_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
 E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(XMLBASE1)/lib
-E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(DBBASE)/lib /LIBPATH:$(DBBASE1)/lib
+E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(BDBBASE)/lib /LIBPATH:$(BDBBASE1)/lib
 
 # Add new files here
 COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
@@ -95,7 +97,7 @@ dirs: $(MAKEFILE)
 # For CRAMP engine
 engine: dirs $(COBJS)
     @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(COBJS) psapi.lib shell32.lib \
-             $(XML_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
+             $(XML_LIB) $(BDB_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
 # Compiling
 $(OBJDIR)/main.obj: $(SRCDIR)/main.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/main.cpp \
@@ -134,7 +136,7 @@ $(SRCDIR)/XMLParse.h: $(DEPS)
 library: dirs $(PROFLIB).dll
 $(PROFLIB).dll: $(POBJS)
     @$(LINK) /DLL $(LINK_DEBUG) $(E_LDFLAGS) $(POBJS) imagehlp.lib \
-             libdb41s.lib /OUT:$(BINDIR)/$(PROFLIB).dll
+             $(BDB_LIB) /OUT:$(BINDIR)/$(PROFLIB).dll
 $(OBJDIR)/CallMon.obj: $(LIBSRCDIR)/CallMon.cpp
     @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/CallMon.cpp \
              /Fo$(OBJDIR)/CallMon.obj
