@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-29 10:39:27 dhruva>
+// Time-stamp: <2003-10-31 10:23:33 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -24,6 +24,7 @@
 FILE *g_fLogFile=0;
 FILE *g_fFuncInfo=0;
 
+unsigned int g_pid=0;
 long g_l_profile=0;
 long g_l_stoplogging=0;
 long g_l_calldepthlimit=10;
@@ -59,22 +60,37 @@ extern "C" __declspec(dllexport)
 #else
   fflush(g_fLogFile);
 #endif
-
   if(!g_fFuncInfo)
     return;
 
   // Block the modification of hash
   EnterCriticalSection(&g_cs_prof);
 
+  FILE *f_stat=0;
+  char filename[MAX_PATH];
+  sprintf(filename,"%s/cramp_stat#%d.log",logpath,g_pid);
+  f_stat=fopen(filename,"w+");
+  DEBUGCHK(f_stat);
+
   std::hash_map<unsigned int,FuncInfo>::iterator iter=g_hFuncCalls.begin();
   for(;iter!=g_hFuncCalls.end();iter++){
+    if(f_stat)
+      fprintf(f_stat,"%08X|%d|%I64d|%I64d\n",
+              (*iter).first,
+              (*iter).second._calls,
+              (*iter).second._totalticks,
+              (*iter).second._maxticks);
+
     // Ensure, you do not revisit between calls
     if(!(*iter).second._pending)
       continue;
     (*iter).second._pending=FALSE;
     WriteFuncInfo((*iter).first,(*iter).second._calls);
   }
-
+  if(f_stat){
+    fflush(f_stat);
+    fclose(f_stat);
+  }
   // Unlock the hash
   LeaveCriticalSection(&g_cs_prof);
   fflush(g_fFuncInfo);
@@ -247,8 +263,8 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
     h_proc=0;
   }
   if(ret=FALSE)
-    fprintf(g_fFuncInfo,"%08X|%s|%s|%ld",
-            addr,"<unknown module>","<unknown symbol>\n",calls);
+    fprintf(g_fFuncInfo,"%08X|<unknown module>|<unknown symbol>|%ld\n",
+            addr,calls);
 
   return(ret);
 }
@@ -279,20 +295,22 @@ OnProcessStart(void){
   char filename[256];
   CallMonitor::TICKS frequency=0;
 
+  g_pid=GetCurrentProcessId();
+
   if(getenv("CRAMP_LOGPATH"))
     sprintf(logpath,"%s",getenv("CRAMP_LOGPATH"));
 
   do{
     sprintf(filename,"%s/cramp_profile#%d.log",
             logpath,
-            GetCurrentProcessId());
+            g_pid);
     g_fLogFile=fopen(filename,"wc");
     if(!g_fLogFile)
       break;
 
     sprintf(filename,"%s/cramp_funcinfo#%d.log",
             logpath,
-            GetCurrentProcessId());
+            g_pid);
     g_fFuncInfo=fopen(filename,"wc");
     if(!g_fFuncInfo)
       break;

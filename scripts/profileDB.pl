@@ -1,13 +1,15 @@
 #!perl
-## Time-stamp: <2003-10-29 09:23:43 dhruva>
+## Time-stamp: <2003-10-31 11:06:47 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
-## Usage : perl profileDB.pl PID DUMP [ALL|RAW|TICK|ADDR]|
-##                               QUERY [THREADS|TID|ADDR]
-##                                     RAW|TICK|Function address
-##                                     LIMIT (-1 for count info only)
-## Output: Results are written to query.psf
+## Usage : perl profileDB.pl ARGS
+## ARGS  : PID DUMP [ALL|RAW|TICK|ADDR]|
+##             QUERY [STAT|THREADS|TID|ADDR]
+##                                 RAW|TICK|Function address
+##                                 LIMIT (-1 for count info only)
+##             APPEND (the last argument for QUERY)
+## Output: Results are written or appended to query.psf
 ## Desc  : Call SetDBFilters on all DB handles
 ##-----------------------------------------------------------------------------
 ## mm-dd-yyyy  History                                                      tri
@@ -17,6 +19,8 @@
 ##  Thread ID|Function address|Depth|Return status|Time in Ms|Ticks
 ## Function information syntax:
 ##  Function Address|Module name|Function name|Total number of calls
+## Stat file syntax:
+##  Function address|Number of calls|Total ticks|Single max tick
 ## Table names:
 ##  TID: RECNO of thread IDs
 ##  FUNC_INFO: HASH of function address VS module name and function name
@@ -31,7 +35,9 @@ my $g_pid;
 my $f_logdb;
 my $f_logtxt;
 my $f_logfin;
+my $f_logstat;
 my $f_queryout;
+my $g_append=0;
 my $cramplogdir=".";
 
 ##-----------------------------------------------------------------------------
@@ -77,14 +83,21 @@ sub TickCompare{
 ## WriteResults
 ##-----------------------------------------------------------------------------
 sub WriteResults{
-    open(QUERYOUT,">$f_queryout")
-        || die("Cannot open \"$f_queryout\" for write");
+    if(g_append){
+        open(QUERYOUT,">>$f_queryout")
+            || die("Cannot open \"$f_queryout\" for write");
+    }else{
+        open(QUERYOUT,">$f_queryout")
+            || die("Cannot open \"$f_queryout\" for write");
+    }
+
     foreach(@_){
         print QUERYOUT "$_\n";
         if($ENV{'DEBUG'}){
             print STDOUT "$_\n";
         }
     }
+
     close(QUERYOUT);
 
     return 0;
@@ -95,6 +108,7 @@ sub WriteResults{
 ##-----------------------------------------------------------------------------
 sub ProcessArgs{
     chomp(@ARGV);
+
     if($ENV{'CRAMP_LOGPATH'}){
         $cramplogdir=$ENV{'CRAMP_LOGPATH'};
         $cramplogdir=~tr/\\/\//;
@@ -112,8 +126,16 @@ sub ProcessArgs{
         return 1;
     }
 
+    if($ARGV[-1]=~/APPEND/){
+        $g_append=1;
+    }
+
     $g_pid=$ARGV[0];
+
     $f_logdb="$cramplogdir/cramp#$g_pid.db";
+    $f_logtxt="$cramplogdir/cramp_profile#$g_pid.log";
+    $f_logfin="$cramplogdir/cramp_funcinfo#$g_pid.log";
+    $f_logstat="$cramplogdir/cramp_stat#$g_pid.log";
 
     if($ARGV[1]=~/DUMP/){
         foreach($ARGV[2]..$ARGV[-1]){
@@ -122,7 +144,16 @@ sub ProcessArgs{
         return 1;
     }elsif($ARGV[1]=~/QUERY/){
         $f_queryout="$cramplogdir/query.psf";
-        unlink $f_queryout;
+        if(!$g_append){
+            unlink $f_queryout;
+        }
+
+        if($ARGV[2]=~/STAT/){
+            if(! -f $f_logstat){
+                return -1;
+            }
+            return GetProfileStat();
+        }
 
         if(! -f $f_logdb){
             print STDERR "Error: DB file for \"$g_pid\" PID not found\n";
@@ -176,9 +207,6 @@ sub ProcessArgs{
 ## UpdateDB
 ##-----------------------------------------------------------------------------
 sub UpdateDB{
-    $f_logtxt="$cramplogdir/cramp_profile#$g_pid.log";
-    $f_logfin="$cramplogdir/cramp_funcinfo#$g_pid.log";
-
     if(!(-f $f_logtxt && -f $f_logfin)){
         print STDERR "Error: Log files for \"$g_pid\" PID not found\n";
         return 1;
@@ -240,7 +268,6 @@ sub AppendFuncInfoToLogs{
         return 1;
     }
 
-    my $deffin="Module|Function";
     foreach(@_){
         my $key;
         my $buf=$_;
@@ -254,6 +281,51 @@ sub AppendFuncInfoToLogs{
     undef $db;
 
     return 0;
+}
+
+##-----------------------------------------------------------------------------
+## GetProfileStat
+##  Gets the decorated profile statistics
+##-----------------------------------------------------------------------------
+sub GetProfileStat{
+    open(STAT,"<$f_logstat") || return -1;
+
+    my $db;
+    $db=new BerkeleyDB::Hash
+        -Filename    => $f_logdb,
+        -Subname     => "FUNC_INFO",
+        -Flags       => DB_RDONLY
+        || die("Error: $BerkeleyDB::Error");
+    if(!defined($db)){
+        return 1;
+    }
+    if(SetDBFilters($db)){
+        return 1;
+    }
+
+    my %h_stat;
+    while(<STAT>){
+        chomp();
+        my $key;
+        my $buf=$_;
+        $buf=~s/^([0-9A-F]+)/{$key=$1}/e;
+        $h_stat{$key}=$_;
+    }
+    close(STAT);
+
+    my @list=();
+    foreach(sort keys %h_stat){
+        my $val;
+        if($db->db_get($_,$val)!=0){
+            $val="Unknown Module|Unknown Function";
+        }
+        my $sval=$h_stat{$_};
+        $sval=~s/($key)/$val|$1/;
+        push(@list,$sval);
+    }
+    undef $db;
+
+    return WriteResults(@list);
 }
 
 ##-----------------------------------------------------------------------------
