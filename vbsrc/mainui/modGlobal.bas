@@ -920,7 +920,7 @@ With frmMainui
     Set clm = .queryLV.ColumnHeaders.Add(, , "Function")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Address")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Depth")
-    Set clm = .queryLV.ColumnHeaders.Add(, , "Exception")
+    Set clm = .queryLV.ColumnHeaders.Add(, , "Raw Ticks")
     Set clm = .queryLV.ColumnHeaders.Add(, , "Time(ns)")
     If .staCombo.Text = "ADDR" And frmMainui.limitText.Text = -1 Then
       Set clm = .queryLV.ColumnHeaders.Add(, , "Count")
