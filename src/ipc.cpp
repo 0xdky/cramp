@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:06:26 dhruva>
+// Time-stamp: <2003-10-14 11:51:07 dhruva>
 //-----------------------------------------------------------------------------
 // File  : ipc.cpp
 // Desc  : Contains code to do inter-process communication across computers
@@ -24,10 +24,10 @@
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 std::string GetLocalHostName(void);
 DWORD WINAPI MailSlotServerTH(LPVOID);
-BOOLEAN WriteToMailSlot(char *,char *);
 VOID PipeInstanceTH(LPVOID);
 DWORD MultiThreadedPipeServerTH(LPVOID);
 BOOLEAN WriteToPipe(CRAMPMessaging *&);
+BOOLEAN WriteToMailSlot(CRAMPMessaging *&);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 
 //------------------------ IMPLEMENTATION BEGINS ------------------------------
@@ -276,7 +276,9 @@ WriteToMailSlot(CRAMPMessaging *&ioMsg){
   // Format the message and write
   TCHAR msgbuff[BUFSIZE];
   DWORD msgSz=0;
-  msgSz=sprintf(msgbuff,"%s",ioMsg->Message().c_str());
+  msgSz=sprintf(msgbuff,"%s:%s",
+                GetLocalHostName().c_str(),
+                ioMsg->Message().c_str());
   ret=WriteFile(ioMsg->FileHandle(),msgbuff,msgSz+1,&cbWritten,NULL);
   return(ret);
 }

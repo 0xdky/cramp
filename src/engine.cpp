@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:07:05 dhruva>
+// Time-stamp: <2003-10-14 11:48:09 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -319,7 +319,7 @@ MemoryPollTH(LPVOID lpParameter){
 
   CRAMPServerMessaging *pmsg=0;
   try{
-    pmsg=new CRAMPServerMessaging("pchiwi7deg",TRUE);
+    pmsg=new CRAMPServerMessaging("pchiwi7deg",FALSE);
   }
   catch(CRAMPException excep){
     DEBUGCHK(0);
@@ -369,7 +369,7 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario,CRAMPMessaging *ioMsg){
 #ifdef CRAMP_DEBUG
         // Some large data
         ioMsg->Message(msg);
-        WriteToPipe(ioMsg);
+        WriteToMailSlot(ioMsg);
 #endif
 
       }while(0);

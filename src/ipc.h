@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-14 11:10:32 dhruva>
+// Time-stamp: <2003-10-14 11:49:56 dhruva>
 //-----------------------------------------------------------------------------
 // File : ipc.h
 // Desc : Header for inter process communication using named pipes & mailslots
@@ -26,9 +26,9 @@ class CRAMPMessaging;
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 extern std::string GetLocalHostName(void);
 extern DWORD WINAPI MailSlotServerTH(LPVOID);
-extern BOOLEAN WriteToMailSlot(char *,char *);
 extern VOID PipeInstanceTH(LPVOID);
 extern DWORD MultiThreadedPipeServerTH(LPVOID);
 extern BOOLEAN WriteToPipe(CRAMPMessaging *&);
+extern BOOLEAN WriteToMailSlot(CRAMPMessaging *&);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 #endif
