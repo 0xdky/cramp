@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2003-12-09 16:49:57 dhruva>
+;; Time-stamp: <2003-12-16 09:49:26 dhruva>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -114,14 +114,19 @@ SectionEnd
 
 Section "CRAMP Profiler" SEC02
   SetOverwrite ifnewer
+
   SetOutPath "$INSTDIR\bin"
   File "..\bin\libCRAMP.dll"
   File "..\scripts\profileDB.pl"
+  File "..\scripts\querysort.pl"
+
   SetOutPath "$INSTDIR\lib"
   File "..\bin\libCRAMP.exp"
   File "..\bin\libCRAMP.lib"
+
   SetOutPath "$INSTDIR\inc"
   File "..\inc\libCRAMP.h"
+
   SetOutPath "$INSTDIR\docs"
   File "..\docs\CRAMP.ppt"
 
