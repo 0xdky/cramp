@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2004-03-03 13:41:22 dky>
+## Time-stamp: <2004-03-03 15:32:49 dky>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -251,7 +251,7 @@ $(VBDIR)/mainui/CRAMP.vbp: $(MAKEFILE) $(VBDIR)/mainui/*.bas \
 installer: remake
     @cvs.exe -z3 edit ./version
     @perl.exe ./scripts/version.pl ./version $(LEVEL)
-    @cvs.exe -z3 commit -m "$(LEVEL) modification" ./version
+    @cvs.exe -r -z3 commit -m "$(LEVEL) modification" ./version
 !ELSE
 installer: remake
     @perl.exe ./scripts/version.pl ./version $(LEVEL)
