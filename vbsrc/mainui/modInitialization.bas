@@ -84,11 +84,15 @@ Public Sub GetEnvironmentVariable()
   Set gobjDic = CreateObject("Scripting.Dictionary")
 
   'checking for the wperl.exe
-  gperlPath = gCRAMPPath + "/TOOLS/PERL/bin/wperl.exe"
-  gperlPath = Replace(gperlPath, "\", "/")
+  gperlDir = gCRAMPPath + "/TOOLS/PERL/bin"
+  gperlDir = Replace(gperlDir, "\", "/")
+  gperlPath = gperlDir + "/wperl.exe"
+  'gperlPath = Replace(gperlPath, "\", "/")
   IsFileExistAndSize gperlPath, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
     gperlPath = "wperl.exe"
+    Dim sEmpty As String
+    gperlDir = sEmpty
   End If
 
   'checking for the profileDQ.pl
@@ -123,7 +127,7 @@ Public Sub GetEnvironmentVariable()
 
   'get computer name
   'GetLocalComputerName
-  frmMainui.compnameText.Text="localhost"
+  frmMainui.compnameText.Text = "localhost"
 
 End Sub
 

@@ -36,6 +36,7 @@ Public gobjFSO As New FileSystemObject
 Public gobjDic As New Dictionary
 Public gstrCLogPath As String
 Public gperlPath As String
+Public gperlDir As String
 Public gperlScript As String
 Public gquerySort As String
 Public gstrSpace As String
@@ -1504,7 +1505,7 @@ Public Sub RunPerlScriptWithCP(Optional intColNum As Variant, _
     Const SYNCHRONIZE = 1048576
     Const NORMAL_PRIORITY_CLASS = &H20&
     Const INFINITE = -1
-
+    
     If frmMainui.queryText.Text <> "" Then
      If IsMissing(intColNum) Then
        Command = gperlPath & gstrSpace & gperlScript & gstrSpace & frmMainui.queryText.Text
@@ -1520,7 +1521,7 @@ Public Sub RunPerlScriptWithCP(Optional intColNum As Variant, _
                               1&, _
                               NORMAL_PRIORITY_CLASS, _
                               ByVal 0&, _
-                              sNull, _
+                              gperlDir, _
                               sInfo, _
                               pInfo)
 
