@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-26 13:46:01 dky>
+## Time-stamp: <2004-02-28 17:31:14 dky>
 ##-----------------------------------------------------------------------------
 ## File  : version.pl
 ## Usage : version.pl version MAJOR|MINOR|TRIVIAL
@@ -34,10 +34,8 @@ my $n_ver=join('.',@arr);
 if (open(VER,">$ARGV[0]")) {
   print VER "VERSION=\"$n_ver\"";
   close(VER);
-} else {
-  warn("Could not update the \"$ARGV[0]\"");
 }
 
 my $cmd="makensis.exe /V2 /DPRODUCT_VERSION=$n_ver ./scripts/CRAMP.nsi";
-print "$cmd";
+print "Building CRAMP setup package, version $n_ver\n";
 system($cmd);
