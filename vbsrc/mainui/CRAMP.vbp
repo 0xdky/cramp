@@ -17,6 +17,8 @@ Module=modFileHandling; modFileHandling.bas
 IconForm="frmMainui"
 Startup="frmMainui"
 HelpFile=""
+Title="CRAMP"
+ExeName32="CRAMP.exe"
 Command32=""
 Name="CRAMP"
 HelpContextID="0"
@@ -42,6 +44,7 @@ Unattended=0
 Retained=0
 ThreadPerObject=0
 MaxNumberOfThreads=1
+DebugStartupOption=0
 
 [MS Transaction Server]
 AutoRefresh=1

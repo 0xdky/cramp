@@ -7,9 +7,12 @@ Public gTestcaseAttCounter As Integer
 Public ScenarioAttribute(5, 1) As Variant
 Public gScenarioAttCounter As Integer
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub CreateDatabase()
     
-    On Error GoTo ErrorHandler
+    On Local Error GoTo CreateDBErrorHandler
     ADOXcatalog.Create "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" & _
             gDatabaseName
     
@@ -17,7 +20,8 @@ Public Sub CreateDatabase()
     
     Exit Sub
     
-ErrorHandler:
+CreateDBErrorHandler:
+    
     If Err.Number = -2147217897 Then
         
         'Database already exists
@@ -29,45 +33,9 @@ ErrorHandler:
     
 End Sub
 
-'************************************************************
-' Deprecated sub routine
-'************************************************************
-Private Sub CreateTablesInDBOld()
-    
-    InitialiseTableAttributes
-    
-    Dim tblScenario As New ADOX.Table
-    Dim tblGroup As New ADOX.Table
-    Dim tblTestcase As New ADOX.Table
-    Dim ii As Integer
-    
-    tblScenario.Name = LCase("ScenarioTable")
-    For ii = 0 To gScenarioAttCounter - 1
-        tblScenario.Columns.Append ScenarioAttribute(ii, 0), adVarWChar, 40
-    Next ii
-    
-    tblGroup.Name = LCase("GroupTable")
-    For ii = 0 To gGroupAttCounter - 1
-        tblGroup.Columns.Append GroupAttributes(ii, 0), adVarWChar, 40
-    Next ii
-    
-    
-    tblTestcase.Name = LCase("TestcaseTable")
-    For ii = 0 To gTestcaseAttCounter - 1
-        If TestcaseAttributes(ii, 0) = "ExecPath" Then
-            tblTestcase.Columns.Append TestcaseAttributes(ii, 0), adVarWChar, 200
-        Else
-            tblTestcase.Columns.Append TestcaseAttributes(ii, 0), adVarWChar, 40
-        End If
-    Next ii
-    
-    'Append table to DB
-    ADOXcatalog.Tables.Append tblScenario
-    ADOXcatalog.Tables.Append tblGroup
-    ADOXcatalog.Tables.Append tblTestcase
-    
-End Sub
-
+'***********************************************************
+'
+'***********************************************************
 Private Sub CreateTablesInDB()
     Dim tblScenario As New ADOX.Table
     Dim tblGroup As New ADOX.Table
@@ -89,7 +57,15 @@ Private Sub CreateTablesInDB()
     tblGroup.Name = LCase("GroupTable")
     tblTestcase.Name = LCase("TestcaseTable")
     
-    sFileName = App.Path & "\Attributes.txt"
+On Local Error Resume Next
+    
+    sFileName = App.Path & "\res\Attributes.txt"
+    
+    If Not FileExists(sFileName) Then
+        MsgBox "File " & sFileName & " does not exist", vbExclamation
+        End
+    End If
+    
     Open sFileName For Input As #1
     Do Until EOF(1)
         Input #1, sTableAttribute, sProperty, sValue, sValType
@@ -156,6 +132,7 @@ Public Sub ConnectAndClearDatabase()
     Next
     
 End Sub
+
 '************************************************************
 '
 '************************************************************
@@ -184,10 +161,9 @@ Public Sub AddNodeInTreeView(Optional ByVal parentNode As Node, _
             TestcaseAttributes(1, 1) = nodeName
     End Select
     
-    'Add in the tvwNodes and refresh
+    'Add in the tvwNodes
     Select Case tblType
         Case otScenario
-            
             Set childNode = frmMainui.tvwNodes.Nodes.Add(, , _
                                             uId, nodeName)
     
@@ -206,11 +182,13 @@ Public Sub AddNodeInTreeView(Optional ByVal parentNode As Node, _
     
     ShowProperties tblType
     
-    'Set the gListViewNode
     Set gListViewNode = childNode
     
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub ShowProperties(tblType As ObjectType)
     
     Dim itmX As ListItem
@@ -252,45 +230,13 @@ Public Sub ShowProperties(tblType As ObjectType)
             
     End Select
     
-    'Set frmMainui.lvwAttributes.SelectedItem = _
-    '                    frmMainui.lvwAttributes.ListItems(1)
     frmMainui.lvwAttributes.SetFocus
-    
     
 End Sub
 
-'*****************************************************************
-'Deprecated subroutine
-'*****************************************************************
-Private Function InitialiseTableAttributes()
-    Dim sFileName As String
-    Dim sTableAttribute As String
-    Dim sProperty As String
-    Dim sValue As String
-    Dim sValType As String
-    
-    sFileName = App.Path & "\Attributes.txt"
-    Open sFileName For Input As #1
-    Do Until EOF(1)
-        Input #1, sTableAttribute, sProperty, sValue, sValType
-        
-        Select Case sTableAttribute
-            Case "Scenario"
-                ScenarioAttribute(gScenarioAttCounter, 0) = sProperty
-                ScenarioAttribute(gScenarioAttCounter, 1) = sValue
-                gScenarioAttCounter = gScenarioAttCounter + 1
-            Case "Group"
-                GroupAttributes(gGroupAttCounter, 0) = sProperty
-                GroupAttributes(gGroupAttCounter, 1) = sValue
-                gGroupAttCounter = gGroupAttCounter + 1
-            Case "Testcase"
-                TestcaseAttributes(gTestcaseAttCounter, 0) = sProperty
-                TestcaseAttributes(gTestcaseAttCounter, 1) = sValue
-                gTestcaseAttCounter = gTestcaseAttCounter + 1
-        End Select
-    Loop
-End Function
-
+'***********************************************************
+'
+'***********************************************************
 Public Function ReturnTableName(tblType As ObjectType) As String
 
     Select Case tblType
@@ -328,8 +274,6 @@ Public Sub WriteIntoDB()
     rst.Open "SELECT * FROM " & tblName, _
         cnn, adOpenKeyset, adLockOptimistic
     
-    'rst.MoveFirst
-    
     While Not rst.EOF
         If rst.Fields("Id").Value = selectedNode.Key Then
             'Recordset exists, modify it
@@ -347,7 +291,6 @@ Public Sub WriteIntoDB()
         rst.MoveNext
     Wend
     
-    
     'Recordset doesn't exist, add new
     rst.AddNew
     
@@ -364,6 +307,9 @@ Public Sub WriteIntoDB()
     
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Public Sub RefreshData()
     Dim cnn As New ADODB.Connection
     Dim rst As New ADODB.Recordset
@@ -412,6 +358,5 @@ Public Sub RefreshData()
     
     'Set the gListViewNode
     Set gListViewNode = frmMainui.tvwNodes.SelectedItem
-    
     
 End Sub

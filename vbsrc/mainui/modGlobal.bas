@@ -260,7 +260,8 @@ End Sub
 Public Sub SetGlobalVariables()
     Dim CurDirectory As String
     
-    gDatabaseName = App.Path & "\MainUI.mdb"
+    MakeDir App.Path & "\tmp"
+    gDatabaseName = App.Path & "\tmp\CRAMPDB.mdb"
     
     frmMainui.mnuSave.Enabled = False
     frmMainui.cmdRun.Enabled = False
@@ -381,7 +382,12 @@ Public Sub InitialiseMRUFileList()
         Next jj
     Next ii
     
-    sFileName = App.Path & "\MostRecentFiles.txt"
+    sFileName = App.Path & "\res\MostRecentFiles.txt"
+    
+    If Not FileExists(sFileName) Then
+        Exit Sub
+    End If
+    
     Open sFileName For Input As #1
     ii = 1
     Do Until EOF(1)
@@ -439,7 +445,12 @@ End Sub
 Public Sub SaveIntoMRUFile()
     Dim sFileName As String
     Dim ii As Integer
-    sFileName = App.Path & "\MostRecentFiles.txt"
+    sFileName = App.Path & "\res\MostRecentFiles.txt"
+    
+    If Not FileExists(sFileName) Then
+        Exit Sub
+    End If
+    
     Open sFileName For Output As #1
     
     For ii = 0 To gMRUListCtr - 1
@@ -577,3 +588,9 @@ Public Function NodeCanBeAdded(parentNode As Node, _
     NodeCanBeAdded = True
 End Function
 
+
+'Public Sub RegSettingTest()
+    
+    'SetKeyValue "Environment", "StringValue", "HelloShirish", REG_SZ
+    
+'End Sub

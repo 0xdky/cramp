@@ -238,6 +238,10 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+'***********************************************************
+'
+'***********************************************************
+
 Option Explicit
 
 Const SYNCHRONIZE = 1048576
@@ -246,6 +250,9 @@ Const INFINITE = -1
 
 Private SelectedIndex As Integer
 
+'***********************************************************
+' Sets the IdRef field in attributes
+'***********************************************************
 Private Sub cboIdRef_Click()
     lvwAttributes.SelectedItem.SubItems(1) = cboIdRef.Text
     lvwAttributes.SetFocus
@@ -253,6 +260,9 @@ Private Sub cboIdRef_Click()
     
 End Sub
 
+'***********************************************************
+' Sets the True/False in attributes
+'***********************************************************
 Private Sub cboTrueFalse_Click()
     
     lvwAttributes.SelectedItem.SubItems(1) = cboTrueFalse.Text
@@ -261,7 +271,11 @@ Private Sub cboTrueFalse_Click()
     
 End Sub
 
-
+'***********************************************************
+'Adds a group in scenario
+'First update the DB with present attributes data in listview
+'then adds a new node in treeview
+'***********************************************************
 Private Sub cmdAddGroup_Click()
     
     WriteIntoDB
@@ -270,6 +284,11 @@ Private Sub cmdAddGroup_Click()
     
 End Sub
 
+'***********************************************************
+'Adds a testcase in scenario
+'First update the DB with present attributes data in listview
+'then adds a new node in treeview
+'***********************************************************
 Private Sub cmdAddTc_Click()
     
     WriteIntoDB
@@ -278,7 +297,9 @@ Private Sub cmdAddTc_Click()
     
 End Sub
 
-
+'***********************************************************
+'Sets the EXE path in the testcase attribute
+'***********************************************************
 Private Sub cmdBrowse_Click()
     Dim ExecPath As String
     dlgSelect.Flags = cdlOFNNoChangeDir
@@ -294,6 +315,9 @@ Private Sub cmdBrowse_Click()
         
 End Sub
 
+'***********************************************************
+'Deletes the selected node from scenario
+'***********************************************************
 Private Sub cmdDelete_Click()
     Dim selectedNode As Node
     Dim selectedType As ObjectType
@@ -305,6 +329,10 @@ Private Sub cmdDelete_Click()
         
 End Sub
 
+'***********************************************************
+'Runs the scenario and generates the results.
+'First it saves the entire scenario and then runs it.
+'***********************************************************
 Private Sub cmdRun_Click()
     Dim Command As String
     Dim TaskID As Long
@@ -315,11 +343,12 @@ Private Sub cmdRun_Click()
     Dim lRetValue As Long
     Dim retVal As Boolean
     Dim Response
+    
     SaveFunction gCurFileName
     
     MousePointer = 11
     
-    Command = App.Path & "\CRAMPEngine.exe " & gCurFileName
+    Command = App.Path & "\bin\CRAMPEngine.exe " & gCurFileName
     
     sInfo.cb = Len(sInfo)
     lSuccess = CreateProcess(sNull, _
@@ -350,10 +379,15 @@ Private Sub cmdRun_Click()
     
 End Sub
 
+'***********************************************************
+'When CRAMP application starts it does following things.
+'***********************************************************
 Private Sub Form_Load()
     
     CleanAndRestart
+    
     InitialiseMRUFileList
+    
     CreateDatabase
         
     AddNodeInTreeView , otScenario
@@ -362,8 +396,9 @@ Private Sub Form_Load()
     
 End Sub
 
-
-
+'***********************************************************
+'
+'***********************************************************
 Private Sub Form_Unload(Cancel As Integer)
     WriteIntoDB
         
@@ -372,8 +407,12 @@ Private Sub Form_Unload(Cancel As Integer)
     SaveIntoMRUFile
     
     End
+    
 End Sub
 
+'***********************************************************
+'Sets the attributs in the listview
+'***********************************************************
 Private Sub lvwAttributes_Click()
     Dim CellWidth As Double
     Dim Selection As String
@@ -420,8 +459,8 @@ Private Sub lvwAttributes_Click()
         Next index
         cboIdRef.SetFocus
         SelectedIndex = lvwAttributes.SelectedItem.index
+        
         Exit Sub
-    
     
     End If
     
@@ -434,6 +473,7 @@ Private Sub lvwAttributes_Click()
             cboTrueFalse.Text = Selection
             cboTrueFalse.SetFocus
             SelectedIndex = lvwAttributes.SelectedItem.index
+            
             Exit Sub
             
     End Select
@@ -450,6 +490,9 @@ Private Sub lvwAttributes_Click()
         
 End Sub
 
+'***********************************************************
+'When user clicks other than listview, update the DB.
+'***********************************************************
 Private Sub lvwAttributes_LostFocus()
     
     If cboTrueFalse.Visible Or _
@@ -459,28 +502,40 @@ Private Sub lvwAttributes_LostFocus()
        Exit Sub
     End If
     
-    Dim ii As Integer
-    
     WriteIntoDB
-    
     
 End Sub
 
-
+'***********************************************************
+'End the CRAMP application
+'***********************************************************
 Private Sub mnuExit_Click()
     Form_Unload 0
 End Sub
 
+'***********************************************************
+'Always update the DB incase the user has modified it
+'***********************************************************
 Private Sub mnuFile_Click()
-    'Update the DB
+    
     WriteIntoDB
     
 End Sub
 
+'***********************************************************
+'Always update the DB incase the user has modified it
+'***********************************************************
 Private Sub mnuHelp_Click()
+    
     WriteIntoDB
+    
 End Sub
 
+'***********************************************************
+'User has clicked on one of most recent used scenario
+'First save the existing scenario if it is modified
+'then open the clicked scenario
+'***********************************************************
 Private Sub mnuMRU_Click(index As Integer)
     
     CheckSaveStatus
@@ -491,7 +546,7 @@ Private Sub mnuMRU_Click(index As Integer)
     CleanAndRestart
     
     CreateDatabase
-
+    
     gCurScenarioName = GetFileNameWithoutExt(sScenarioName)
     
     gCurFileName = sScenarioName
@@ -501,9 +556,14 @@ Private Sub mnuMRU_Click(index As Integer)
     RenameFormWindow
     UpdateMRUFileList gCurFileName
     gSaveFlag = False
-    
+ 
 End Sub
 
+'***********************************************************
+'User has clicked on New menu in File menu,
+'Save the existing scenario if it is modified
+'Clean and restart CRAMP application
+'***********************************************************
 Private Sub mnuNew_Click()
     
     CheckSaveStatus
@@ -516,6 +576,9 @@ Private Sub mnuNew_Click()
     
 End Sub
 
+'***********************************************************
+'Opens the selected scenario file
+'***********************************************************
 Private Sub mnuOpen_Click()
     Dim strFileName As String
     
@@ -541,13 +604,21 @@ Private Sub mnuOpen_Click()
         UpdateMRUFileList strFileName
         gSaveFlag = False
     End If
+    
 End Sub
 
+'***********************************************************
+'Save the current scenario file
+'***********************************************************
 Private Sub mnuSave_Click()
         
     SaveFunction gCurFileName
+    
 End Sub
 
+'***********************************************************
+'Save the current scenario with new name
+'***********************************************************
 Private Sub mnuSaveAs_Click()
     dlgSelect.Flags = cdlOFNOverwritePrompt
     dlgSelect.Filter = "XML Files (*.xml)|*.xml"
@@ -571,6 +642,10 @@ Private Sub mnuSaveAs_Click()
     End If
 End Sub
 
+'***********************************************************
+'User has changed the tab strip option, set the Application
+'header accordingly by calling RenameFormWindow
+'***********************************************************
 Private Sub tspMainUI_Click()
     Dim ii As Integer
     
@@ -580,14 +655,14 @@ Private Sub tspMainUI_Click()
     
     fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
     fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
-    'frmMainui.Caption = "CRAMP - " & _
-            'fraMainUI(tspMainUI.SelectedItem.index - 1).Caption
+    
     RenameFormWindow
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub tvwNodes_NodeClick(ByVal Node As MSComctlLib.Node)
-    Dim table_name As String
-    table_name = Node.Key
     
     'Hide the combo boxes and browse button
     cmdBrowse.Visible = False
@@ -604,6 +679,9 @@ Private Sub tvwNodes_NodeClick(ByVal Node As MSComctlLib.Node)
     
 End Sub
 
+'***********************************************************
+'
+'***********************************************************
 Private Sub txtInput_LostFocus()
         
     lvwAttributes.ListItems(SelectedIndex).SubItems(1) = txtInput.Text
