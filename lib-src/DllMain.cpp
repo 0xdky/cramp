@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-11 18:05:09 dky>
+// Time-stamp: <2004-03-11 18:10:29 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -137,7 +137,6 @@ extern "C" __declspec(dllexport)
 //-----------------------------------------------------------------------------
 BOOL
 WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
-    static std::list<DWORD> l_mod;
     static std::hash_map<DWORD,bool> h_mod;
 
     if(!f_func)
