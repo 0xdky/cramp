@@ -67,8 +67,8 @@ Section "!CRAMP Engine" SEC01
   File "\tmp\CRAMP-Package\Support\*"
 
   SetOutPath "$INSTDIR\res"
-  File "..\vbsrc\mainui\Attributes.txt"
-  File "..\vbsrc\mainui\MostRecentFiles.txt"
+  File "..\res\Attributes.txt"
+  File "..\res\MostRecentFiles.txt"
 
   SetOutPath "$INSTDIR\docs"
   File "..\docs\CRAMP.ppt"

@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-11-26 17:09:46 dhruva>
+## Time-stamp: <2003-11-26 17:12:32 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -92,7 +92,7 @@ UTILITIES=$(BINDIR)/profileDB.exe
 
 # Currently disabled base class build: Problem with SDK
 all: cramp
-cramp: dirs engine library utils test
+cramp: dirs res engine library utils test
 remake: clean cramp
 
 # Dependancy to force a re-build
@@ -102,7 +102,7 @@ DEPS=$(MAKEFILE) $(INCDIR)/cramp.h
 $(MAKEFILE):
 
 # Create folders
-dirs: $(MAKEFILE) res
+dirs: $(MAKEFILE)
     @IF NOT EXIST $(OBJDIR) $(MD) $(OBJDIR)
     @IF NOT EXIST $(BINDIR) $(MD) $(BINDIR)
     @IF NOT EXIST $(RESDIR) $(MD) $(RESDIR)
@@ -115,7 +115,7 @@ $(RESDIR)/MostRecentFiles.txt:
     @$(COPY) vbsrc\mainui\MostRecentFiles.txt $(RESDIR)
 
 # For CRAMP engine
-engine: dirs $(COBJS)
+engine: dirs res $(COBJS)
     @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(COBJS) psapi.lib shell32.lib \
              $(XML_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
 # Compiling
