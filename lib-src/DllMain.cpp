@@ -1,11 +1,12 @@
 // -*-c++-*-
-// Time-stamp: <2004-02-12 12:37:54 dky>
+// Time-stamp: <2004-02-28 14:24:35 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
 //-----------------------------------------------------------------------------
 // mm-dd-yyyy  History                                                      tri
 // 09-22-2003  Cre                                                          dky
+// 02-28-2004  Mod Disable filtering, filter during dumping thru PERL       dky
 //-----------------------------------------------------------------------------
 #define __DLLMAIN_SRC
 
@@ -35,61 +36,61 @@ DWORD WINAPI ProfilerMailSlotServerTH(LPVOID);
 // CRAMP_FlushProfileLogs
 //-----------------------------------------------------------------------------
 extern "C" __declspec(dllexport)
-  void CRAMP_FlushProfileLogs(void){
-  // Usually this iscalled to collect all logs
-  // Hence, flush all logs before getting logs
-  CallMonitor::TICKS frequency=0;
-  CallMonitor::queryTickFreq(&frequency);
+    void CRAMP_FlushProfileLogs(void){
+    // Usually this iscalled to collect all logs
+    // Hence, flush all logs before getting logs
+    CallMonitor::TICKS frequency=0;
+    CallMonitor::queryTickFreq(&frequency);
 
-  if(g_CRAMP_Profiler.g_fLogFile)
-    fflush(g_CRAMP_Profiler.g_fLogFile);
+    if(g_CRAMP_Profiler.g_fLogFile)
+        fflush(g_CRAMP_Profiler.g_fLogFile);
 
-  // Block the modification of hash
-  EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+    // Block the modification of hash
+    EnterCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
-  FILE *f_stat=0;
-  char filename[MAX_PATH];
-  sprintf(filename,"%s/cramp_stat#%d.log",
-          g_CRAMP_Profiler.logpath,
-          g_CRAMP_Profiler.g_pid);
-  f_stat=fopen(filename,"wc");
-  DEBUGCHK(f_stat);
+    FILE *f_stat=0;
+    char filename[MAX_PATH];
+    sprintf(filename,"%s/cramp_stat#%d.log",
+            g_CRAMP_Profiler.logpath,
+            g_CRAMP_Profiler.g_pid);
+    f_stat=fopen(filename,"wc");
+    DEBUGCHK(f_stat);
 
-  std::hash_map<unsigned int,FuncInfo>::iterator iter;
-  iter=g_CRAMP_Profiler.g_hFuncCalls.begin();
-  for(;iter!=g_CRAMP_Profiler.g_hFuncCalls.end();iter++){
-    // Ignore filtered methods
-    if((*iter).second._filtered)
-      continue;
+    std::hash_map<unsigned int,FuncInfo>::iterator iter;
+    iter=g_CRAMP_Profiler.g_hFuncCalls.begin();
+    for(;iter!=g_CRAMP_Profiler.g_hFuncCalls.end();iter++){
+        // Ignore filtered methods
+        if((*iter).second._filtered)
+            continue;
 
-    if(f_stat)
-      fprintf(f_stat,"%08X|%d|%I64d|%I64d|%I64d\n",
-              (*iter).first,
-              (*iter).second._calls,
-              frequency,
-              (*iter).second._totalticks,
-              (*iter).second._maxticks);
+        if(f_stat)
+            fprintf(f_stat,"%08X|%d|%I64d|%I64d|%I64d\n",
+                    (*iter).first,
+                    (*iter).second._calls,
+                    frequency,
+                    (*iter).second._totalticks,
+                    (*iter).second._maxticks);
 
-    // Ensure, you do not revisit between calls
-    if(!(*iter).second._pending)
-      continue;
-    (*iter).second._pending=FALSE;
+        // Ensure, you do not revisit between calls
+        if(!(*iter).second._pending)
+            continue;
+        (*iter).second._pending=FALSE;
 
-    if(!g_CRAMP_Profiler.g_fFuncInfo)
-      WriteFuncInfo((*iter).first,(*iter).second._calls);
-  }
-  if(f_stat){
-    fflush(f_stat);
-    fclose(f_stat);
-  }
+        if(!g_CRAMP_Profiler.g_fFuncInfo)
+            WriteFuncInfo((*iter).first,(*iter).second._calls);
+    }
+    if(f_stat){
+        fflush(f_stat);
+        fclose(f_stat);
+    }
 
-  // Unlock the hash
-  LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+    // Unlock the hash
+    LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
 
-  if(g_CRAMP_Profiler.g_fFuncInfo)
-    fflush(g_CRAMP_Profiler.g_fFuncInfo);
+    if(g_CRAMP_Profiler.g_fFuncInfo)
+        fflush(g_CRAMP_Profiler.g_fFuncInfo);
 
-  return;
+    return;
 }
 
 //-----------------------------------------------------------------------------
@@ -97,16 +98,16 @@ extern "C" __declspec(dllexport)
 //  Thread safe, if logging has stopped, NEVER enable profiling
 //-----------------------------------------------------------------------------
 extern "C" __declspec(dllexport)
-  void CRAMP_EnableProfile(void){
+    void CRAMP_EnableProfile(void){
 
-  long dest=1;
-  InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.g_l_stoplogging);
-  if(dest)
-    InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,1);
-  else
-    InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.g_l_stoplogging);
+    if(dest)
+        InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,1);
+    else
+        InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
 
-  return;
+    return;
 }
 
 //-----------------------------------------------------------------------------
@@ -114,11 +115,11 @@ extern "C" __declspec(dllexport)
 //  Thread safe
 //-----------------------------------------------------------------------------
 extern "C" __declspec(dllexport)
-  void CRAMP_DisableProfile(void){
+    void CRAMP_DisableProfile(void){
 
-  InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
+    InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
 
-  return;
+    return;
 }
 
 //-----------------------------------------------------------------------------
@@ -126,11 +127,11 @@ extern "C" __declspec(dllexport)
 //  Thread safe
 //-----------------------------------------------------------------------------
 extern "C" __declspec(dllexport)
-  void CRAMP_SetCallDepthLimit(long iCallDepth){
+    void CRAMP_SetCallDepthLimit(long iCallDepth){
 
-  InterlockedExchange(&g_CRAMP_Profiler.g_l_calldepthlimit,iCallDepth);
+    InterlockedExchange(&g_CRAMP_Profiler.g_l_calldepthlimit,iCallDepth);
 
-  return;
+    return;
 }
 
 //-----------------------------------------------------------------------------
@@ -138,112 +139,118 @@ extern "C" __declspec(dllexport)
 //-----------------------------------------------------------------------------
 BOOL
 WriteFuncInfo(unsigned int addr,unsigned long calls){
-  if(!g_CRAMP_Profiler.g_fFuncInfo)
-    return(FALSE);
+    if(!g_CRAMP_Profiler.g_fFuncInfo)
+        return(FALSE);
 
-  BOOL ret=FALSE;
-  HANDLE h_proc=0;
-  do{
-    h_proc=GetCurrentProcess();
-    if(!h_proc)
-      break;
-
-    SymInitialize(h_proc,NULL,FALSE);
-
-    char msg[MAX_PATH*4];
-    TCHAR moduleName[MAX_PATH];
-    TCHAR modShortNameBuf[MAX_PATH];
-    MEMORY_BASIC_INFORMATION mbi;
-    BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL)+1024];
-    PIMAGEHLP_SYMBOL pSymbol=(PIMAGEHLP_SYMBOL)&symbolBuffer[0];
-
-    VirtualQuery((void *)addr,&mbi,sizeof(mbi));
-
-    // Faster Module level filtering
-    std::hash_map<unsigned int,BOOLEAN>::iterator iter;
-    iter=g_CRAMP_Profiler.h_FilteredModAddr.find(
-      (unsigned int)mbi.AllocationBase);
-    if(iter!=g_CRAMP_Profiler.h_FilteredModAddr.end())
-      return(!(*iter).second);
-
-    GetModuleFileName((HMODULE)mbi.AllocationBase,
-                      moduleName,MAX_PATH);
-    _splitpath(moduleName,NULL,NULL,modShortNameBuf,NULL);
-
-    // Following not per docs, but per example...
-    memset(pSymbol,0,sizeof(PIMAGEHLP_SYMBOL));
-    pSymbol->SizeOfStruct=sizeof(symbolBuffer);
-    pSymbol->MaxNameLength=1023;
-    pSymbol->Address=0;
-    pSymbol->Flags=0;
-    pSymbol->Size=0;
-
-    DWORD symDisplacement=0;
-    if(!SymLoadModule(h_proc,
-                      NULL,
-                      moduleName,
-                      NULL,
-                      (DWORD)mbi.AllocationBase,
-                      0))
-      break;
-
-    SymSetOptions(SymGetOptions()&~SYMOPT_UNDNAME);
-    char undName[1024];
-    if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
-      // Couldn't retrieve symbol (no debug info?)
-      strcpy(undName,"<unknown symbol>");
-    }else{
-      // Unmangle name, throwing away decorations
-      // that don't affect uniqueness:
-      if(0==UnDecorateSymbolName(pSymbol->Name, undName,
-                                 sizeof(undName),
-                                 UNDNAME_NO_MS_KEYWORDS        |
-                                 UNDNAME_NO_ACCESS_SPECIFIERS  |
-                                 UNDNAME_NO_FUNCTION_RETURNS   |
-                                 UNDNAME_NO_ALLOCATION_MODEL   |
-                                 UNDNAME_NO_ALLOCATION_LANGUAGE|
-                                 UNDNAME_NO_MEMBER_TYPE))
-        strcpy(undName,pSymbol->Name);
-    }
-    SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
-
-    // Find if method is filtered
+    BOOL ret=FALSE;
+    HANDLE h_proc=0;
     do{
-      ret=g_CRAMP_Profiler.g_exclusion;
-      if(g_CRAMP_Profiler.g_FilterList.empty())
-        break;
-      char lfunc[1024];
-      char lmodl[MAX_PATH];
-      strcpy(lfunc,undName);
-      strcpy(lmodl,modShortNameBuf);
-      _strlwr(lfunc);
-      _strlwr(lmodl);
-      std::list<std::string>::iterator iter;
-      int cmp=1;
-      iter=g_CRAMP_Profiler.g_FilterList.begin();
-      for(;iter!=g_CRAMP_Profiler.g_FilterList.end();iter++){
-        if(!(cmp=strcmp(lmodl,(*iter).c_str()))||
-           strstr(lfunc,(*iter).c_str())){
-          if(!cmp)
-            g_CRAMP_Profiler.h_FilteredModAddr[
-              (unsigned int)mbi.AllocationBase]=ret;
-          ret=!ret;
-          break;
+        h_proc=GetCurrentProcess();
+        if(!h_proc)
+            break;
+
+        SymInitialize(h_proc,NULL,FALSE);
+
+        char msg[MAX_PATH*4];
+        TCHAR moduleName[MAX_PATH];
+        TCHAR modShortNameBuf[MAX_PATH];
+        MEMORY_BASIC_INFORMATION mbi;
+        BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL)+1024];
+        PIMAGEHLP_SYMBOL pSymbol=(PIMAGEHLP_SYMBOL)&symbolBuffer[0];
+
+        VirtualQuery((void *)addr,&mbi,sizeof(mbi));
+
+#ifdef HAVE_FILTER
+        // Faster Module level filtering
+        std::hash_map<unsigned int,BOOLEAN>::iterator iter;
+        iter=g_CRAMP_Profiler.h_FilteredModAddr.find(
+            (unsigned int)mbi.AllocationBase);
+        if(iter!=g_CRAMP_Profiler.h_FilteredModAddr.end())
+            return(!(*iter).second);
+#endif
+
+        GetModuleFileName((HMODULE)mbi.AllocationBase,
+                          moduleName,MAX_PATH);
+        _splitpath(moduleName,NULL,NULL,modShortNameBuf,NULL);
+
+        // Following not per docs, but per example...
+        memset(pSymbol,0,sizeof(PIMAGEHLP_SYMBOL));
+        pSymbol->SizeOfStruct=sizeof(symbolBuffer);
+        pSymbol->MaxNameLength=1023;
+        pSymbol->Address=0;
+        pSymbol->Flags=0;
+        pSymbol->Size=0;
+
+        DWORD symDisplacement=0;
+        if(!SymLoadModule(h_proc,
+                          NULL,
+                          moduleName,
+                          NULL,
+                          (DWORD)mbi.AllocationBase,
+                          0))
+            break;
+
+        SymSetOptions(SymGetOptions()&~SYMOPT_UNDNAME);
+        char undName[1024];
+        if(!SymGetSymFromAddr(h_proc,addr,&symDisplacement,pSymbol)){
+            // Couldn't retrieve symbol (no debug info?)
+            strcpy(undName,"<unknown symbol>");
+        }else{
+            // Unmangle name, throwing away decorations
+            // that don't affect uniqueness:
+            if(0==UnDecorateSymbolName(pSymbol->Name, undName,
+                                       sizeof(undName),
+                                       UNDNAME_NO_MS_KEYWORDS        |
+                                       UNDNAME_NO_ACCESS_SPECIFIERS  |
+                                       UNDNAME_NO_FUNCTION_RETURNS   |
+                                       UNDNAME_NO_ALLOCATION_MODEL   |
+                                       UNDNAME_NO_ALLOCATION_LANGUAGE|
+                                       UNDNAME_NO_MEMBER_TYPE))
+                strcpy(undName,pSymbol->Name);
         }
-      }
+        SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
+
+#ifdef HAVE_FILTER
+        // Find if method is filtered
+        do{
+            ret=g_CRAMP_Profiler.g_exclusion;
+            if(g_CRAMP_Profiler.g_FilterList.empty())
+                break;
+            char lfunc[1024];
+            char lmodl[MAX_PATH];
+            strcpy(lfunc,undName);
+            strcpy(lmodl,modShortNameBuf);
+            _strlwr(lfunc);
+            _strlwr(lmodl);
+            std::list<std::string>::iterator iter;
+            int cmp=1;
+            iter=g_CRAMP_Profiler.g_FilterList.begin();
+            for(;iter!=g_CRAMP_Profiler.g_FilterList.end();iter++){
+                if(!(cmp=strcmp(lmodl,(*iter).c_str()))||
+                   strstr(lfunc,(*iter).c_str())){
+                    if(!cmp)
+                        g_CRAMP_Profiler.h_FilteredModAddr[
+                            (unsigned int)mbi.AllocationBase]=ret;
+                    ret=!ret;
+                    break;
+                }
+            }
+        }while(0);
+#else
+        ret=TRUE;
+#endif
+        if(ret)
+            fprintf(g_CRAMP_Profiler.g_fFuncInfo,"%08X|%s|%s|%ld\n",
+                    addr,modShortNameBuf,undName,calls);
     }while(0);
-    if(ret)
-      fprintf(g_CRAMP_Profiler.g_fFuncInfo,"%08X|%s|%s|%ld\n",
-              addr,modShortNameBuf,undName,calls);
-  }while(0);
 
-  if(h_proc){
-    SymCleanup(h_proc);
-    CloseHandle(h_proc);
-    h_proc=0;
-  }
+    if(h_proc){
+        SymCleanup(h_proc);
+        CloseHandle(h_proc);
+        h_proc=0;
+    }
 
-  return(ret);
+    return(ret);
 }
 
 //-----------------------------------------------------------------------------
@@ -251,133 +258,136 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
 //-----------------------------------------------------------------------------
 void
 OnProcessStart(void){
-  long dest=1;
-  InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
-  if(!dest)
-    return;
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
+    if(!dest)
+        return;
 
-  char filename[256];
+    char filename[256];
 
-  strcpy(g_CRAMP_Profiler.logpath,".");
-  g_CRAMP_Profiler.IsInitialised=0;
-  g_CRAMP_Profiler.g_exclusion=TRUE;
-  g_CRAMP_Profiler.g_fLogFile=0;
-  g_CRAMP_Profiler.g_fFuncInfo=0;
-  g_CRAMP_Profiler.g_pid=0;
-  g_CRAMP_Profiler.g_l_profile=0;
-  g_CRAMP_Profiler.g_l_stoplogging=0;
-  g_CRAMP_Profiler.g_l_maxcalllimit=0;
-  g_CRAMP_Profiler.g_l_logsizelimit=0;
-  g_CRAMP_Profiler.g_l_calldepthlimit=0;
-  g_CRAMP_Profiler.g_h_mailslot=0;
-  g_CRAMP_Profiler.g_h_mailslotTH=0;
-  g_CRAMP_Profiler.g_h_logsizemonTH=0;
+    strcpy(g_CRAMP_Profiler.logpath,".");
+    g_CRAMP_Profiler.IsInitialised=0;
+    g_CRAMP_Profiler.g_exclusion=TRUE;
+    g_CRAMP_Profiler.g_fLogFile=0;
+    g_CRAMP_Profiler.g_fFuncInfo=0;
+    g_CRAMP_Profiler.g_pid=0;
+    g_CRAMP_Profiler.g_l_profile=0;
+    g_CRAMP_Profiler.g_l_stoplogging=0;
+    g_CRAMP_Profiler.g_l_maxcalllimit=0;
+    g_CRAMP_Profiler.g_l_logsizelimit=0;
+    g_CRAMP_Profiler.g_l_calldepthlimit=0;
+    g_CRAMP_Profiler.g_h_mailslot=0;
+    g_CRAMP_Profiler.g_h_mailslotTH=0;
+    g_CRAMP_Profiler.g_h_logsizemonTH=0;
 
-  g_CRAMP_Profiler.g_pid=GetCurrentProcessId();
+    g_CRAMP_Profiler.g_pid=GetCurrentProcessId();
 
-  if(getenv("CRAMP_LOGPATH"))
-    sprintf(g_CRAMP_Profiler.logpath,"%s",getenv("CRAMP_LOGPATH"));
+    if(getenv("CRAMP_LOGPATH"))
+        sprintf(g_CRAMP_Profiler.logpath,"%s",getenv("CRAMP_LOGPATH"));
 
-  // Get maximum call limit (ensure it is a number)
-  char *buff=getenv("CRAMP_PROFILE_MAXCALLLIMIT");
-  if(buff){
-    g_CRAMP_Profiler.g_l_maxcalllimit=atol(buff);
-    sprintf(filename,"%ld",g_CRAMP_Profiler.g_l_maxcalllimit);
-    if(strcmp(filename,buff))
-      g_CRAMP_Profiler.g_l_maxcalllimit=0;
-  }
-
-  buff=getenv("CRAMP_PROFILE_CALLDEPTH");
-  if(buff){
-    g_CRAMP_Profiler.g_l_calldepthlimit=atol(buff);
-    sprintf(filename,"%ld",g_CRAMP_Profiler.g_l_calldepthlimit);
-    if(strcmp(filename,buff))
-      g_CRAMP_Profiler.g_l_calldepthlimit=0;
-  }
-
-  if(getenv("CRAMP_PROFILE_INCLUSION"))
-    g_CRAMP_Profiler.g_exclusion=FALSE;
-
-  // Build the filter list
-  do{
-    sprintf(filename,"%s/cramp_profile.flt",g_CRAMP_Profiler.logpath);
-    fstream f_flt;
-    f_flt.open(filename,ios::in|ios::nocreate);
-    if(!(f_flt.rdbuf())->is_open())
-      break;
-    while(!f_flt.eof()){
-      f_flt.getline(filename,1024,'\n');
-      if(!strlen(filename))
-        continue;
-      g_CRAMP_Profiler.g_FilterList.push_back(_strlwr(filename));
-    }
-    f_flt.close();
-  }while(0);
-
-  do{
-    sprintf(filename,"%s/cramp_profile#%d.log",
-            g_CRAMP_Profiler.logpath,
-            g_CRAMP_Profiler.g_pid);
-
-    // If only STAT is required
-    if(!getenv("CRAMP_PROFILE_STAT")){
-      g_CRAMP_Profiler.g_fLogFile=fopen(filename,"wc");
-      if(!g_CRAMP_Profiler.g_fLogFile)
-        break;
-    }
-
-    sprintf(filename,"%s/cramp_funcinfo#%d.log",
-            g_CRAMP_Profiler.logpath,
-            g_CRAMP_Profiler.g_pid);
-    g_CRAMP_Profiler.g_fFuncInfo=fopen(filename,"wc");
-    if(!g_CRAMP_Profiler.g_fFuncInfo)
-      break;
-
-    if(getenv("CRAMP_PROFILE"))
-      InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,1);
-    else
-      InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
-
-    // Initialize critical sections
-    if(!InitializeCriticalSectionAndSpinCount(&g_CRAMP_Profiler.g_cs_prof,
-                                              4000L))
-      break;
-    if(!InitializeCriticalSectionAndSpinCount(&g_CRAMP_Profiler.g_cs_log,
-                                              4000L)){
-      DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
-      break;
-    }
-
-
-    // Create a log file size monitoring thread
-    buff=getenv("CRAMP_PROFILE_LOGSIZE");
+    // Get maximum call limit (ensure it is a number)
+    char *buff=getenv("CRAMP_PROFILE_MAXCALLLIMIT");
     if(buff){
-      g_CRAMP_Profiler.g_l_logsizelimit=atol(buff);
-      sprintf(filename,"%ld",g_CRAMP_Profiler.g_l_logsizelimit);
-      if(strcmp(filename,buff))
-        g_CRAMP_Profiler.g_l_logsizelimit=0;
+        g_CRAMP_Profiler.g_l_maxcalllimit=atol(buff);
+        sprintf(filename,"%ld",g_CRAMP_Profiler.g_l_maxcalllimit);
+        if(strcmp(filename,buff))
+            g_CRAMP_Profiler.g_l_maxcalllimit=0;
     }
-    if(g_CRAMP_Profiler.g_l_logsizelimit)
-      g_CRAMP_Profiler.g_h_logsizemonTH=chBEGINTHREADEX(NULL,0,
-                                                        LogFileSizeMonTH,
-                                                        NULL,0,NULL);
-    if(g_CRAMP_Profiler.g_h_logsizemonTH)
-      SetThreadPriority(g_CRAMP_Profiler.g_h_logsizemonTH,
-                        THREAD_PRIORITY_BELOW_NORMAL);
 
-    // Create a messaging thread for IPC
-    g_CRAMP_Profiler.g_h_mailslotTH=chBEGINTHREADEX(NULL,0,
-                                                    ProfilerMailSlotServerTH,
-                                                    NULL,0,NULL);
-    if(g_CRAMP_Profiler.g_h_mailslotTH)
-      SetThreadPriority(g_CRAMP_Profiler.g_h_mailslotTH,
-                        THREAD_PRIORITY_BELOW_NORMAL);
+    buff=getenv("CRAMP_PROFILE_CALLDEPTH");
+    if(buff){
+        g_CRAMP_Profiler.g_l_calldepthlimit=atol(buff);
+        sprintf(filename,"%ld",g_CRAMP_Profiler.g_l_calldepthlimit);
+        if(strcmp(filename,buff))
+            g_CRAMP_Profiler.g_l_calldepthlimit=0;
+    }
 
-    // Set this if all succeeds
-    InterlockedExchange(&g_CRAMP_Profiler.IsInitialised,1);
-  }while(0);
+    if(getenv("CRAMP_PROFILE_INCLUSION"))
+        g_CRAMP_Profiler.g_exclusion=FALSE;
 
-  return;
+#ifdef HAVE_FILTER
+    // Build the filter list
+    do{
+        sprintf(filename,"%s/cramp_profile.flt",g_CRAMP_Profiler.logpath);
+        fstream f_flt;
+        f_flt.open(filename,ios::in|ios::nocreate);
+        if(!(f_flt.rdbuf())->is_open())
+            break;
+        while(!f_flt.eof()){
+            f_flt.getline(filename,1024,'\n');
+            if(!strlen(filename))
+                continue;
+            g_CRAMP_Profiler.g_FilterList.push_back(_strlwr(filename));
+        }
+        f_flt.close();
+    }while(0);
+#endif
+
+    do{
+        sprintf(filename,"%s/cramp_profile#%d.log",
+                g_CRAMP_Profiler.logpath,
+                g_CRAMP_Profiler.g_pid);
+
+        // If only STAT is required
+        if(!getenv("CRAMP_PROFILE_STAT")){
+            g_CRAMP_Profiler.g_fLogFile=fopen(filename,"wc");
+            if(!g_CRAMP_Profiler.g_fLogFile)
+                break;
+        }
+
+        sprintf(filename,"%s/cramp_funcinfo#%d.log",
+                g_CRAMP_Profiler.logpath,
+                g_CRAMP_Profiler.g_pid);
+        g_CRAMP_Profiler.g_fFuncInfo=fopen(filename,"wc");
+        if(!g_CRAMP_Profiler.g_fFuncInfo)
+            break;
+
+        if(getenv("CRAMP_PROFILE"))
+            InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,1);
+        else
+            InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
+
+        // Initialize critical sections
+        if(!InitializeCriticalSectionAndSpinCount(&g_CRAMP_Profiler.g_cs_prof,
+                                                  4000L))
+            break;
+        if(!InitializeCriticalSectionAndSpinCount(&g_CRAMP_Profiler.g_cs_log,
+                                                  4000L)){
+            DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+            break;
+        }
+
+
+        // Create a log file size monitoring thread
+        buff=getenv("CRAMP_PROFILE_LOGSIZE");
+        if(buff){
+            g_CRAMP_Profiler.g_l_logsizelimit=atol(buff);
+            sprintf(filename,"%ld",g_CRAMP_Profiler.g_l_logsizelimit);
+            if(strcmp(filename,buff))
+                g_CRAMP_Profiler.g_l_logsizelimit=0;
+        }
+        if(g_CRAMP_Profiler.g_l_logsizelimit)
+            g_CRAMP_Profiler.g_h_logsizemonTH=chBEGINTHREADEX(NULL,0,
+                                                              LogFileSizeMonTH,
+                                                              NULL,0,NULL);
+        if(g_CRAMP_Profiler.g_h_logsizemonTH)
+            SetThreadPriority(g_CRAMP_Profiler.g_h_logsizemonTH,
+                              THREAD_PRIORITY_BELOW_NORMAL);
+
+        // Create a messaging thread for IPC
+        g_CRAMP_Profiler.g_h_mailslotTH=
+            chBEGINTHREADEX(NULL,0,
+                            ProfilerMailSlotServerTH,
+                            NULL,0,NULL);
+        if(g_CRAMP_Profiler.g_h_mailslotTH)
+            SetThreadPriority(g_CRAMP_Profiler.g_h_mailslotTH,
+                              THREAD_PRIORITY_BELOW_NORMAL);
+
+        // Set this if all succeeds
+        InterlockedExchange(&g_CRAMP_Profiler.IsInitialised,1);
+    }while(0);
+
+    return;
 }
 
 //-----------------------------------------------------------------------------
@@ -385,32 +395,32 @@ OnProcessStart(void){
 //-----------------------------------------------------------------------------
 void
 CleanEmptyLogs(void){
-  struct _stat buf;
-  static char filename[256];
+    struct _stat buf;
+    static char filename[256];
 
-  memset(&buf,0,sizeof(struct _stat));
-  sprintf(filename,"%s/cramp_profile#%d.log",
-          g_CRAMP_Profiler.logpath,
-          g_CRAMP_Profiler.g_pid);
+    memset(&buf,0,sizeof(struct _stat));
+    sprintf(filename,"%s/cramp_profile#%d.log",
+            g_CRAMP_Profiler.logpath,
+            g_CRAMP_Profiler.g_pid);
 
-  // Return if stat fail or non-zero
-  if(_stat(filename,&buf)||buf.st_size)
+    // Return if stat fail or non-zero
+    if(_stat(filename,&buf)||buf.st_size)
+        return;
+
+    // Delete empty logs
+    _unlink(filename);
+
+    sprintf(filename,"%s/cramp_stat#%d.log",
+            g_CRAMP_Profiler.logpath,
+            g_CRAMP_Profiler.g_pid);
+    _unlink(filename);
+
+    sprintf(filename,"%s/cramp_funcinfo#%d.log",
+            g_CRAMP_Profiler.logpath,
+            g_CRAMP_Profiler.g_pid);
+    _unlink(filename);
+
     return;
-
-  // Delete empty logs
-  _unlink(filename);
-
-  sprintf(filename,"%s/cramp_stat#%d.log",
-          g_CRAMP_Profiler.logpath,
-          g_CRAMP_Profiler.g_pid);
-  _unlink(filename);
-
-  sprintf(filename,"%s/cramp_funcinfo#%d.log",
-          g_CRAMP_Profiler.logpath,
-          g_CRAMP_Profiler.g_pid);
-  _unlink(filename);
-
-  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -418,40 +428,40 @@ CleanEmptyLogs(void){
 //-----------------------------------------------------------------------------
 void
 OnProcessEnd(void){
-  long dest=1;
-  InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
-  if(dest)
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
+    if(dest)
+        return;
+
+    InterlockedExchange(&g_CRAMP_Profiler.g_l_stoplogging,1);
+    CRAMP_FlushProfileLogs();
+
+    if(g_CRAMP_Profiler.g_fLogFile)
+        fclose(g_CRAMP_Profiler.g_fLogFile);
+    if(g_CRAMP_Profiler.g_fFuncInfo)
+        fclose(g_CRAMP_Profiler.g_fFuncInfo);
+
+    g_CRAMP_Profiler.g_fLogFile=0;
+    g_CRAMP_Profiler.g_fFuncInfo=0;
+
+    if(g_CRAMP_Profiler.g_h_mailslot)
+        CloseHandle(g_CRAMP_Profiler.g_h_mailslot);
+    g_CRAMP_Profiler.g_h_mailslot=0;
+
+    if(g_CRAMP_Profiler.g_h_mailslotTH)
+        TerminateThread(g_CRAMP_Profiler.g_h_mailslotTH,0);
+    g_CRAMP_Profiler.g_h_mailslotTH=0;
+
+    if(g_CRAMP_Profiler.g_h_logsizemonTH)
+        TerminateThread(g_CRAMP_Profiler.g_h_logsizemonTH,0);
+    g_CRAMP_Profiler.g_h_logsizemonTH=0;
+
+    DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_log);
+    DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
+
+    CleanEmptyLogs();
+
     return;
-
-  InterlockedExchange(&g_CRAMP_Profiler.g_l_stoplogging,1);
-  CRAMP_FlushProfileLogs();
-
-  if(g_CRAMP_Profiler.g_fLogFile)
-    fclose(g_CRAMP_Profiler.g_fLogFile);
-  if(g_CRAMP_Profiler.g_fFuncInfo)
-    fclose(g_CRAMP_Profiler.g_fFuncInfo);
-
-  g_CRAMP_Profiler.g_fLogFile=0;
-  g_CRAMP_Profiler.g_fFuncInfo=0;
-
-  if(g_CRAMP_Profiler.g_h_mailslot)
-    CloseHandle(g_CRAMP_Profiler.g_h_mailslot);
-  g_CRAMP_Profiler.g_h_mailslot=0;
-
-  if(g_CRAMP_Profiler.g_h_mailslotTH)
-    TerminateThread(g_CRAMP_Profiler.g_h_mailslotTH,0);
-  g_CRAMP_Profiler.g_h_mailslotTH=0;
-
-  if(g_CRAMP_Profiler.g_h_logsizemonTH)
-    TerminateThread(g_CRAMP_Profiler.g_h_logsizemonTH,0);
-  g_CRAMP_Profiler.g_h_logsizemonTH=0;
-
-  DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_log);
-  DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
-
-  CleanEmptyLogs();
-
-  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -460,33 +470,33 @@ OnProcessEnd(void){
 //-----------------------------------------------------------------------------
 void
 LogFileSizeMonTH(void *iLogThread){
-  if(!g_CRAMP_Profiler.g_fLogFile)
-    return;
-  struct _stat buf={0};
-  char filename[256];
-
-  sprintf(filename,"%s/cramp_profile#%d.log",
-          g_CRAMP_Profiler.logpath,
-          g_CRAMP_Profiler.g_pid);
-
-  while(1){
     if(!g_CRAMP_Profiler.g_fLogFile)
-      break;
+        return;
+    struct _stat buf={0};
+    char filename[256];
 
-    if(_stat(filename,&buf))
-      continue;
+    sprintf(filename,"%s/cramp_profile#%d.log",
+            g_CRAMP_Profiler.logpath,
+            g_CRAMP_Profiler.g_pid);
 
-    if(buf.st_size/MB2BYTE>g_CRAMP_Profiler.g_l_logsizelimit){
-      InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
-      InterlockedExchange(&g_CRAMP_Profiler.g_l_stoplogging,1);
-      DeleteTimerQueueTimer(NULL,g_CRAMP_Profiler.g_h_logsizemonTH,NULL);
-      g_CRAMP_Profiler.g_h_logsizemonTH=0;
-      break;
+    while(1){
+        if(!g_CRAMP_Profiler.g_fLogFile)
+            break;
+
+        if(_stat(filename,&buf))
+            continue;
+
+        if(buf.st_size/MB2BYTE>g_CRAMP_Profiler.g_l_logsizelimit){
+            InterlockedExchange(&g_CRAMP_Profiler.g_l_profile,0);
+            InterlockedExchange(&g_CRAMP_Profiler.g_l_stoplogging,1);
+            DeleteTimerQueueTimer(NULL,g_CRAMP_Profiler.g_h_logsizemonTH,NULL);
+            g_CRAMP_Profiler.g_h_logsizemonTH=0;
+            break;
+        }
+
+        Sleep(1000);
     }
-
-    Sleep(1000);
-  }
-  return;
+    return;
 }
 
 //-----------------------------------------------------------------------------
@@ -494,81 +504,81 @@ LogFileSizeMonTH(void *iLogThread){
 //-----------------------------------------------------------------------------
 DWORD WINAPI
 ProfilerMailSlotServerTH(LPVOID idata){
-  char filename[MAX_PATH];
-  sprintf(filename,"\\\\.\\mailslot\\cramp_mailslot#%ld",
-          GetCurrentProcessId());
+    char filename[MAX_PATH];
+    sprintf(filename,"\\\\.\\mailslot\\cramp_mailslot#%ld",
+            GetCurrentProcessId());
 
-  g_CRAMP_Profiler.g_h_mailslot=CreateMailslot(filename,
-                                               0,
-                                               MAILSLOT_WAIT_FOREVER,
-                                               NULL);
-  if(INVALID_HANDLE_VALUE==g_CRAMP_Profiler.g_h_mailslot)
-    return(-1);
+    g_CRAMP_Profiler.g_h_mailslot=CreateMailslot(filename,
+                                                 0,
+                                                 MAILSLOT_WAIT_FOREVER,
+                                                 NULL);
+    if(INVALID_HANDLE_VALUE==g_CRAMP_Profiler.g_h_mailslot)
+        return(-1);
 
-  // Mail slot server loop
-  DWORD wstate=-1;
-  HANDLE h_event;
-  char msevtname[256];
+    // Mail slot server loop
+    DWORD wstate=-1;
+    HANDLE h_event;
+    char msevtname[256];
 
-  sprintf(msevtname,"CRAMP_MAILSLOT#%ld",GetCurrentProcessId());
-  h_event=CreateEvent(NULL,FALSE,FALSE,msevtname);
-  DEBUGCHK(h_event);
+    sprintf(msevtname,"CRAMP_MAILSLOT#%ld",GetCurrentProcessId());
+    h_event=CreateEvent(NULL,FALSE,FALSE,msevtname);
+    DEBUGCHK(h_event);
 
-  while(1){
-    DWORD cbMessage=0,cMessage=0,cbRead=0;
-    BOOL fResult;
-    LPSTR lpszBuffer;
-    DWORD cAllMessages;
-    OVERLAPPED ov;
+    while(1){
+        DWORD cbMessage=0,cMessage=0,cbRead=0;
+        BOOL fResult;
+        LPSTR lpszBuffer;
+        DWORD cAllMessages;
+        OVERLAPPED ov;
 
-    ov.Offset=0;
-    ov.OffsetHigh=0;
-    ov.hEvent=h_event;
-    fResult=GetMailslotInfo(g_CRAMP_Profiler.g_h_mailslot,
-                            (LPDWORD)NULL,
-                            &cbMessage,
-                            &cMessage,
-                            (LPDWORD)NULL);
-    DEBUGCHK(fResult);
-    if(cbMessage==MAILSLOT_NO_MESSAGE){
-      Sleep(500);		// To reduce CPU usage or yield
-      continue;
+        ov.Offset=0;
+        ov.OffsetHigh=0;
+        ov.hEvent=h_event;
+        fResult=GetMailslotInfo(g_CRAMP_Profiler.g_h_mailslot,
+                                (LPDWORD)NULL,
+                                &cbMessage,
+                                &cMessage,
+                                (LPDWORD)NULL);
+        DEBUGCHK(fResult);
+        if(cbMessage==MAILSLOT_NO_MESSAGE){
+            Sleep(500);		// To reduce CPU usage or yield
+            continue;
+        }
+        cAllMessages=cMessage;
+
+        // Mail slot loop
+        while(cMessage){
+            lpszBuffer=(LPSTR)GlobalAlloc(GPTR,cbMessage);
+            DEBUGCHK(lpszBuffer);
+            lpszBuffer[0]='\0';
+            fResult=ReadFile(g_CRAMP_Profiler.g_h_mailslot,
+                             lpszBuffer,
+                             cbMessage,
+                             &cbRead,
+                             &ov);
+            if(!fResult||!strlen(lpszBuffer))
+                break;
+
+            // Process the message HERE
+            if(!stricmp(lpszBuffer,"STOP"))
+                CRAMP_DisableProfile();
+            else if(!stricmp(lpszBuffer,"START"))
+                CRAMP_EnableProfile();
+            else if(!stricmp(lpszBuffer,"FLUSH"))
+                CRAMP_FlushProfileLogs();
+
+            GlobalFree((HGLOBAL)lpszBuffer);
+            fResult=GetMailslotInfo(g_CRAMP_Profiler.g_h_mailslot,
+                                    (LPDWORD)NULL,
+                                    &cbMessage,
+                                    &cMessage,
+                                    (LPDWORD)NULL);
+            if(!fResult)
+                break;
+        }
     }
-    cAllMessages=cMessage;
 
-    // Mail slot loop
-    while(cMessage){
-      lpszBuffer=(LPSTR)GlobalAlloc(GPTR,cbMessage);
-      DEBUGCHK(lpszBuffer);
-      lpszBuffer[0]='\0';
-      fResult=ReadFile(g_CRAMP_Profiler.g_h_mailslot,
-                       lpszBuffer,
-                       cbMessage,
-                       &cbRead,
-                       &ov);
-      if(!fResult||!strlen(lpszBuffer))
-        break;
-
-      // Process the message HERE
-      if(!stricmp(lpszBuffer,"STOP"))
-        CRAMP_DisableProfile();
-      else if(!stricmp(lpszBuffer,"START"))
-        CRAMP_EnableProfile();
-      else if(!stricmp(lpszBuffer,"FLUSH"))
-        CRAMP_FlushProfileLogs();
-
-      GlobalFree((HGLOBAL)lpszBuffer);
-      fResult=GetMailslotInfo(g_CRAMP_Profiler.g_h_mailslot,
-                              (LPDWORD)NULL,
-                              &cbMessage,
-                              &cMessage,
-                              (LPDWORD)NULL);
-      if(!fResult)
-        break;
-    }
-  }
-
-  return(0);
+    return(0);
 }
 
 //-----------------------------------------------------------------------------
@@ -577,28 +587,28 @@ ProfilerMailSlotServerTH(LPVOID idata){
 BOOL WINAPI DllMain(HINSTANCE hinstDLL,
                     DWORD fdwReason,
                     LPVOID lpvReserved){
-  long dest=1;
-  switch (fdwReason)
-  {
-    case DLL_PROCESS_ATTACH:
-      OnProcessStart();
-    case DLL_THREAD_ATTACH:
-      InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
-      if(!dest)
-        CallMonitor::threadAttach(new CallMonLOG());
-      break;
-    case DLL_PROCESS_DETACH:
-      OnProcessEnd();
-    case DLL_THREAD_DETACH:
-      InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
-      if(!dest){
-        CallMonitor::threadDetach();
-        if(g_CRAMP_Profiler.g_fLogFile)
-          fflush(g_CRAMP_Profiler.g_fLogFile);
-        if(g_CRAMP_Profiler.g_fFuncInfo)
-          fflush(g_CRAMP_Profiler.g_fFuncInfo);
-      }
-      break;
-  }
-  return(TRUE);
+    long dest=1;
+    switch (fdwReason)
+    {
+        case DLL_PROCESS_ATTACH:
+            OnProcessStart();
+        case DLL_THREAD_ATTACH:
+            InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
+            if(!dest)
+                CallMonitor::threadAttach(new CallMonLOG());
+            break;
+        case DLL_PROCESS_DETACH:
+            OnProcessEnd();
+        case DLL_THREAD_DETACH:
+            InterlockedCompareExchange(&dest,0,g_CRAMP_Profiler.IsInitialised);
+            if(!dest){
+                CallMonitor::threadDetach();
+                if(g_CRAMP_Profiler.g_fLogFile)
+                    fflush(g_CRAMP_Profiler.g_fLogFile);
+                if(g_CRAMP_Profiler.g_fFuncInfo)
+                    fflush(g_CRAMP_Profiler.g_fFuncInfo);
+            }
+            break;
+    }
+    return(TRUE);
 }
