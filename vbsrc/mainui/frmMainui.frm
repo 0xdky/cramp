@@ -1165,16 +1165,16 @@ End Sub
 '***********************************************************
 Private Sub mnuHelp_Click()
     
-    'WriteIntoDB
+    WriteIntoDB
     
-    'Dim pptPath As String
-    'pptPath = App.Path & "\..\docs\CRAMP.ppt"
-    'Dim ppt As Object
-    'Set ppt = CreateObject("PowerPoint.Application.9")
-    'ppt.Visible = True
-    'ppt.Presentations.Open pptPath
-    'ppt.ActivePresentation.SlideShowSettings.Run
-    'Set ppt = Nothing
+    Dim pptPath As String
+    pptPath = App.Path & "\..\docs\CRAMP.ppt"
+    Dim ppt As Object
+    Set ppt = CreateObject("PowerPoint.Application.9")
+    ppt.Visible = True
+    ppt.Presentations.Open pptPath
+    ppt.ActivePresentation.SlideShowSettings.Run
+    Set ppt = Nothing
     
     'LoadHelp
     
