@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 12:08:00 dhruva>
+// Time-stamp: <2003-10-08 16:21:33 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -13,6 +13,9 @@
 #include "cramp.h"
 #include "TestCaseInfo.h"
 #include <algorithm>
+
+// Initialize static
+ListOfTestCaseInfo TestCaseInfo::l_gc;
 
 //-----------------------------------------------------------------------------
 // ApplyDelete
@@ -96,7 +99,7 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   // Add this at end or you will find it and create a CYCLIC link!!
   if(p_pgroup){
     try{
-      ListOfTestCaseInfo lgc=GetListOfGC();
+      ListOfTestCaseInfo &lgc=BlockListOfGC();
       p_pgroup->l_tci.push_back(this);
       lgc.push_back(this);
       if(!u_uid)
@@ -169,13 +172,15 @@ TestCaseInfo
     throw(excep);
   }
 
-  if(!CreateMutex(NULL,FALSE,GC_MUTEX)){
+  h_mutex=CreateMutex(NULL,TRUE,GC_MUTEX);
+  if(!h_mutex){
     CRAMPException excep;
     excep._error=ERROR_INVALID_HANDLE;
     excep._message="ERROR: Unable to create MUTEX object!";
     SetLastError(excep._error);
     throw(excep);
   }
+  ReleaseMutex(h_mutex);
 
   TestCaseInfo *pScenario=0;
   try{
@@ -196,7 +201,7 @@ TestCaseInfo::DeleteScenario(TestCaseInfo *ipScenario){
   if(!ipScenario||!ipScenario->GroupStatus()||ipScenario->GetParentGroup())
     return(FALSE);
   try{
-    ListOfTestCaseInfo lgc=ipScenario->GetListOfGC();
+    ListOfTestCaseInfo &lgc=ipScenario->BlockListOfGC();
     ListOfTestCaseInfo::iterator start=lgc.begin();
     ListOfTestCaseInfo::iterator end=lgc.end();
     std::for_each(start,end,ApplyDelete);
@@ -439,11 +444,10 @@ TestCaseInfo::ProcessInfo(PROCESS_INFORMATION iProcInfo){
 }
 
 //-----------------------------------------------------------------------------
-// GetListOfGC
+// BlockListOfGC
 //-----------------------------------------------------------------------------
 ListOfTestCaseInfo
-&TestCaseInfo::GetListOfGC(void){
-  DEBUGCHK(Scenario());
+&TestCaseInfo::BlockListOfGC(void){
   HANDLE h_mutex=0;
   h_mutex=OpenMutex(SYNCHRONIZE,TRUE,GC_MUTEX);
   if(!h_mutex){
@@ -455,7 +459,7 @@ ListOfTestCaseInfo
   }
   WaitForSingleObject(h_mutex,INFINITE);
   CloseHandle(h_mutex);
-  return(Scenario()->l_gc);
+  return(l_gc);
 }
 
 //-----------------------------------------------------------------------------
@@ -472,8 +476,8 @@ TestCaseInfo::ReleaseListOfGC(void){
     SetLastError(excep._error);
     throw(excep);
   }
+  DEBUGCHK(ReleaseMutex(h_mutex));
   CloseHandle(h_mutex);
-  ReleaseMutex(h_mutex);
   return;
 }
 
@@ -523,12 +527,12 @@ TestCaseInfo
 
   TestCaseInfo *ptc=0;
   try{
-    ListOfTestCaseInfo lgc=GetListOfGC();
+    ListOfTestCaseInfo &lgc=BlockListOfGC();
     do{
       if(!lgc.size())
         break;
-      ListOfTestCaseInfo::iterator iter=pscenario->l_gc.begin();
-      for(;iter!=pscenario->l_gc.end();iter++){
+      ListOfTestCaseInfo::iterator iter=lgc.begin();
+      for(;iter!=lgc.end();iter++){
         TestCaseInfo *pttc=(*iter);
         if(!pttc)
           continue;

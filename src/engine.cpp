@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-07 12:02:31 dhruva>
+// Time-stamp: <2003-10-08 16:16:50 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -23,15 +23,16 @@
 void InitGlobals(void);
 DWORD WINAPI JobNotifyTH(PVOID);
 DWORD WINAPI CreateManagedProcesses(PVOID);
+DWORD WINAPI MemoryPollTH(PVOID lpParameter);
 TestCaseInfo *GetTestCaseInfos(const char *ifile);
-void CALLBACK MemoryPollCB(PVOID lpParameter,BOOLEAN TimerOrWaitFired);
+BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *ipScenario);
 PROC_INFO *GetHandlesToActiveProcesses(HANDLE h_Job);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 
 //--------------------------- GLOBAL VARIABLES --------------------------------
 FILE *g_LogFile;                   // Handle to log file
 HANDLE g_hIOCP;                    // Completion port that receives Job notif
-HANDLE g_hThreadIOCP;              // Completion port listening thread
+TestCaseInfo *g_pScenario;         // Pointer to Scenario
 //--------------------------- GLOBAL VARIABLES --------------------------------
 
 //------------------------ IMPLEMENTATION BEGINS ------------------------------
@@ -44,7 +45,7 @@ void
 InitGlobals(void){
   g_LogFile=0;
   g_hIOCP=0;
-  g_hThreadIOCP=0;
+  g_pScenario=0;
   return;
 }
 
@@ -240,42 +241,71 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
 }
 
 //-----------------------------------------------------------------------------
-// MemoryPollCB
-//  This method actually gets the process's memory information. This is called
-//  by the timer object at specified intervals till process is alive
+// MemoryPollTH
+//  This is called by the timer object at specified intervals till process
+//  is alive
 //-----------------------------------------------------------------------------
-void
-CALLBACK MemoryPollCB(PVOID lpParameter,
-                      BOOLEAN TimerOrWaitFired){
-  if(!TimerOrWaitFired)
-    return;
-
-  HANDLE h_job=0;
-  h_job=OpenJobObject(JOB_OBJECT_QUERY,TRUE,JOB_NAME);
-  if(!h_job)
-    return;
-  PROC_INFO *pharr=GetHandlesToActiveProcesses(h_job);
-  CloseHandle(h_job);
-  h_job=0;
-
-  for(SIZE_T ii=0;pharr[ii].h_proc;ii++){
-    HANDLE h_proc=pharr[ii].h_proc;
-    PROCESS_MEMORY_COUNTERS pmc={0};
-    SIZE_T pid=pharr[ii].u_pid;
-    do{
-      if(!GetProcessMemoryInfo(h_proc,&pmc,sizeof(pmc))){
-        fprintf(g_LogFile,"%d:Memory usage fail:IMI\n",pid);
-        break;;
-      }
-      // Actual RAM pmc.WorkingSetSize;
-      fprintf(g_LogFile,"%d:Memory usage:%d\n",pid,pmc.WorkingSetSize);
-    }while(0);
-    CloseHandle(h_proc);
+DWORD WINAPI
+MemoryPollTH(PVOID lpParameter){
+  if(!lpParameter)
+    return(1);
+  BOOLEAN fDone=FALSE;
+  TestCaseInfo *pScenario=(TestCaseInfo *)lpParameter;
+  HANDLE h_mutex=0;
+  h_mutex=OpenMutex(SYNCHRONIZE,TRUE,"MEMORY_MUTEX");
+  if(!h_mutex)
+    return(1);
+  while(1){
+    WaitForSingleObject(h_mutex,INFINITE);
+    ActiveProcessMemoryDetails(pScenario);
+    ReleaseMutex(h_mutex);
+    Sleep(2000);
   }
-  fflush(g_LogFile);
-  delete [] pharr;
-  pharr=0;
-  return;
+  CloseHandle(h_mutex);
+  return(0);
+}
+
+//-----------------------------------------------------------------------------
+// ActiveProcessMemoryDetails
+//  This method actually gets the process's memory information.
+//-----------------------------------------------------------------------------
+BOOLEAN
+ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
+  BOOLEAN ret=FALSE;
+  DEBUGCHK(ipScenario);
+  if(!ipScenario)
+    return(ret);
+  try{
+    ListOfTestCaseInfo &lgc=ipScenario->BlockListOfGC();
+    ListOfTestCaseInfo::iterator iter=lgc.begin();
+    for(;iter!=lgc.end();iter++){
+      TestCaseInfo *ptc=(*iter);
+      PROCESS_MEMORY_COUNTERS pmc={0};
+      PROCESS_INFORMATION pin=ptc->ProcessInfo();
+      if(!pin.hProcess)
+        continue;
+      DWORD pstat=0;
+      GetExitCodeProcess(pin.hProcess,&pstat);
+      if(STILL_ACTIVE!=pstat)
+        continue;
+      do{
+        if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc))){
+          fprintf(g_LogFile,"%d:Memory usage fail:IMI\n",pin.dwProcessId);
+          break;;
+        }
+        // Actual RAM pmc.WorkingSetSize;
+        fprintf(g_LogFile,"%d:Memory usage:%d\n",pin.dwProcessId,
+                pmc.WorkingSetSize);
+      }while(0);
+    }
+    ipScenario->ReleaseListOfGC();
+    fflush(g_LogFile);
+    ret=TRUE;
+  }
+  catch(CRAMPException excep){
+    DEBUGCHK(0);
+  }
+  return(ret);
 }
 
 //-----------------------------------------------------------------------------
@@ -330,7 +360,7 @@ JobNotifyTH(PVOID){
           break;
       }
       fflush(g_LogFile);
-      CompKey=1;
+      // CompKey=1;
     }
   }
   return(0);
@@ -347,8 +377,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
   int ret=-1;
   InitGlobals();
 
-  if(getenv("DEBUG"))
-    DebugBreak();
+  DEBUGCHK(!getenv("CRAMP_DEBUG"));
 
   // Get the command line stuff
   int argcW=0;
@@ -372,24 +401,24 @@ WINAPI WinMain(HINSTANCE hinstExe,
   fprintf(g_LogFile,"Starting scenario:%s\n",scenario);
 
   HANDLE h_job=0;
+  HANDLE h_memtimer=0;
+  HANDLE h_arr[4];
+  h_arr[0]=0;
+  h_arr[1]=0;
+  h_arr[2]=0;
+  h_arr[3]=0;
+
   h_job=CreateJobObject(NULL,JOB_NAME);
   if(!h_job)
     return(ret);
-  HANDLE h_memtimer=0;
 
   do{
-    // Add a timed memory polling on the job for active processes
-    if(!CreateTimerQueueTimer(&h_memtimer,NULL,
-                              MemoryPollCB,(void *)h_job,
-                              1000,5000,0))
-      break;
-
     // Create an IO completion port to positively identify adding
     // or removal of processes into/from a job
     g_hIOCP=CreateIoCompletionPort(INVALID_HANDLE_VALUE,NULL,0,0);
 
     // Start the thread to monitor the job notifications
-    g_hThreadIOCP=chBEGINTHREADEX(NULL,0,JobNotifyTH,NULL,0,NULL);
+    h_arr[0]=chBEGINTHREADEX(NULL,0,JobNotifyTH,NULL,0,NULL);
 
     JOBOBJECT_ASSOCIATE_COMPLETION_PORT joacp;
     joacp.CompletionKey=(void *)COMPKEY_JOBOBJECT;
@@ -400,24 +429,31 @@ WINAPI WinMain(HINSTANCE hinstExe,
                             sizeof(joacp));
 
     // Parse the XML file and populate the list
-    TestCaseInfo *ptop=GetTestCaseInfos(scenario);
-    if(!ptop)
+    g_pScenario=GetTestCaseInfos(scenario);
+    if(!g_pScenario)
       break;
 
-    if(!CreateManagedProcesses(ptop))
+    h_arr[1]=CreateMutex(NULL,TRUE,"MEMORY_MUTEX");
+    DEBUGCHK(h_arr[1]);
+    ReleaseMutex(h_arr[1]);
+    h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,(PVOID)g_pScenario,0,NULL);
+    DEBUGCHK(h_arr[2]);
+
+    if(!CreateManagedProcesses(g_pScenario))
       fprintf(g_LogFile,"Error in run\n");
     fflush(g_LogFile);
 
-    TestCaseInfo::DeleteScenario(ptop);
-    ptop=0;
-
     // Post msg to terminate job monitoring thread and wait for termination
     PostQueuedCompletionStatus(g_hIOCP,0,COMPKEY_TERMINATE,NULL);
-    WaitForSingleObject(g_hThreadIOCP,INFINITE);
+    WaitForMultipleObjects(2,h_arr,TRUE,INFINITE);
+    TerminateThread(h_arr[2],0);
 
     // Clean up everything properly
     CloseHandle(g_hIOCP);
-    CloseHandle(g_hThreadIOCP);
+    for(SIZE_T xx=0;h_arr[xx];xx++){
+      CloseHandle(h_arr[xx]);
+      h_arr[xx]=0;
+    }
 
     // Return OKAY
     ret=0;
@@ -427,6 +463,10 @@ WINAPI WinMain(HINSTANCE hinstExe,
     CloseHandle(h_memtimer);
   if(h_job)
     CloseHandle(h_job);
+
+  if(!g_pScenario)
+    TestCaseInfo::DeleteScenario(g_pScenario);
+  g_pScenario=0;
 
   fprintf(g_LogFile,"Closing scenario:%s\n",scenario);
   fclose(g_LogFile);

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 12:03:41 dhruva>
+// Time-stamp: <2003-10-08 16:00:05 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -60,7 +60,7 @@ public:
   // Use this to ensure thread safety
   // Call ReleaseListOfGC() after using the list
   // Can throw CRAMPException on error
-  std::list<TestCaseInfo *> &GetListOfGC(void);
+  std::list<TestCaseInfo *> &BlockListOfGC(void);
   // Call this to release the MUTEX object
   // Can throw CRAMPException on error
   void ReleaseListOfGC(void);
@@ -118,14 +118,16 @@ private:
   TestCaseInfo *p_scenario;         // Head pointer to search based on UID
 
   std::list<std::string> l_log;     // Test case Log list
-  std::list<TestCaseInfo *> l_gc;   // For garbage collection:At Scenerio
   std::list<TestCaseInfo *> l_tci;  // For groups, test cases are stored here
 
   // Process monitoring data
   std::string s_pname;              // Process name
   PROCESS_INFORMATION pi_procinfo;  // Test case's process information
-
   HANDLE h_deltimer;                // Timer to kill proc if time limited
+
+public:
+  // For garbage collection:At Scenerio
+  static std::list<TestCaseInfo *> l_gc;
 
 private:
   TestCaseInfo();
