@@ -1,14 +1,9 @@
 #!perl
-## Time-stamp: <2003-10-31 15:18:00 dhruva>
+## Time-stamp: <2003-10-31 15:41:47 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
-## Usage : perl profileDB.pl ARGS
-## ARGS  : PID DUMP [ALL|RAW|TICK|ADDR]|
-##         PID QUERY STAT [APPEND]
-##         PID QUERY THREADS [APPEND]
-##         PID QUERY thread_id|ALL RAW|TICK limit [APPEND]
-##         PID QUERY ADDR function_address limit (-1 for count only) [APPEND]
+## Usage : perl -S profileDB.pl help
 ## Output: Results are written or appended to query.psf
 ## Desc  : Call SetDBFilters on all DB handles
 ##-----------------------------------------------------------------------------
@@ -47,14 +42,13 @@ $progname=~s,.*/,,;
 ## usage
 ##-----------------------------------------------------------------------------
 sub usage{
-    print"Usage : perl $progname ARGS
-ARGS  : PID DUMP [ALL|RAW|TICK|ADDR]|
+    print"usage : $progname ARGS
+ARGS  : PID DUMP ALL|RAW|TICK|ADDR
         PID QUERY STAT [APPEND]
         PID QUERY THREADS [APPEND]
         PID QUERY thread_id|ALL RAW|TICK limit [APPEND]
         PID QUERY ADDR function_address limit (-1 for count only) [APPEND]
-Output: Results are written or appended to query.psf
-";
+output: Results are written or appended to query.psf";
     return 0;
 }
 
