@@ -2,7 +2,7 @@
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2003-12-03 10:50:10 dhruva>
+;; Time-stamp: <2003-12-09 16:49:57 dhruva>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -14,7 +14,7 @@
 !define PRODUCT_PUBLISHER "Delmia Solutions Pvt Ltd"
 !define PRODUCT_WEB_SITE "http://www.delmia.com/"
 !define PRODUCT_DIR_REGKEY "Software\DELMIA\${PRODUCT_NAME}"
-!define PRODUCT_UNINST_KEY "Software\DELMIA\Uninstall\${PRODUCT_NAME}"
+!define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 !define ENV_KEY "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 
