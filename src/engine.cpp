@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-24 14:22:52 dhruva>
+// Time-stamp: <2003-12-01 17:40:56 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -28,6 +28,7 @@
 #include <string.h>
 #include <Tlhelp32.h>
 #include <WindowsX.h>
+#include <MAPIUTIL.H>
 
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 void InitGlobals(void);
@@ -607,7 +608,6 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
   if(!h_snapshot||!ipTestCase)
     return(FALSE);
 
-  PROCESS_MEMORY_COUNTERS pmc={0};
   PROCESS_INFORMATION pin=ipTestCase->ProcessInfo();
   if(!pin.hProcess)
     return(TRUE);
@@ -632,12 +632,32 @@ GetTestCaseMemoryDetails(HANDLE &h_snapshot,TestCaseInfo *&ipTestCase){
     ipTestCase->AddLog(msg);
 #endif
 
-    // Add process's RAM, later PDH
     do{
+      PROCESS_MEMORY_COUNTERS pmc={0};
       if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc)))
         break;
-      // Actual RAM pmc.WorkingSetSize;
-      sprintf(msg,"# RAM: %ld bytes",pmc.WorkingSetSize);
+
+      MEMORYSTATUS mem={0};
+      GlobalMemoryStatus(&mem);
+
+      FILETIME ft[4],ftr={0};
+      if(!GetProcessTimes(pin.hProcess,&ft[0],&ft[1],&ft[2],&ft[3]))
+        break;
+
+      ftr.dwLowDateTime=ft[2].dwLowDateTime+ft[3].dwLowDateTime;
+      ftr.dwHighDateTime=ft[2].dwHighDateTime+ft[3].dwHighDateTime;
+      SYSTEMTIME st={0};
+      if(!FileTimeToSystemTime(&ftr,&st))
+        break;
+
+      // Virtual size and private bytes
+      DWORD vs=0,pb=0;
+      sprintf(msg,"#%ld|%ld|%ld|%ld|%ld",
+              vs,
+              pb,
+              pmc.WorkingSetSize,
+              pmc.QuotaPagedPoolUsage,
+              mem.dwAvailPhys);
       ipTestCase->AddLog(msg);
     }while(0);
 

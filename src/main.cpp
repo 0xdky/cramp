@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-24 14:49:38 dhruva>
+// Time-stamp: <2003-12-01 17:51:40 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -151,6 +151,10 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
     // Run the engine
     ret=CreateManagedProcesses(g_CRAMP_Engine.g_pScenario);
+    long dest=1;
+    InterlockedCompareExchange(&dest,0,g_CRAMP_Engine.g_l_stopengine);
+    if(dest)
+      g_CRAMP_Engine.g_scenariostatus=ret;
 
     // Post msg to terminate job monitoring thread and wait for termination
     PostQueuedCompletionStatus(g_CRAMP_Engine.g_hIOCP,0,
@@ -167,36 +171,15 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
   // Get all exit status and delete the internal tree
   if(g_CRAMP_Engine.g_pScenario){
-    DWORD ec=0;
     ListOfTestCaseInfo &l_gc=g_CRAMP_Engine.g_pScenario->BlockListOfGC();
     ListOfTestCaseInfo::iterator iter=l_gc.begin();
     for(;iter!=l_gc.end();iter++){
       TestCaseInfo *ptc=(*iter);
-      if(!ptc||ptc->GroupStatus()||ptc->PseudoGroupStatus())
-        continue;
-      GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
-      if(ptc->SubProcStatus()){
-        if(ec)
-          sprintf(msg,"SP|KO|-1|%d",ec);
-        else
-          sprintf(msg,"SP|OK|0|%d",ec);
-        ptc->AddLog(msg);
-      }else if(ptc->ExeProcStatus()){
-        if(ec)
-          sprintf(msg,"TP|KO|-1|%d",ec);
-        else
-          sprintf(msg,"TP|OK|0|%d",ec);
-        ptc->AddLog(msg);
-      }
+      if(ptc)
+        ptc->AddLog();
     }
     g_CRAMP_Engine.g_pScenario->ReleaseListOfGC();
-
-    ret=g_CRAMP_Engine.g_scenariostatus;
-    if(g_CRAMP_Engine.g_scenariostatus)
-      sprintf(msg,"SC|KO|%d|%d",crampret,g_CRAMP_Engine.g_scenariostatus);
-    else
-      sprintf(msg,"SC|OK|%d|%d",crampret,g_CRAMP_Engine.g_scenariostatus);
-    g_CRAMP_Engine.g_pScenario->AddLog(msg);
+    g_CRAMP_Engine.g_pScenario->AddLog(g_CRAMP_Engine.g_scenariostatus);
 
     TestCaseInfo::DeleteScenario(g_CRAMP_Engine.g_pScenario);
     g_CRAMP_Engine.g_pScenario=0;

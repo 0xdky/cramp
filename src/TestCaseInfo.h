@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-17 12:38:24 dhruva>
+// Time-stamp: <2003-12-01 17:09:15 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -123,6 +123,9 @@ public:
 
   SIZE_T NumberOfRuns(void);
   void NumberOfRuns(SIZE_T iNumberOfRuns);
+
+  // For default details
+  void AddLog(DWORD iRetVal=0);
 
   void AddLog(std::string ilog);
 

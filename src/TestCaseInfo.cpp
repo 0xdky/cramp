@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-20 12:11:58 dhruva>
+// Time-stamp: <2003-12-01 17:43:56 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -755,6 +755,82 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
   }
   ipEntry->ReleaseListOfTCI();
   return(ret);
+}
+
+//-----------------------------------------------------------------------------
+// AddLog
+//-----------------------------------------------------------------------------
+void
+TestCaseInfo::AddLog(DWORD iRetVal){
+  if(!g_CRAMP_Engine.g_fLogFile)
+    return;
+
+  PROCESS_INFORMATION &pin=ProcessInfo();
+  if(!pin.dwProcessId)
+    return;
+
+  DWORD ec=0;
+  char type[32]="??";
+  char msg[BUFSIZE];
+  SYSTEMTIME st={0};
+  FILETIME ft[4],ftr={0};
+
+  if(u_uid==g_CRAMP_Engine.g_pScenario->u_uid)
+    pin.hProcess=GetCurrentProcess();
+
+  do{
+    if(SubProcStatus()){
+      strcpy(type,"SP");
+    }else if(ExeProcStatus()){
+      strcpy(type,"TP");
+    }else if(u_uid==g_CRAMP_Engine.g_pScenario->u_uid){
+      strcpy(type,"SC");
+    }
+
+    // Some sub procs are too fast to get proc handle
+    if(!pin.hProcess)
+      break;
+
+    GetExitCodeProcess(pin.hProcess,&ec);
+    if(!GetProcessTimes(pin.hProcess,
+                        &ft[0],&ft[1],&ft[2],&ft[3]))
+      break;
+    if(!FileTimeToLocalFileTime(&ft[0],&ft[2]))
+      break;
+
+    if(STILL_ACTIVE==ec){
+      SYSTEMTIME lst={0};
+      GetLocalTime(&lst);
+      if(!SystemTimeToFileTime(&lst,&ft[3]))
+        break;
+    }else{
+      if(!FileTimeToLocalFileTime(&ft[1],&ft[3]))
+        break;
+    }
+
+    ftr.dwLowDateTime=ft[3].dwLowDateTime-ft[2].dwLowDateTime;
+    ftr.dwHighDateTime=ft[3].dwHighDateTime-ft[2].dwHighDateTime;
+
+    if(!FileTimeToSystemTime(&ftr,&st))
+      break;
+
+    if(STILL_ACTIVE==ec)
+      ec=iRetVal;
+  }while(0);
+
+  if(ec)
+    sprintf(msg,"%s|KO|%ld:%ld:%ld:%ld|%d",
+            type,
+            st.wHour,st.wMinute,st.wSecond,st.wMilliseconds,
+            ec);
+  else
+    sprintf(msg,"%s|OK|%ld:%ld:%ld:%ld|%d",
+            type,
+            st.wHour,st.wMinute,st.wSecond,st.wMilliseconds,
+            ec);
+  AddLog(msg);
+
+  return;
 }
 
 //-----------------------------------------------------------------------------
