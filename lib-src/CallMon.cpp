@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 11:41:05 dhruva>
+// Time-stamp: <2003-10-31 18:46:03 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -56,6 +56,7 @@ static void _pexit()
     return;
   pth->exitProcedure(parentFramePtr,
                      &((ADDR*)framePtr)[3],endTime);
+  return;
 }
 
 // An entry point to which all instrumented
@@ -118,15 +119,14 @@ extern "C" __declspec(dllexport) __declspec(naked)
 
   // Instrumented code
   do{
-    long dest=0;
+    CallMonitor::TICKS entryTime;
+    CallMonitor::queryTicks(&entryTime); // Track entry time
 
     // Profiling is disabled
+    long dest=0;
     InterlockedCompareExchange(&dest,1,g_l_profile);
     if(dest)
       break;
-
-    CallMonitor::TICKS entryTime;
-    CallMonitor::queryTicks(&entryTime); // Track entry time
 
     ADDR framePtr;
     __asm mov DWORD PTR [framePtr], ebp
@@ -158,7 +158,6 @@ extern "C" __declspec(dllexport) __declspec(naked)
       }
 }
 #endif
-
 
 #ifdef PENTIUM
 void CallMonitor::queryTickFreq(TICKS *t)
@@ -211,6 +210,8 @@ DWORD CallMonitor::tlsSlot=0xFFFFFFFF;
 // CallMonitor
 //-----------------------------------------------------------------------------
 CallMonitor::CallMonitor(){
+  d_in=0;
+  d_out=0;
   queryTicks(&threadStartTime);
 }
 
@@ -278,13 +279,15 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
   ci.funcAddr=funcAddr;
 
   ci.startTime=0;
+  ci.ProfileTime=0;
   ci.parentFrame=parentFramePtr;
   ci.origRetAddr=*retAddrPtr;
   ci.entryTime=entryTime;
   logEntry(ci);
 
   *retAddrPtr=(ADDR)_pexitThunk; // Redirect eventual return to local thunk
-  queryTicks(&ci.startTime);    // Track approx. start time
+  queryTicks(&ci.startTime);     // Track approx. start time
+  d_in=ci.startTime-entryTime;   // Profiler time for entry
   return;
 }
 
@@ -298,6 +301,7 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
                            const TICKS &endTime){
   // Pops shadow stack until finding a call record
   // that matches the current stack layout.
+  TICKS proftime=0;
   while(1){
     // Retrieve original call record
     CallInfo &ci=callInfoStack.back();
@@ -305,12 +309,19 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
     *retAddrPtr=ci.origRetAddr;
     if(ci.parentFrame==parentFramePtr){
       logExit(ci,true);         // Record normal exit
+      proftime=ci.ProfileTime;
       callInfoStack.pop_back();
-      return;
+      CallInfo &caller=callInfoStack.back();
+      caller.ProfileTime+=proftime;
+      break;
     }
     logExit(ci,false);          // Record exceptional exit
     callInfoStack.pop_back();
   }
+  CallInfo &ci=callInfoStack.back();
+  CallMonitor::queryTicks(&d_out);
+  d_out=d_out-endTime;
+  ci.ProfileTime+=d_in+d_out;   // Profiler time for exit
   return;
 }
 

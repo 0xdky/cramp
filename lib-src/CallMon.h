@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 10:22:21 dhruva>
+// Time-stamp: <2003-10-31 18:46:29 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: The CallMonitor class definition
@@ -100,12 +100,13 @@ protected:
   // Record for a single call
   struct CallInfo
   {
-    ADDR funcAddr;    // Function address
-    ADDR parentFrame; // Parent stack frame address
-    ADDR origRetAddr; // Function return address
-    TICKS entryTime;  // Time function was called
-    TICKS startTime;  // Time function started
-    TICKS endTime;    // Time function returned
+    ADDR funcAddr;              // Function address
+    ADDR parentFrame;           // Parent stack frame address
+    ADDR origRetAddr;           // Function return address
+    TICKS entryTime;            // Time function was called
+    TICKS startTime;            // Time function started
+    TICKS endTime;              // Time function returned
+    TICKS ProfileTime;          // Collective profile time of all children
   };
   typedef std::vector<CallInfo> CallInfoStack;
 
@@ -121,6 +122,9 @@ protected:
   CallInfoStack callInfoStack;
   TICKS threadStartTime;  // Time thread started
 
+  // Ticks to be subtracted in the caller function
+  TICKS d_in;
+  TICKS d_out;
 private:
   static DWORD tlsSlot;
 };
