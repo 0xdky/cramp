@@ -12,11 +12,19 @@ Begin VB.Form frmMainui
    ScaleHeight     =   8445
    ScaleWidth      =   9285
    Begin VB.Frame fraMainUI 
+      Height          =   6900
+      Index           =   2
+      Left            =   840
+      TabIndex        =   56
+      Top             =   840
+      Width           =   7450
+   End
+   Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
-      Left            =   720
+      Left            =   6120
       TabIndex        =   2
-      Top             =   600
+      Top             =   -6960
       Visible         =   0   'False
       Width           =   7450
       Begin MSComctlLib.ImageList SortIconImageList 
@@ -402,7 +410,7 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   0
-      Left            =   720
+      Left            =   1080
       TabIndex        =   1
       Top             =   7920
       Width           =   7450
@@ -539,7 +547,7 @@ Begin VB.Form frmMainui
       EndProperty
    End
    Begin VB.Menu mnuFile 
-      Caption         =   "&File"
+      Caption         =   " &File"
       Begin VB.Menu mnuNew 
          Caption         =   "&New"
          Shortcut        =   ^N
@@ -548,7 +556,18 @@ Begin VB.Form frmMainui
          Caption         =   "&Open"
          Shortcut        =   ^O
       End
-      Begin VB.Menu mnuSpace 
+      Begin VB.Menu mnuSpace0 
+         Caption         =   "-"
+      End
+      Begin VB.Menu mnuNewList 
+         Caption         =   "N&ew Scenario List"
+         Shortcut        =   ^E
+      End
+      Begin VB.Menu mnuOpenList 
+         Caption         =   "Open Scenario &List"
+         Shortcut        =   ^L
+      End
+      Begin VB.Menu mnuSpace1 
          Caption         =   "-"
       End
       Begin VB.Menu mnuSave 
@@ -958,14 +977,23 @@ End Sub
 'End the CRAMP application
 '***********************************************************
 Private Sub mnuExit_Click()
-    WriteIntoDB
+    Dim stFrameType As ScType
+    stFrameType = GetScType
     
-    SaveIntoMRUFile
+    If Not stFrameType = stList Then
+        
+        WriteIntoDB
     
-    If Not CheckSaveStatus Then
-        Exit Sub
+        SaveIntoMRUFile
+        
+        If Not CheckSaveStatus Then
+            Exit Sub
+        Else
+          CleanUp 'pie added this code
+        End If
     Else
-      CleanUp 'pie added this code
+        'Add code for scenario list frame stuff
+        
     End If
     
     Set ADOXcatalog = Nothing
@@ -977,16 +1005,23 @@ Private Sub mnuExit_Click()
 End Sub
 
 '***********************************************************
-'Always update the DB incase the user has modified it
+'
 '***********************************************************
 Private Sub mnuFile_Click()
     
-    WriteIntoDB
+    HideShowMenuItems
+    
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    
+    If stFrameType = stFile Then
+        WriteIntoDB
+    End If
     
 End Sub
 
 '***********************************************************
-'Always update the DB incase the user has modified it
+'
 '***********************************************************
 Private Sub mnuHelp_Click()
     
@@ -1065,6 +1100,13 @@ Private Sub mnuNew_Click()
         
     AddNodeInTreeView , otScenario
     
+End Sub
+
+Private Sub mnuNewList_Click()
+    ShowListFrame
+    RenameFormWindow
+    gSaveFlag = False
+    mnuSave.Enabled = False
 End Sub
 
 Private Sub mnuNodeMoveDown_Click()
@@ -1154,12 +1196,23 @@ Private Sub mnuOpen_Click()
     
 End Sub
 
+Private Sub mnuOpenList_Click()
+    ShowListFrame
+End Sub
+
 '***********************************************************
 'Save the current scenario file
 '***********************************************************
 Private Sub mnuSave_Click()
         
-    SaveFunction gCurFileName
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    
+    If stFrameType = stFile Then
+        SaveFunction gCurFileName
+    Else
+        SaveScList gCurScListFileName
+    End If
     
 End Sub
 
@@ -1168,11 +1221,17 @@ End Sub
 '***********************************************************
 Private Sub mnuSaveAs_Click()
     
-  If tspMainUI.SelectedItem.Caption = "Engine" Then
-    FileSaveAs
-  Else 'profiler
-    SaveLVInfoToExcel
-  End If
+  Dim stFrameType As ScType
+    stFrameType = GetScType
+    If stFrameType = stFile Then
+        If tspMainUI.SelectedItem.Caption = "Engine" Then
+            FileSaveAs
+        Else 'profiler
+            SaveLVInfoToExcel
+        End If
+    Else
+        ScListSaveAs
+    End If
     
 End Sub
 '***********************************************************
@@ -1674,7 +1733,7 @@ Private Sub Form_Resize()
   tspMainUI.Move 240, 240
   fraMainUI(0).Move 600, 840
   fraMainUI(1).Move 600, 840
-    
+  fraMainUI(2).Move 600, 840
   On Error Resume Next
   
   Dim l, t, w, h
@@ -1695,6 +1754,8 @@ Private Sub Form_Resize()
     fraMainUI(0).Width = tspMainUI.Width - (2 * (fraMainUI(0).Left - tspMainUI.Left))
     fraMainUI(0).Height = tspMainUI.Height - (1.5 * (fraMainUI(0).Top - tspMainUI.Top))
         
+    fraMainUI(2).Width = fraMainUI(0).Width
+    fraMainUI(2).Height = fraMainUI(0).Height
     With Me
       'move the tree listview
       l = .tvwNodes.Left

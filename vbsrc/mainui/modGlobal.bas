@@ -9,6 +9,8 @@ Public gNameList(1000) As String
 Public gDatabaseName As String
 Public gCurFileName As String
 Public gCurScenarioName As String
+Public gCurScListFileName As String
+Public gCurScListName As String
 Public gListViewNode As Node
 Public gSaveFlag As Boolean
 Public gMRUList(1, 3) As String
@@ -22,6 +24,12 @@ Public Enum ObjectType
     otScenario = 1
     otGroup = 2
     otTestcase = 3
+End Enum
+
+'To get/set the scenario/scenario list
+Public Enum ScType
+    stFile = 1
+    stList = 2
 End Enum
 
 '***********************************************************
@@ -67,6 +75,15 @@ Public Function nodeType(testNode As Node) As ObjectType
                 nodeType = otTestcase
         End Select
     End If
+End Function
+
+Public Function GetScType() As ScType
+    If frmMainui.fraMainUI(2).Visible Then
+        GetScType = stList
+    Else
+        GetScType = stFile
+    End If
+    
 End Function
 
 '****************************************************
@@ -332,6 +349,9 @@ Public Sub SetGlobalVariables()
     frmMainui.cmdRun.Enabled = False
     gCurFileName = gTEMPDir & "\Scenario1.xml"
     gCurScenarioName = "Scenario1"
+    gCurScListFileName = gTEMPDir & "\ScenarioList1.txt"
+    gCurScListName = "ScenarioList1"
+    
     gSaveFlag = False
 
 End Sub
@@ -345,6 +365,8 @@ Public Sub CleanAndRestart()
     ReinitialiseIds
 
     frmMainui.Show
+    frmMainui.fraMainUI(0).Visible = True
+    frmMainui.fraMainUI(2).Visible = False
     frmMainui.fraMainUI(0).Move 600, 840
     frmMainui.tvwNodes.Nodes.Clear
     frmMainui.lvwAttributes.ListItems.Clear
@@ -423,15 +445,70 @@ Public Sub DeleteRecord(ByVal nodeElement As Node)
 End Sub
 
 Public Sub RenameFormWindow()
-    If frmMainui.tspMainUI.SelectedItem.index = 2 Then
-        frmMainui.Caption = "CRAMP [" & _
-        LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
-        "]"
+    Dim stFrameType As ScType
+    stFrameType = GetScType
+    
+    If stFrameType = stFile Then
+        If frmMainui.tspMainUI.SelectedItem.index = 2 Then
+            frmMainui.Caption = "CRAMP [" & _
+            LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
+            "]"
+        Else
+            frmMainui.Caption = gCurScenarioName & " - CRAMP [" & _
+            LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
+            "]"
+        End If
     Else
-        frmMainui.Caption = gCurScenarioName & " - CRAMP [" & _
-        LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
-        "]"
+        frmMainui.Caption = gCurScListName & " - CRAMP [" & _
+            LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
+            "]"
     End If
+End Sub
+
+Public Sub HideShowMenuItems()
+    If frmMainui.tspMainUI.SelectedItem.index = 2 Then
+        'Profiler tab page is open, disable File menu item
+        frmMainui.mnuNew.Enabled = False
+        frmMainui.mnuOpen.Enabled = False
+        frmMainui.mnuNewList.Enabled = False
+        frmMainui.mnuOpenList.Enabled = False
+        frmMainui.mnuMRU(0).Enabled = False
+        frmMainui.mnuMRU(1).Enabled = False
+        frmMainui.mnuMRU(2).Enabled = False
+        frmMainui.mnuMRU(3).Enabled = False
+    Else
+        'Engine tab page is open, disable File menu item
+        frmMainui.mnuNew.Enabled = True
+        frmMainui.mnuOpen.Enabled = True
+        frmMainui.mnuNewList.Enabled = True
+        frmMainui.mnuOpenList.Enabled = True
+        frmMainui.mnuMRU(0).Enabled = True
+        frmMainui.mnuMRU(1).Enabled = True
+        frmMainui.mnuMRU(2).Enabled = True
+        frmMainui.mnuMRU(3).Enabled = True
+    End If
+
+End Sub
+
+Public Sub ShowListFrame()
+
+    'Check for current scenario save status
+    Dim RetStatus As Boolean
+    RetStatus = CheckSaveStatus
+    If Not RetStatus Then
+        Exit Sub
+    End If
+    
+    'Hide the current frame and show the desired one
+    Dim ii As Integer
+    
+    For ii = 0 To frmMainui.fraMainUI.Count - 1
+        frmMainui.fraMainUI(ii).Visible = False
+    Next ii
+    
+    frmMainui.fraMainUI(2).Visible = True
+    frmMainui.fraMainUI(2).Move 600, 840
+    
 End Sub
 
 Public Sub TestVBS()
@@ -530,6 +607,34 @@ Public Function CheckSaveStatus() As Boolean
     CheckSaveStatus = True
 End Function
 
+Public Function CheckScListSaveStatus() As Boolean
+    If gSaveFlag Then
+        Dim Msg, Style, Title, Response, MyString
+        Msg = "Do you want to save the changes you made to " & _
+                    gCurScListName & "?"
+        Style = vbYesNoCancel + vbExclamation
+        Title = "CRAMP"
+
+        Response = MsgBox(Msg, Style, Title)
+        Select Case Response
+            Case vbYes
+                If frmMainui.mnuSave.Enabled Then
+                    SaveFunction gCurFileName
+                ElseIf Not ScListSaveAs Then
+                    CheckScListSaveStatus = False
+                    Exit Function
+                End If
+                    
+            Case vbNo
+
+            Case vbCancel
+                CheckScListSaveStatus = False
+                Exit Function
+        End Select
+    End If
+    CheckScListSaveStatus = True
+End Function
+
 Public Sub SaveIntoMRUFile()
     Dim sFileName As String
     Dim ii As Integer
@@ -580,6 +685,43 @@ Public Sub SaveFunction(strFileName As String)
     gSaveFlag = False
 
 End Sub
+
+'************************************************************
+'
+'************************************************************
+Public Sub SaveScList(strFileName As String)
+    
+    gSaveFlag = False
+
+End Sub
+
+Public Function ScListSaveAs() As Boolean
+
+    frmMainui.dlgSelect.Flags = cdlOFNOverwritePrompt
+    frmMainui.dlgSelect.Filter = "TXT Files (*.txt)|*.txt"
+    If Not gCurScListFileName = "" Then
+        frmMainui.dlgSelect.FileName = gCurScListFileName
+    Else
+        frmMainui.dlgSelect.FileName = ""
+    End If
+    frmMainui.dlgSelect.ShowSave
+    
+    If frmMainui.dlgSelect.FileTitle <> "" Then
+        gCurScListName = Left(frmMainui.dlgSelect.FileTitle, _
+                                (Len(frmMainui.dlgSelect.FileTitle) - 4))
+        gCurScListName = frmMainui.dlgSelect.FileName
+        If Not gCurScListName = "" Then
+            SaveScList gCurScListName
+            frmMainui.mnuSave.Enabled = True
+            frmMainui.cmdRun.Enabled = True
+        End If
+        RenameFormWindow
+        ScListSaveAs = True
+    Else
+        ScListSaveAs = False
+    End If
+    
+End Function
 
 Public Sub UpdateMRUFileList(strFileName As String)
     Dim ii, jj As Integer
