@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 12:00:51 dhruva>
+// Time-stamp: <2003-11-03 15:20:00 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -192,7 +192,7 @@ TestCaseInfo::hashstring(const char *s){
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::SetIDREF(const char *iIDREF){
-  if(!iIDREF)
+  if(!iIDREF||!strlen(iIDREF))
     return;
 
   SIZE_T refid=hashstring(iIDREF);
