@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 09:04:45 dhruva>
+// Time-stamp: <2003-11-04 10:01:19 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -70,28 +70,33 @@ static void __declspec(naked) _pexitThunk()
     __asm ret
     }
 
-// Causes problems with (at least) msdev 6.0 sp 5,
-// because it clobbers registers
-#if 0
-// _penter is called on entry to each client function
-extern "C" __declspec(dllexport)
-  void _penter()
-{
-  CallMonitor::TICKS entryTime;
-  CallMonitor::queryTicks(&entryTime); // Track entry time
-
-  ADDR framePtr;
-  __asm mov DWORD PTR [framePtr], ebp
-
-    CallMonitor::threadObj().enterProcedure(
-      (ADDR)((unsigned *)framePtr)[0],
-      (ADDR)((unsigned *)framePtr)[1]-OFFSET_CALL_BYTES,
-      (ADDR*)&((unsigned *)framePtr)[2],
-      entryTime);
-}
-#else
 // Patch due to Derek Young:
 // _penter is called on entry to each client function
+#ifdef CRAMP_STUB
+extern "C" __declspec(dllexport) __declspec(naked)
+  void _penter()
+{
+  __asm
+  {
+    PUSH EBP
+      MOV  EBP , ESP
+      PUSH EAX
+      MOV  EAX , ESP
+      SUB  ESP , __LOCAL_SIZE
+      PUSHAD
+      }
+
+  __asm
+  {
+    POPAD
+      ADD ESP , __LOCAL_SIZE
+      POP EAX
+      MOV ESP , EBP
+      POP EBP
+      RET
+      }
+}
+#else
 extern "C" __declspec(dllexport) __declspec(naked)
   void _penter()
 {
