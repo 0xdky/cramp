@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-27 18:50:24 dky>
+## Time-stamp: <2004-02-27 18:58:50 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profilefilter.pl
 ## Desc  : PERL script to apply filter to profile log files
@@ -56,22 +56,20 @@ sub MakeFilterString{
   open(FILTER,"<$f_filter") ||
     die("Failed in opening \"$f_filter\"");
 
-  my @filterlist=();
+  my %filterhash=();
   while (<FILTER>) {
     chomp();
     if (length($_)) {
       s/\s//g;
-      push(@filterlist,$_);
+      $filterhash{$_}=1;
     }
   }
   close(FILTER);
 
-
-  if ($#filterlist<0) {
-    return 1;
+  foreach (keys %filterhash) {
+    $g_filterstring="$_|".$g_filterstring;
   }
 
-  $g_filterstring=join('|',@filterlist);
   return 0;
 }
 
