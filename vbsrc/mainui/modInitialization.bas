@@ -45,8 +45,14 @@ End Sub
 '***********************************************************
 Public Sub GetEnvironmentVariable()
   gstrSpace = Space(1)
+  frmMainui.listitemText.Text = 100
+  gDicCountLower = 0
+  gDicCountUpper = frmMainui.listitemText.Text
+  frmMainui.nextCommand.Enabled = False
+  frmMainui.preCommand.Enabled = False
   'get the environment variable "CRAMP_PATH"
   gperlScript = gCRAMPPath + "/bin/profileDB.pl"
+  gperlScript = Replace(gperlScript, "\", "/")
   'get the environment variable "CRAMP_LOGPATH"
   gstrCLogPath = Environ("CRAMP_LOGPATH")
   gstrCLogPath = Replace(gstrCLogPath, "\", "/")
@@ -59,6 +65,7 @@ Public Sub GetEnvironmentVariable()
   
   'checking for the perl.exe -- in future
   gperlPath = gCRAMPPath + "/TOOLS/PERL/bin/wperl.exe"
+  gperlPath = Replace(gperlPath, "\", "/")
   IsFileExistAndSize gperlPath, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
     gperlPath = "wperl.exe"

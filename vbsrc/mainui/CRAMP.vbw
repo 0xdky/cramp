@@ -1,4 +1,4 @@
-frmMainui = 38, 34, 721, 717, , 13, 1, 640, 648, C
+frmMainui = 38, 34, 721, 717, Z, 13, 1, 640, 648, C
 modGlobal = 159, 10, 916, 741, C
 modXMLParse = 189, -4, 872, 613, C
 modDatabase = 286, 72, 1028, 750, 

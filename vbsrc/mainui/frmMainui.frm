@@ -4,21 +4,21 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8235
-   ClientLeft      =   5325
+   ClientHeight    =   8484
+   ClientLeft      =   5328
    ClientTop       =   3060
-   ClientWidth     =   8655
+   ClientWidth     =   8664
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8235
-   ScaleWidth      =   8655
+   ScaleHeight     =   8484
+   ScaleWidth      =   8664
    Begin VB.Frame fraMainUI 
-      Height          =   6900
+      Height          =   7308
       Index           =   1
       Left            =   480
       TabIndex        =   2
       Top             =   600
       Visible         =   0   'False
-      Width           =   7450
+      Width           =   7332
       Begin VB.Frame Frame4 
          Caption         =   "Profiling"
          Height          =   972
@@ -83,19 +83,42 @@ Begin VB.Form frmMainui
       End
       Begin VB.Frame Frame3 
          Caption         =   "Result"
-         Height          =   3612
+         Height          =   3972
          Left            =   240
          TabIndex        =   30
          Top             =   3120
          Width           =   6852
+         Begin VB.CommandButton preCommand 
+            Caption         =   "Previous"
+            Height          =   288
+            Left            =   5760
+            TabIndex        =   46
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.CommandButton nextCommand 
+            Caption         =   "Next"
+            Height          =   288
+            Left            =   4560
+            TabIndex        =   45
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.TextBox listitemText 
+            Height          =   288
+            Left            =   3360
+            TabIndex        =   44
+            Top             =   240
+            Width           =   972
+         End
          Begin MSComctlLib.ListView queryLV 
-            Height          =   3252
+            Height          =   3132
             Left            =   120
             TabIndex        =   31
-            Top             =   240
+            Top             =   720
             Width           =   6612
-            _ExtentX        =   11668
-            _ExtentY        =   5741
+            _ExtentX        =   11663
+            _ExtentY        =   5525
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
             FullRowSelect   =   -1  'True
@@ -105,6 +128,30 @@ Begin VB.Form frmMainui
             BorderStyle     =   1
             Appearance      =   1
             NumItems        =   0
+         End
+         Begin VB.Label Label1 
+            Caption         =   "Item range : "
+            Height          =   252
+            Left            =   2520
+            TabIndex        =   43
+            Top             =   240
+            Width           =   852
+         End
+         Begin VB.Label totLabel 
+            Caption         =   "Total items :"
+            Height          =   492
+            Left            =   1440
+            TabIndex        =   42
+            Top             =   240
+            Width           =   972
+         End
+         Begin VB.Label rngLabel 
+            Caption         =   "Visible items : "
+            Height          =   492
+            Left            =   120
+            TabIndex        =   41
+            Top             =   240
+            Width           =   1452
          End
       End
       Begin VB.Frame Frame2 
@@ -338,8 +385,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   4048
+         _ExtentX        =   9716
+         _ExtentY        =   4043
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -357,8 +404,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9710
-         _ExtentY        =   6165
+         _ExtentX        =   9716
+         _ExtentY        =   6160
          _Version        =   393217
          HideSelection   =   0   'False
          Style           =   7
@@ -366,13 +413,13 @@ Begin VB.Form frmMainui
       End
    End
    Begin MSComctlLib.TabStrip tspMainUI 
-      Height          =   7815
+      Height          =   8052
       Left            =   240
       TabIndex        =   0
       Top             =   240
-      Width           =   8175
-      _ExtentX        =   14420
-      _ExtentY        =   13785
+      Width           =   8172
+      _ExtentX        =   14415
+      _ExtentY        =   14203
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -998,26 +1045,38 @@ End Sub
 ' set process id combo box
 '***********************************************************
 Private Sub pidCombo_Click()
+  Screen.MousePointer = vbHourglass
   'set thread and address combo
   SetThreAndAddrCombo
   'set query text
   SetQueryText (staCombo.Text)
   'run perl script
-  'RunPerlScript
   RunPerlScriptWithCP
+  'store query.psf file into the dictionary
+  CreateDictionary
+  gDicCountLower = 0
+  gDicCountUpper = listitemText.Text
   'set list view
   SetValueInListView
+  HideShowNextPre
+  Screen.MousePointer = vbDefault
 End Sub
 
 '***********************************************************
 ' query command control
 '***********************************************************
 Private Sub queryCommand_Click()
+Screen.MousePointer = vbHourglass
 'run perl script
-'RunPerlScript
 RunPerlScriptWithCP
+'store query.psf file into the dictionary
+CreateDictionary
+gDicCountLower = 0
+gDicCountUpper = listitemText.Text
 'set query.psf output into the listview
 SetValueInListView
+HideShowNextPre
+Screen.MousePointer = vbDefault
 End Sub
 
 '***********************************************************
@@ -1053,6 +1112,7 @@ End Sub
 ' run command control
 '***********************************************************
 Private Sub runCommand_Click()
+  Screen.MousePointer = vbHourglass
   'set orocess id combobox
   SetProcessIDCombo
   If queryCommand.Enabled = True Then
@@ -1061,11 +1121,16 @@ Private Sub runCommand_Click()
     'set query text
     SetQueryText (staCombo.Text)
     'run perl script
-    'RunPerlScript
     RunPerlScriptWithCP
+    'store query.psf file into the dictionary
+    CreateDictionary
+    gDicCountLower = 0
+    gDicCountUpper = listitemText.Text
     'set list view
     SetValueInListView
+    HideShowNextPre
   End If
+  Screen.MousePointer = vbDefault
 End Sub
 
 '***********************************************************
@@ -1094,7 +1159,7 @@ Private Sub rtCombo_LostFocus()
 End Sub
 
 '***********************************************************
-' start-stop
+' start button click
 '***********************************************************
 Private Sub startCommand_Click()
   
@@ -1112,6 +1177,9 @@ Private Sub startCommand_Click()
   DoProfiling ("START")
 End Sub
 
+'***********************************************************
+' stop button click
+'***********************************************************
 Private Sub stopCommand_Click()
   If compnameText.Text = "" Then
     MsgBox "ERROR :: Null computer name"
@@ -1128,6 +1196,9 @@ Private Sub stopCommand_Click()
 
 End Sub
 
+'***********************************************************
+' flush button click
+'***********************************************************
 Private Sub flushproCommand_Click()
   
   If compnameText.Text = "" Then
@@ -1144,9 +1215,52 @@ Private Sub flushproCommand_Click()
   DoProfiling ("FLUSH")
 End Sub
 
+'***********************************************************
+' listview double click
+'***********************************************************
 Private Sub queryLV_DblClick()
   If queryLV.ColumnHeaders.Count <> 0 Then
     SetValueFromLV
+  End If
+End Sub
+'***********************************************************
+' next button click
+'***********************************************************
+Private Sub nextCommand_Click()
+  Screen.MousePointer = vbHourglass
+  gDicCountLower = gDicCountUpper
+  gDicCountUpper = gDicCountUpper + listitemText.Text
+  SetValueInListView
+  HideShowNextPre
+  Screen.MousePointer = vbDefault
+End Sub
+'***********************************************************
+' previous button click
+'***********************************************************
+Private Sub preCommand_Click()
+  Screen.MousePointer = vbHourglass
+  
+  If Not (gDicCountLower - listitemText.Text) < 0 Then
+    gDicCountLower = gDicCountLower - listitemText.Text
+    gDicCountUpper = gDicCountLower + listitemText.Text
+  Else
+    gDicCountUpper = gDicCountLower
+    gDicCountLower = 0
+  End If
+  
+  SetValueInListView
+  HideShowNextPre
+  Screen.MousePointer = vbDefault
+End Sub
+'***********************************************************
+' listitem lost focus
+'***********************************************************
+Private Sub listitemText_LostFocus()
+  If Not IsNumeric(listitemText.Text) Then
+    listitemText.Text = 100
+  End If
+  If listitemText.Text > 2000 Then
+    listitemText.Text = 2000
   End If
 End Sub
 

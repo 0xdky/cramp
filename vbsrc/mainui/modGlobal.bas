@@ -28,6 +28,7 @@ End Enum
 ' My Code Starts Here
 '***********************************************************
 Public gobjFSO As New FileSystemObject
+Public gobjDic As New Dictionary
 Public gstrCLogPath As String
 Public gperlPath As String
 Public gperlScript As String
@@ -37,6 +38,8 @@ Public giFileName As String
 Public gstrSlection As String
 Public gstrRawTick As String
 Public gFileSize As Long
+Public gDicCountUpper As Long
+Public gDicCountLower As Long
 Public gIsFileExist As Boolean
 Public starstopBool As Boolean
 
@@ -701,7 +704,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = True
-           .AddLabel.Visible = False
+           .addLabel.Visible = False
            .limitLabel.Visible = True
            'move controls
            .limitText.Move 4680, 480
@@ -717,14 +720,14 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .AddLabel.Visible = True
+           .addLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
            .addrCombo.Move 2520, 480
            .limitText.Move 3720, 480
            .appendCheck.Move 4670, 480
            'move lables
-           .AddLabel.Move 2520, 240
+           .addLabel.Move 2520, 240
            .limitLabel.Move 3720, 240
       Case "STAT"
            'hide-show controls
@@ -735,7 +738,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .AddLabel.Visible = False
+           .addLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
            .appendCheck.Move 2510, 480
@@ -801,9 +804,10 @@ End Function
 ' set array in the respective combo box
 '***********************************************************
 Public Sub SetValueInComboBox(tmpArry() As String, tmpStr As String, thisCombo As ComboBox)
-  Dim aa As Integer
+  Dim aa As Long
   Dim strArray As String
   
+  aa = 0
   thisCombo.Clear
   For aa = 0 To UBound(tmpArry)
     strArray = tmpArry(aa)
@@ -833,60 +837,56 @@ Public Sub SetValueInListView()
 Dim MyArray, MyFileStream, ThisFileText, arrFile
 Dim cur As MousePointerConstants
 Dim strQuery As String
-Dim ss As Integer
-Dim aa As Integer
+Dim ss As Long
+Dim aa As Long
+Dim kk As Long
 
-Screen.MousePointer = vbHourglass
+ss = 0
 aa = 0
+kk = 0
 
 With frmMainui
   'clean up list view
   .queryLV.ListItems.Clear
   .queryLV.View = lvwReport
     
-  'run perl script
-  'RunPerlScript
-  'RunPerlScriptWithCP
-    
   'insert headers
   AddHeaders
     
   IsFileExistAndSize giFileName, gIsFileExist, gFileSize
   If gIsFileExist <> False And gFileSize <> 0 Then
-    'read the query.psf file line by line
-    Set MyFileStream = gobjFSO.OpenTextFile(giFileName, 1, False)
-      
-    Do Until MyFileStream.AtEndOfStream
-      strQuery = MyFileStream.ReadLine
+    If gobjDic.Count > 0 Then
+      For kk = gDicCountLower To gDicCountUpper - 1
+        If gobjDic.Exists(kk) Then
+          'strdic = gobjDic.Item(ss)
+          strQuery = gobjDic.Item(kk)
+          MyArray = Split(strQuery, "|", -1, 1)
         
-      MyArray = Split(strQuery, "|", -1, 1)
-      If UBound(MyArray) > .queryLV.ColumnHeaders.Count - 1 Then
-        'insert headers
-        .staCombo.Text = "THREADS"
-        AddHeaders
-        .staCombo.Text = "STAT"
-      End If
+          If UBound(MyArray) > .queryLV.ColumnHeaders.Count - 1 Then
+            'insert headers
+            .staCombo.Text = "THREADS"
+            AddHeaders
+            .staCombo.Text = "STAT"
+          End If
         
-      For ss = 0 To UBound(MyArray)
-        'storing thread
-        strQuery = MyArray(ss)
-        If ss = 0 Then
-          .queryLV.ListItems.Add = strQuery
+          For ss = 0 To UBound(MyArray)
+            strQuery = MyArray(ss)
+            If ss = 0 Then
+              .queryLV.ListItems.Add = strQuery
+            Else
+              .queryLV.ListItems(aa + 1).SubItems(ss) = strQuery
+            End If
+          Next
+          aa = aa + 1
         Else
-          .queryLV.ListItems(aa + 1).SubItems(ss) = strQuery
-          '.queryLV.SelectedItem.SubItems(4)
+          Exit For
         End If
       Next
-      aa = aa + 1
-    Loop
-    'Close file
-    MyFileStream.Close
-    gIsFileExist = False
-    gFileSize = 0
+      gIsFileExist = False
+      gFileSize = 0
+    End If
   End If
 End With
-
-Screen.MousePointer = vbDefault
 
 End Sub
 '***********************************************************
@@ -921,11 +921,15 @@ With frmMainui
   End If
 End With
 End Sub
+'***********************************************************
+' start profiling
+'***********************************************************
 Public Sub DoProfiling(arg As String)
   Dim hInst As Long
   Dim strProCon As String
   
   strProCon = gCRAMPPath & "/bin/ProfileControl.exe"
+  strProCon = Replace(strProCon, "\", "/")
   IsFileExistAndSize strProCon, gIsFileExist, gFileSize
   If gIsFileExist = False And gFileSize = 0 Then
     MsgBox "ERROR :: File " & strProCon & " not found"
@@ -945,6 +949,9 @@ Public Sub DoProfiling(arg As String)
   gFileSize = 0
 End Sub
 
+'***********************************************************
+' action on double click in listview
+'***********************************************************
 Public Sub SetValueFromLV()
   Dim lvValue As String
   
@@ -977,6 +984,9 @@ Public Sub SetValueFromLV()
   End If
 End Sub
 
+'***********************************************************
+' run perl script through createprocess
+'***********************************************************
 Public Sub RunPerlScriptWithCP()
    
     Dim Command As String
@@ -1018,3 +1028,53 @@ Public Sub RunPerlScriptWithCP()
      MsgBox "ERROR :: Query Argument Is Not Exists"
    End If
 End Sub
+
+'***********************************************************
+' create dictionary
+'***********************************************************
+Public Sub CreateDictionary()
+  Dim strQuery As String
+  Dim i As Long
+  Dim MyFileStream
+
+  i = 0
+  Set MyFileStream = gobjFSO.OpenTextFile(giFileName, 1, False)
+  'clean up dictionary
+  If gobjDic.Count > 0 Then
+    gobjDic.removeAll
+  End If
+  'cteate dictionary
+  Do Until MyFileStream.AtEndOfStream
+    strQuery = MyFileStream.ReadLine
+    If strQuery <> "" Then
+      gobjDic.Add i, strQuery
+      i = i + 1
+    End If
+  Loop
+  'Close file
+  MyFileStream.Close
+End Sub
+'***********************************************************
+' hide-show of next and previous button
+'***********************************************************
+Public Sub HideShowNextPre()
+  'hide-show next
+  If gobjDic.Count <= gDicCountUpper Then
+    frmMainui.nextCommand.Enabled = False
+  Else
+    frmMainui.nextCommand.Enabled = True
+  End If
+  
+  If gDicCountLower <> 0 Then
+    frmMainui.preCommand.Enabled = True
+  Else
+    frmMainui.preCommand.Enabled = False
+  End If
+  
+  'set range lable
+  frmMainui.rngLabel.Caption = "Visible items : " & Chr(13) & gDicCountLower & " - " _
+                               & gDicCountLower + frmMainui.queryLV.ListItems.Count
+  'set total lable
+  frmMainui.totLabel.Caption = "Total items : " & Chr(13) & gobjDic.Count
+End Sub
+
