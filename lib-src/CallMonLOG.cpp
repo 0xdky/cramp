@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 18:37:47 dhruva>
+// Time-stamp: <2003-10-31 21:28:18 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -53,21 +53,9 @@ void
 CallMonLOG::logExit(CallInfo &ci,bool normalRet){
   TICKS ticksPerSecond;
   TICKS elapsedticks=(ci.endTime-ci.startTime-ci.ProfileTime);
+
   queryTickFreq(&ticksPerSecond);
 
-#if BUFFERED_OUTPUT
-  char logmsg[256];
-  sprintf(logmsg,"%d|%08X|%d|%d|%I64d|%I64d",
-          _tid,
-          ci.funcAddr,
-          callInfoStack.size(),
-          !normalRet,
-          (ci.endTime-ci.startTime)/(ticksPerSecond/1000),
-          (ci.endTime-ci.startTime));
-  EnterCriticalSection(&g_cs_log);
-  g_LogQueue.push(logmsg);
-  LeaveCriticalSection(&g_cs_log);
-#else
   std::hash_map<ADDR,FuncInfo>::iterator iter;
   EnterCriticalSection(&g_cs_prof);
   iter=g_hFuncCalls.find(ci.funcAddr);
@@ -92,7 +80,6 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
           elapsedticks/(ticksPerSecond/1000),
           elapsedticks);
   LeaveCriticalSection(&g_cs_log);
-#endif
 
   return;
 }

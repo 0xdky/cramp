@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 18:46:29 dhruva>
+// Time-stamp: <2003-10-31 21:36:55 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: The CallMonitor class definition
@@ -122,9 +122,6 @@ protected:
   CallInfoStack callInfoStack;
   TICKS threadStartTime;  // Time thread started
 
-  // Ticks to be subtracted in the caller function
-  TICKS d_in;
-  TICKS d_out;
 private:
   static DWORD tlsSlot;
 };

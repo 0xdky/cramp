@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 18:58:38 dhruva>
+// Time-stamp: <2003-10-31 21:36:03 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -210,8 +210,6 @@ DWORD CallMonitor::tlsSlot=0xFFFFFFFF;
 // CallMonitor
 //-----------------------------------------------------------------------------
 CallMonitor::CallMonitor(){
-  d_in=0;
-  d_out=0;
   queryTicks(&threadStartTime);
 }
 
@@ -287,7 +285,7 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
 
   *retAddrPtr=(ADDR)_pexitThunk; // Redirect eventual return to local thunk
   queryTicks(&ci.startTime);     // Track approx. start time
-  d_in=ci.startTime-entryTime;   // Profiler time for entry
+
   return;
 }
 
@@ -309,21 +307,25 @@ CallMonitor::exitProcedure(ADDR parentFramePtr,
     *retAddrPtr=ci.origRetAddr;
     if(ci.parentFrame==parentFramePtr){
       logExit(ci,true);         // Record normal exit
-      proftime=ci.ProfileTime;
+      proftime=ci.ProfileTime+(ci.startTime-ci.entryTime); // Delta IN
       callInfoStack.pop_back();
-      CallInfo &caller=callInfoStack.back();
-      caller.ProfileTime+=proftime;
+      if(callInfoStack.empty())
+        return;
       break;
     }
     logExit(ci,false);          // Record exceptional exit
+    proftime+=ci.ProfileTime+(ci.startTime-ci.entryTime); // Delta IN
     callInfoStack.pop_back();
   }
   if(callInfoStack.empty())
     return;
-  CallInfo &ci=callInfoStack.back();
-  CallMonitor::queryTicks(&d_out);
-  d_out=d_out-endTime;
-  ci.ProfileTime+=d_in+d_out;   // Profiler time for exit
+
+  CallInfo &prev=callInfoStack.back();
+  TICKS leave=0;
+  CallMonitor::queryTicks(&leave);
+  leave=leave-endTime;
+  prev.ProfileTime+=leave+proftime; // Profiler time for exit
+
   return;
 }
 
