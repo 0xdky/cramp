@@ -31,7 +31,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   13
             Top             =   3480
-            Width           =   972
+            Width           =   1212
          End
          Begin VB.CheckBox countColHSCHB 
             Caption         =   "Count"
@@ -39,7 +39,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   12
             Top             =   3180
-            Width           =   972
+            Width           =   1212
          End
          Begin VB.CheckBox timeColHSCHB 
             Caption         =   "Time(ns)"
@@ -47,7 +47,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   11
             Top             =   2880
-            Width           =   972
+            Width           =   1212
          End
          Begin VB.CheckBox excepColHSCHB 
             Caption         =   "Exception"
@@ -55,7 +55,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   10
             Top             =   2580
-            Width           =   972
+            Width           =   1212
          End
          Begin VB.CheckBox depthColHSCHB 
             Caption         =   "Depth"
@@ -63,7 +63,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   9
             Top             =   2280
-            Width           =   852
+            Width           =   1212
          End
          Begin VB.CheckBox modColHSCHB 
             Caption         =   "Module"
@@ -71,7 +71,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   8
             Top             =   1980
-            Width           =   972
+            Width           =   1212
          End
          Begin VB.CheckBox maxtickColHSCHB 
             Caption         =   "Max ticks"
@@ -79,7 +79,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   7
             Top             =   1380
-            Width           =   972
+            Width           =   1212
          End
          Begin VB.CheckBox totticksColHSCHB 
             Caption         =   "Total ticks"
@@ -87,7 +87,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   6
             Top             =   1680
-            Width           =   972
+            Width           =   1212
          End
          Begin VB.CheckBox numColHSCHB 
             Caption         =   "Number"
@@ -95,7 +95,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   5
             Top             =   1080
-            Width           =   852
+            Width           =   1212
          End
          Begin VB.CheckBox addrColHSCHB 
             Caption         =   "Address"
@@ -103,7 +103,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   4
             Top             =   780
-            Width           =   852
+            Width           =   1212
          End
          Begin VB.CheckBox funcColHSCHB 
             Caption         =   "Function"
@@ -111,7 +111,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   3
             Top             =   480
-            Width           =   852
+            Width           =   1212
          End
          Begin VB.CheckBox threColHSCHB 
             Caption         =   "Thread"
@@ -119,7 +119,7 @@ Begin VB.Form frmLVColHS
             Left            =   120
             TabIndex        =   2
             Top             =   180
-            Width           =   972
+            Width           =   1212
          End
       End
       Begin VB.Label Label1 
