@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 12:37:21 dhruva>
+// Time-stamp: <2003-10-15 12:46:38 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -522,6 +522,8 @@ JobNotifyTH(LPVOID){
           break;
         case JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS:
           ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
+          if(!ptc)
+            break;
           {
             DWORD ec=0;
             GetExitCodeProcess(ptc->ProcessInfo().hProcess,&ec);
