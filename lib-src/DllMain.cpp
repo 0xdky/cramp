@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-25 13:51:47 dhruva>
+// Time-stamp: <2003-10-25 15:32:07 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -44,10 +44,10 @@ BOOL OnProcessEnd(void);
 void FlushLogQueue(void);
 
 //-----------------------------------------------------------------------------
-// CRAMP_DumpFunctionInfo
+// CRAMP_FlushProfileLogs
 //-----------------------------------------------------------------------------
 extern "C" __declspec(dllexport)
-  void CRAMP_DumpFunctionInfo(void){
+  void CRAMP_FlushProfileLogs(void){
   // Usually this iscalled to collect all logs
   // Hence, flush all logs before getting logs
   FlushLogQueue();
@@ -325,7 +325,7 @@ BOOL
 OnProcessEnd(void){
   InterlockedExchange(&g_l_stoplogging,1);
   FlushLogQueue();
-  CRAMP_DumpFunctionInfo();
+  CRAMP_FlushProfileLogs();
   DeleteCriticalSection(&g_cs_log);
   DeleteCriticalSection(&g_cs_prof);
   return(TRUE);
