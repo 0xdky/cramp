@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmLVColHS 
+Begin VB.Form frmLVColHS
    BorderStyle     =   5  'Sizable ToolWindow
    Caption         =   "Hide-Show Column"
    ClientHeight    =   4476
@@ -13,19 +13,19 @@ Begin VB.Form frmLVColHS
    ScaleWidth      =   1944
    ShowInTaskbar   =   0   'False
    StartUpPosition =   3  'Windows Default
-   Begin VB.Frame tottickColHSCHB 
+   Begin VB.Frame tottickColHSCHB
       Height          =   4392
       Left            =   120
       TabIndex        =   0
       Top             =   0
       Width           =   1692
-      Begin VB.Frame Frame3 
+      Begin VB.Frame Frame3
          Height          =   3852
          Left            =   120
          TabIndex        =   1
          Top             =   360
          Width           =   1452
-         Begin VB.CheckBox ticksColHSCHB 
+         Begin VB.CheckBox ticksColHSCHB
             Caption         =   "Ticks"
             Height          =   252
             Left            =   120
@@ -33,7 +33,7 @@ Begin VB.Form frmLVColHS
             Top             =   3480
             Width           =   1212
          End
-         Begin VB.CheckBox countColHSCHB 
+         Begin VB.CheckBox countColHSCHB
             Caption         =   "Count"
             Height          =   252
             Left            =   120
@@ -41,7 +41,7 @@ Begin VB.Form frmLVColHS
             Top             =   3180
             Width           =   1212
          End
-         Begin VB.CheckBox timeColHSCHB 
+         Begin VB.CheckBox timeColHSCHB
             Caption         =   "Time(ns)"
             Height          =   252
             Left            =   120
@@ -49,15 +49,15 @@ Begin VB.Form frmLVColHS
             Top             =   2880
             Width           =   1212
          End
-         Begin VB.CheckBox excepColHSCHB 
-            Caption         =   "Exception"
+         Begin VB.CheckBox excepColHSCHB
+            Caption         =   "Raw Ticks"
             Height          =   270
             Left            =   120
             TabIndex        =   10
             Top             =   2580
             Width           =   1212
          End
-         Begin VB.CheckBox depthColHSCHB 
+         Begin VB.CheckBox depthColHSCHB
             Caption         =   "Depth"
             Height          =   252
             Left            =   120
@@ -65,7 +65,7 @@ Begin VB.Form frmLVColHS
             Top             =   2280
             Width           =   1212
          End
-         Begin VB.CheckBox modColHSCHB 
+         Begin VB.CheckBox modColHSCHB
             Caption         =   "Module"
             Height          =   252
             Left            =   120
@@ -73,7 +73,7 @@ Begin VB.Form frmLVColHS
             Top             =   1980
             Width           =   1212
          End
-         Begin VB.CheckBox maxtickColHSCHB 
+         Begin VB.CheckBox maxtickColHSCHB
             Caption         =   "Max ticks"
             Height          =   252
             Left            =   120
@@ -81,7 +81,7 @@ Begin VB.Form frmLVColHS
             Top             =   1380
             Width           =   1212
          End
-         Begin VB.CheckBox totticksColHSCHB 
+         Begin VB.CheckBox totticksColHSCHB
             Caption         =   "Total ticks"
             Height          =   288
             Left            =   120
@@ -89,7 +89,7 @@ Begin VB.Form frmLVColHS
             Top             =   1680
             Width           =   1212
          End
-         Begin VB.CheckBox numColHSCHB 
+         Begin VB.CheckBox numColHSCHB
             Caption         =   "Number"
             Height          =   252
             Left            =   120
@@ -97,7 +97,7 @@ Begin VB.Form frmLVColHS
             Top             =   1080
             Width           =   1212
          End
-         Begin VB.CheckBox addrColHSCHB 
+         Begin VB.CheckBox addrColHSCHB
             Caption         =   "Address"
             Height          =   252
             Left            =   120
@@ -105,7 +105,7 @@ Begin VB.Form frmLVColHS
             Top             =   780
             Width           =   1212
          End
-         Begin VB.CheckBox funcColHSCHB 
+         Begin VB.CheckBox funcColHSCHB
             Caption         =   "Function"
             Height          =   252
             Left            =   120
@@ -113,7 +113,7 @@ Begin VB.Form frmLVColHS
             Top             =   480
             Width           =   1212
          End
-         Begin VB.CheckBox threColHSCHB 
+         Begin VB.CheckBox threColHSCHB
             Caption         =   "Thread"
             Height          =   288
             Left            =   120
@@ -122,7 +122,7 @@ Begin VB.Form frmLVColHS
             Width           =   1212
          End
       End
-      Begin VB.Label Label1 
+      Begin VB.Label Label1
          Caption         =   "Hide - Show Column"
          Height          =   204
          Left            =   120
@@ -170,9 +170,9 @@ End Sub
 
 Private Sub excepColHSCHB_Click()
   If excepColHSCHB.Value = 0 Then
-    ReorderColumnPosition "Exception", False
+    ReorderColumnPosition "Raw Ticks", False
   Else
-    ReorderColumnPosition "Exception", True
+    ReorderColumnPosition "Raw Ticks", True
   End If
 End Sub
 
@@ -217,13 +217,13 @@ Private Sub threColHSCHB_Click()
 End Sub
 
 Private Sub ticksColHSCHB_Click()
-  
+
   If ticksColHSCHB.Value = 0 Then
     ReorderColumnPosition "Ticks", False
   Else
     ReorderColumnPosition "Ticks", True
   End If
-  
+
 End Sub
 
 Private Sub timeColHSCHB_Click()
@@ -241,4 +241,3 @@ Private Sub totticksColHSCHB_Click()
     ReorderColumnPosition "Total ticks", True
   End If
 End Sub
-
