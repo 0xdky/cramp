@@ -1,8 +1,9 @@
+;; -*-buffer-cleanup-p:t-*-
 ;;-----------------------------------------------------------------------------
 ;; File: CRAMP.nsi
 ;; Desc: CRAMP installer generation script for Null Soft Installer
 ;; NSI : http://nsis.sourceforge.net/
-;; Time-stamp: <2004-06-21 18:03:52 dky>
+;; Time-stamp: <2004-09-21 17:00:38 dky>
 ;;-----------------------------------------------------------------------------
 ;; mm-dd-yyyy  History                                                     user
 ;; 11-26-2003  Cre                                                          dky
@@ -14,7 +15,7 @@
 !define PRODUCT_WEB_SITE "http://www.delmia.com/"
 !define PRODUCT_DIR_REGKEY "Software\DELMIA\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_KEY \
-        "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+	"Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 !define ENV_KEY "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 
@@ -76,7 +77,7 @@ Function .onInit
   ifErrors relog cont
 relog:
    MessageBox MB_ICONINFORMATION|MB_OK \
-              "Insufficient previlages! Login as administrator and retry"
+	      "Insufficient previlages! Login as administrator and retry"
    Abort
 cont:
 FunctionEnd
@@ -111,9 +112,9 @@ Section "!CRAMP Engine" SEC01
   CreateDirectory "$SMPROGRAMS\CRAMP\docs"
   CreateShortCut "$SMPROGRAMS\CRAMP\docs\CRAMP.lnk" "$INSTDIR\docs\CRAMP.ppt"
   CreateShortCut "$SMPROGRAMS\CRAMP\docs\Test Baseclass.lnk" \
-                 "$INSTDIR\docs\DPEBaseClass.ppt"
+		 "$INSTDIR\docs\DPEBaseClass.ppt"
   CreateShortCut "$SMPROGRAMS\CRAMP\docs\CAA Interfaces.lnk" \
-                 "$INSTDIR\docs\CAAV5ItfDoc.ppt"
+		 "$INSTDIR\docs\CAAV5ItfDoc.ppt"
 
   push $R0
   push $R1
@@ -175,30 +176,37 @@ SectionEnd
 Section "STAF" SEC03
   SetOverwrite ifnewer
   SetOutPath "$INSTDIR\TOOLS\STAF\bin"
-  File /r "\Applications\AutoTest\STAF\bin\*"
+  File /r "\Applications\STAF\bin\*"
 
   CreateDirectory "$SMPROGRAMS\CRAMP"
   CreateShortCut "$SMPROGRAMS\CRAMP\STAF Server.lnk" \
-                 "$INSTDIR\TOOLS\STAF\bin\STAFProc.exe" "" \
-                 "$INSTDIR\TOOLS\STAF\bin\STAFProc.ico" "" \
-                 SW_SHOWMINIMIZED "" "STAF RPC server"
+		 "$INSTDIR\TOOLS\STAF\bin\STAFProc.exe" "" \
+		 "$INSTDIR\TOOLS\STAF\bin\STAFProc.ico" "" \
+		 SW_SHOWMINIMIZED "" "STAF server"
 
   push $R0
   GetFullPathName /SHORT $R0 $INSTDIR
+
+  ExecShell "" "$INSTDIR\TOOLS\STAF\bin\INSTSRV.exe" \
+  	    "STAF $INSTDIR\TOOLS\STAF\bin\SRVANY.exe" SW_SHOWMINIMIZED
+
   WriteRegExpandStr HKLM "${ENV_KEY}" "STAF_PATH" "$R0\TOOLS\STAF"
   WriteRegExpandStr HKLM "${ENV_KEY}" "STAFCONVDIR" "%STAF_PATH%\bin"
-  WriteRegExpandStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
-                         "STAF Server" \
-        "%CRAMP_PATH%\bin\noconsole.exe %STAF_PATH%\bin\STAFProc.exe"
 
+  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\STAF\Parameters" \
+			 "AppDirectory" "$R0\TOOLS\STAF"
+  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\STAF\Parameters" \
+			 "Application" "$R0\TOOLS\STAF\bin\STAFProc.exe"
+  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\STAF\Parameters" \
+			 "AppParameters" ""
 
   FileOpen $R0 $INSTDIR\TOOLS\STAF\bin\stafpool.cfg w
   ifErrors StafError
 
   push $R1
   ReadRegStr $R1 HKLM \
-             "SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName" \
-             ComputerName
+	     "SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName" \
+	     ComputerName
   StrCpy $R1 "$R1$\n"
   FileWrite $R0 $R1
   pop $R1
@@ -221,7 +229,7 @@ SectionEnd
 
 Section -AdditionalIcons
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" \
-              "URL" "${PRODUCT_WEB_SITE}"
+	      "URL" "${PRODUCT_WEB_SITE}"
 
   CreateShortCut "$SMPROGRAMS\CRAMP\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
   CreateShortCut "$SMPROGRAMS\CRAMP\Uninstall.lnk" "$INSTDIR\uninst.exe"
@@ -234,17 +242,17 @@ Section -Post
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "Version" ${PRODUCT_VERSION}
 
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-              "DisplayName" "$(^Name)"
+	      "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-              "UninstallString" "$INSTDIR\uninst.exe"
+	      "UninstallString" "$INSTDIR\uninst.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-              "DisplayIcon" "$INSTDIR\bin\CRAMP.exe"
+	      "DisplayIcon" "$INSTDIR\bin\CRAMP.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-              "DisplayVersion" "${PRODUCT_VERSION}"
+	      "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-              "URLInfoAbout" "${PRODUCT_WEB_SITE}"
+	      "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" \
-              "Publisher" "${PRODUCT_PUBLISHER}"
+	      "Publisher" "${PRODUCT_PUBLISHER}"
 
   # To refresh the environment variables
   SetRebootFlag true
@@ -255,7 +263,7 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC01} "CRAMP Win32 test engine"
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC02} "CRAMP Win32 profiler"
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC03} \
-                                    "Software Test Automation Framework"
+				    "Software Test Automation Framework"
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC04} "PERL - 5.9.1 (+ extra modules)"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
@@ -263,7 +271,7 @@ Function un.onUninstSuccess
   HideWindow
   IfRebootFlag end
   MessageBox MB_ICONINFORMATION|MB_OK \
-             "$(^Name) was successfully removed from your computer."
+	     "$(^Name) was successfully removed from your computer."
 end:
 FunctionEnd
 
@@ -274,15 +282,18 @@ Function un.onInit
   ifErrors relog cont
 relog:
    MessageBox MB_ICONINFORMATION|MB_OK \
-              "Insufficient previlages! Login as administrator and retry"
+	      "Insufficient previlages! Login as administrator and retry"
    Abort
 cont:
   MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 \
-             "Are you sure you want to completely uninstall $(^Name)?" IDYES +2
+	     "Are you sure you want to completely uninstall $(^Name)?" IDYES +2
   Abort
 FunctionEnd
 
 Section Uninstall
+  ExecShell "" "$INSTDIR\TOOLS\STAF\bin\SC.exe" "STOP STAF" SW_SHOWMINIMIZED
+  ExecShell "" "$INSTDIR\TOOLS\STAF\bin\SC.exe" "DELETE STAF" SW_SHOWMINIMIZED
+
   Delete /REBOOTOK "$DESKTOP\CRAMP.lnk"
   Delete /REBOOTOK "$INSTDIR\bin\*"
   Delete /REBOOTOK "$INSTDIR\TOOLS\STAF\bin\*"
@@ -303,8 +314,9 @@ Section Uninstall
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_LOGSIZE"
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_CALLDEPTH"
   DeleteRegValue HKLM "${ENV_KEY}" "CRAMP_PROFILE_MAXCALLLIMIT"
-  DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" \
-                 "STAF Server"
+
+  DeleteRegKey HKLM "SYSTEM\CurrentControlSet\Services\STAF"
+
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegValue HKLM "${PRODUCT_DIR_REGKEY}" "PERM"
   DeleteRegValue HKLM "${PRODUCT_DIR_REGKEY}" "Version"
@@ -314,7 +326,7 @@ Section Uninstall
 
 RestartMsg:
   MessageBox MB_ICONINFORMATION|MB_SETFOREGROUND|MB_YESNO|MB_DEFBUTTON2 \
-             "Reboot to complete $(^Name) uninstallation?" IDYES boot IDNO end
+	     "Reboot to complete $(^Name) uninstallation?" IDYES boot IDNO end
 boot:
   Reboot
 end:
