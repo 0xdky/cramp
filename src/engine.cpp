@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-10 13:56:46 dhruva>
+// Time-stamp: <2003-10-10 17:40:42 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -33,9 +33,11 @@
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 void InitGlobals(void);
 int DumpLogsToXML(char *logfile);
+DWORD WINAPI MailSlotTH(PVOID);
 DWORD WINAPI JobNotifyTH(PVOID);
 DWORD WINAPI CreateManagedProcesses(PVOID);
 DWORD WINAPI MemoryPollTH(PVOID lpParameter);
+BOOLEAN WriteMailSlot(char *msg,char *server);
 TestCaseInfo *GetTestCaseInfos(const char *ifile);
 BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *ipScenario);
 PROC_INFO *GetHandlesToActiveProcesses(HANDLE h_Job);
@@ -223,6 +225,10 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
     // Set some process information
     porigtc->ProcessInfo(pi);
     porigtc->AddLog("MESSAGE|OKAY|PROC|Created process");
+
+    // Write to mail slot
+    sprintf(msg,"Created process %s",str.c_str());
+    WriteMailSlot(msg,"pchiwi7deg");
 
     if(blocked){
       ResumeThread(pi.hThread);
@@ -477,11 +483,12 @@ WINAPI WinMain(HINSTANCE hinstExe,
 
   HANDLE h_job=0;
   HANDLE h_memtimer=0;
-  HANDLE h_arr[4];
+  HANDLE h_arr[5];
   h_arr[0]=0;
   h_arr[1]=0;
   h_arr[2]=0;
   h_arr[3]=0;
+  h_arr[4]=0;
 
   h_job=CreateJobObject(NULL,JOB_NAME);
   if(!h_job)
@@ -511,8 +518,14 @@ WINAPI WinMain(HINSTANCE hinstExe,
     h_arr[1]=CreateMutex(NULL,TRUE,"MEMORY_MUTEX");
     DEBUGCHK(h_arr[1]);
     ReleaseMutex(h_arr[1]);
+
+    // Memory polling thread
     h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,(PVOID)g_pScenario,0,NULL);
     DEBUGCHK(h_arr[2]);
+
+    // Mail slot server thread
+    h_arr[3]=chBEGINTHREADEX(NULL,0,MailSlotTH,(PVOID)g_pScenario,0,NULL);
+    DEBUGCHK(h_arr[3]);
 
     sprintf(msg,"MESSAGE|OKAY|SCENARIO|File: %s",scenario);
     g_pScenario->AddLog(msg);
@@ -525,6 +538,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
     PostQueuedCompletionStatus(g_hIOCP,0,COMPKEY_TERMINATE,NULL);
     WaitForMultipleObjects(2,h_arr,TRUE,INFINITE);
     TerminateThread(h_arr[2],0);
+    TerminateThread(h_arr[3],0);
 
     // Clean up everything properly
     CloseHandle(g_hIOCP);
@@ -605,4 +619,106 @@ DumpLogsToXML(char *logfile){
   }
   XMLPlatformUtils::Terminate();
   return(0);
+}
+
+//-----------------------------------------------------------------------------
+// MailSlotTH
+//-----------------------------------------------------------------------------
+DWORD WINAPI
+MailSlotTH(PVOID){
+  DWORD ret=1;
+  HANDLE h_mail=0;
+  LPSTR lpszSlotName = "\\\\.\\mailslot\\cramp_mailslot";
+  h_mail=CreateMailslot(lpszSlotName,0,MAILSLOT_WAIT_FOREVER,NULL);
+  DEBUGCHK(!(h_mail==INVALID_HANDLE_VALUE));
+
+  // Mail slot server loop
+  while(1){
+    Sleep(1000);
+
+    DWORD cbMessage=0,cMessage=0,cbRead=0;
+    BOOL fResult;
+    LPSTR lpszBuffer;
+    DWORD cAllMessages;
+    HANDLE h_event;
+    OVERLAPPED ov;
+
+    h_event=CreateEvent(NULL,FALSE,FALSE,"CRAMP_MAILSLOT");
+    DEBUGCHK(h_event);
+    ov.Offset=0;
+    ov.OffsetHigh=0;
+    ov.hEvent=h_event;
+    fResult=GetMailslotInfo(h_mail,
+                            (LPDWORD)NULL,
+                            &cbMessage,
+                            &cMessage,
+                            (LPDWORD)NULL);
+    DEBUGCHK(fResult);
+    if(cbMessage==MAILSLOT_NO_MESSAGE)
+      continue;
+    cAllMessages=cMessage;
+
+    // Mail slot loop
+    while(cMessage){
+      lpszBuffer=(LPSTR)GlobalAlloc(GPTR,cbMessage);
+      DEBUGCHK(lpszBuffer);
+      lpszBuffer[0]='\0';
+      fResult=ReadFile(h_mail,
+                       lpszBuffer,
+                       cbMessage,
+                       &cbRead,
+                       &ov);
+      if(fResult)
+        g_pScenario->AddLog(lpszBuffer);
+
+      GlobalFree((HGLOBAL)lpszBuffer);
+      fResult=GetMailslotInfo(h_mail,
+                              (LPDWORD)NULL,
+                              &cbMessage,
+                              &cMessage,
+                              (LPDWORD)NULL);
+      DEBUGCHK(fResult);
+    }
+  }
+  return(ret);
+}
+
+//-----------------------------------------------------------------------------
+// WriteMailSlot
+//  Sample code to be implemented in the remote processes
+//-----------------------------------------------------------------------------
+BOOLEAN
+WriteMailSlot(char *msg,char *server){
+  if(!msg||!server)
+    return(FALSE);
+  BOOLEAN ret=FALSE;
+  HANDLE h_file=0;
+  DWORD cbWritten=0;
+  char msname[MAX_PATH];
+  sprintf(msname,"\\\\%s\\mailslot\\cramp_mailslot",server);
+  h_file=CreateFile(msname,
+                    GENERIC_WRITE,
+                    FILE_SHARE_READ,
+                    NULL,
+                    OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL,
+                    NULL);
+  DEBUGCHK(!(h_file==INVALID_HANDLE_VALUE));
+
+  // Get the host computer name
+  DWORD cchBuff=256;
+  TCHAR buff[256];
+  LPTSTR lpszSystemInfo;
+  lpszSystemInfo=buff;
+  DEBUGCHK(GetComputerName(lpszSystemInfo,&cchBuff));
+
+  // Format the message and write
+  TCHAR msgbuff[1024];
+  cchBuff=sprintf(msgbuff,"%s:%s",lpszSystemInfo,msg);
+  ret=WriteFile(h_file,msgbuff,cchBuff+1,&cbWritten,NULL);
+  DEBUGCHK(ret);
+
+  ret=CloseHandle(h_file);
+  DEBUGCHK(ret);
+  return(ret);
 }
