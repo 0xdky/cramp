@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- Time-stamp: <2004-04-01 15:12:18 dky> -->
+<html>
+  <title>
+    CRAMP installation
+  </title>
+
+  <head>
+    <center>
+      <hr/>
+      CRAMP Installation<br/>
+      Please read this document before installing CRAMP on your system.<br/>
+      <tt>
+        <u>Updated on:</u>
+        <font color="RED">
+          <script language="JavaScript">
+            document.write(document.lastModified);
+          </script>
+        </font>
+      </tt>
+      <hr/>
+    </center>
+  </head>
+
+  <body>
+
+    <p>
+      <b>Accessing CRAMP binaries and source</b><br/>
+      <ul>
+        <li>For latest binaries and other related files, please follow the link
+          <a href="http://wolfdei/cgi-bin/crampsetups.pl">
+            <b>CRAMP Installations</b></a></li>
+        <li>This project is hosted on <b>CVS</b>. To get the latest sources</li>
+        <ul>
+          <li>Get a CVS Client for Windows from <a href="http://www.cvsnt.org">
+              http://www.cvsnt.org/</a></li>
+          <li><b>cvs -z3 -d:pserver:anoncvs@wolfdei:D:/CRAMP/CVSREPOSITORY
+              checkout cramp</b></li>
+        </ul>
+      </ul>
+    </p>
+
+    <p>
+      CRAMP installation CD contains thee files, 'README.html', 'autorun.inf'
+      and '<b>CRAMP-XX.YY.ZZ.exe</b>'. Where <b>XX</b> is the major release
+      number, <b>YY</b> is minor release number and <b>ZZ</b> is trivial
+      release number. Double click on the <b>CRAMP-XX.YY.ZZ.exe</b> and
+      installation wizard will guide you through the installation procedure.
+    </p>
+
+    <p>
+      <ul>
+        <b>By default four components are installed, they are:</b>
+        <ul>
+          <li><b>CRAMP Engine</b> - CRAMP Win32 test engine</li>
+	      <li><b>CRAMP Profiler</b> - CRAMP Win32 profiler</li>
+	      <li><b>STAF</b> - Software Test Automation Framework</li>
+	      <li><b>PERL</b> - PERL 5.9.0 (+extra modules)</li>
+        </ul>
+      </ul>
+    </p>
+
+    <p>
+      If you already have STAF and PERL installed on your system you need not
+      install them again here. But it is recommended that you install all the
+      four components provided with this setup. If you are not installing
+      STAF provided with this setup then set a system environment variable
+      STAF_PATH to folder containing TOP level STAF installation (folder
+      containing STAF's "bin" folder).
+    </p>
+
+    <p>
+      Select the destination folder and press Install. After installing the
+      selected components the setup will ask for rebooting the system. It is
+      recommended that you reboot your system after installing CRAMP since it
+      will automatically set the CRAMP specific environment variables and
+      will start the STAFProc.exe (and noconsole.exe, to hide console from
+      console applications).
+    </p>
+
+    <p>
+      After installation following environment system variables are set:
+      <ul>
+	    <li><b>CRAMP_LOGPATH</b>=C:\DOCUME~1\username\LOCALS~1\Temp</li>
+        [You can change the <b>CRAMP_LOGPATH</b> to your custom choice]
+	    <li><b>CRAMP_PATH</b>=installation_folder\CRAMP</li>
+	    <li><b>CRAMP_PROFILE_CALLDEPTH</b>=0</li>
+	    <li><b>CRAMP_PROFILE_LOGSIZE</b>=500</li>
+	    <li><b>CRAMP_PROFILE_MAXCALLLIMIT</b>=0</li>
+	    <li><b>STAF_PATH</b>=installation_folder\CRAMP\TOOLS\STAF</li>
+
+      </ul>
+    </p>
+
+    <center><hr/></center>
+    <b>
+      <center>
+        To understand more about all of the above system environment variables
+        please read the CRAMP documentation.
+      </center>
+    </b>
+
+    <br/>
+    <b>For any further details or help, please contact:</b>
+    <ul>
+      Core tools: <a href="mailto:dhruva_KRISHNAMURTHY@delmia.com">
+        Dhruva Krishnamurthy (dky)</a><br/>
+      Profiler UI: <a href="mailto:pragnesh_MISTRY@delmia.com">
+        Pragnesh Mistry (pie)</a><br/>
+      Profiler UI: <a href="mailto:shrish_SABNIS@delmia.com">
+        Shirish Sabnis (sjm)</a><br/>
+    </ul>
+    <center><hr/></center>
+
+  </body>
+</html>
