@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-31 15:10:43 dhruva>
+## Time-stamp: <2003-10-31 15:18:00 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -139,16 +139,17 @@ sub ProcessArgs{
     }
 
     @ARGV=map(uc,@ARGV);
-    if($#ARGV<1){
-        print STDERR "Error: Insufficient argument\n";
-        return 1;
-    }
 
     foreach(@ARGV){
         if(/HELP/){
             usage();
             return 0;
         }
+    }
+
+    if($#ARGV<1){
+        print STDERR "Error: Insufficient argument\n";
+        return 1;
     }
 
     if($ARGV[-1]=~/APPEND/){
