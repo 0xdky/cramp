@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-20 17:58:38 dhruva>
+// Time-stamp: <2003-11-24 14:22:12 dhruva>
 //-----------------------------------------------------------------------------
 // File  : main.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -42,9 +42,22 @@ WINAPI WinMain(HINSTANCE hinstExe,
   int crampret=0;
   InitGlobals();
 
-  // Ensure only 1 instance of CRAMPEngine is running
-  g_CRAMP_Engine.g_hJOB=OpenJobObject(JOB_OBJECT_QUERY,FALSE,JOB_NAME);
+  // Get the JOB name
+  sprintf(g_CRAMP_Engine.g_JOBNAME,
+          "%s#%d",JOB_NAME,GetCurrentProcessId());
+
+  // Prevent overwritting or overlapped monitoring
+  g_CRAMP_Engine.g_hJOB=OpenJobObject(JOB_OBJECT_QUERY,
+                                      FALSE,
+                                      g_CRAMP_Engine.g_JOBNAME);
   if(g_CRAMP_Engine.g_hJOB)
+    return(-1);
+
+  // Create a MUTEX for synchronizing (could be used to make this singleton)
+  g_CRAMP_Engine.g_hMUT=OpenMutex(MUTEX_MODIFY_STATE,FALSE,"CRAMP_MUTEX");
+  if(!g_CRAMP_Engine.g_hMUT)
+    g_CRAMP_Engine.g_hMUT=CreateMutex(NULL,FALSE,"CRAMP_MUTEX");
+  if(!g_CRAMP_Engine.g_hMUT)
     return(-1);
 
   char logdir[256]=".";
@@ -86,7 +99,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
   h_arr[1]=0;                   // Memory polling thread
   h_arr[2]=0;                   // Last must be 0
 
-  g_CRAMP_Engine.g_hJOB=CreateJobObject(NULL,JOB_NAME);
+  g_CRAMP_Engine.g_hJOB=CreateJobObject(NULL,g_CRAMP_Engine.g_JOBNAME);
   if(!g_CRAMP_Engine.g_hJOB)
     return(ret);
 
@@ -196,6 +209,11 @@ WINAPI WinMain(HINSTANCE hinstExe,
     DeleteTimerQueueTimer(NULL,g_CRAMP_Engine.g_hJOBTimer,NULL);
     CloseHandle(g_CRAMP_Engine.g_hJOBTimer);
     g_CRAMP_Engine.g_hJOBTimer=0;
+  }
+
+  if(g_CRAMP_Engine.g_hMUT){
+    CloseHandle(g_CRAMP_Engine.g_hMUT);
+    g_CRAMP_Engine.g_hMUT=0;
   }
 
   GlobalFree(argvW);

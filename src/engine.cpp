@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-20 12:10:02 dhruva>
+// Time-stamp: <2003-11-24 14:22:52 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -82,6 +82,7 @@ CRAMPServerMessaging::Process(void){
 void
 InitGlobals(void){
   g_CRAMP_Engine.g_hJOB=0;
+  g_CRAMP_Engine.g_hMUT=0;
   g_CRAMP_Engine.g_hIOCP=0;
   g_CRAMP_Engine.g_hJOBTimer=0;
 
