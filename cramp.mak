@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-14 11:09:25 dhruva>
+## Time-stamp: <2003-10-16 10:57:09 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -61,10 +61,6 @@ E_CCFLAGS=$(E_CFLAGS) $(CPP_DEBUG) $(MT_DEBUG) /GX
 E_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
 E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(XMLBASE1)/lib
 
-# For profiler
-P_CCFLAGS=$(CFLAGS) $(NOLOGO) $(CPP_DEBUG) /GX
-P_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
-
 # Add new files here
 COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
       $(OBJDIR)/XMLParse.obj $(OBJDIR)/ipc.obj $(OBJDIR)/ipcmsg.obj
@@ -92,22 +88,22 @@ engine: dirs $(COBJS)
              $(XML_LIB) /OUT:$(BINDIR)/$(ENGINE).exe
 # Compiling
 $(OBJDIR)/main.obj: $(SRCDIR)/main.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/main.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/main.cpp \
              /Fo$(OBJDIR)/main.obj
 $(OBJDIR)/ipc.obj: $(SRCDIR)/ipc.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/ipc.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/ipc.cpp \
              /Fo$(OBJDIR)/ipc.obj
 $(OBJDIR)/ipcmsg.obj: $(SRCDIR)/ipcmsg.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/ipcmsg.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/ipcmsg.cpp \
              /Fo$(OBJDIR)/ipcmsg.obj
 $(OBJDIR)/engine.obj: $(SRCDIR)/engine.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/engine.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/engine.cpp \
              /Fo$(OBJDIR)/engine.obj
 $(OBJDIR)/TestCaseInfo.obj: $(SRCDIR)/TestCaseInfo.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/TestCaseInfo.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/TestCaseInfo.cpp \
              /Fo$(OBJDIR)/TestCaseInfo.obj
 $(OBJDIR)/XMLParse.obj: $(SRCDIR)/XMLParse.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(SRCDIR)/XMLParse.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/XMLParse.cpp \
              /Fo$(OBJDIR)/XMLParse.obj
 
 $(SRCDIR)/main.cpp: $(SRCDIR)/engine.h
@@ -130,13 +126,13 @@ $(PROFLIB).dll: $(POBJS)
     @$(LINK) /DLL $(LINK_DEBUG) $(P_LDFLAGS) $(POBJS) imagehlp.lib \
              /OUT:$(BINDIR)/$(PROFLIB).dll
 $(OBJDIR)/CallMon.obj: $(SRCDIR)/CallMon.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(P_CCFLAGS) $(SRCDIR)/CallMon.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/CallMon.cpp \
              /Fo$(OBJDIR)/CallMon.obj
 $(OBJDIR)/CallMonLOG.obj: $(SRCDIR)/CallMonLOG.cpp
-    @$(CPP)  /c $(CPP_DEBUG) $(P_CCFLAGS) $(SRCDIR)/CallMonLOG.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/CallMonLOG.cpp \
              /Fo$(OBJDIR)/CallMonLOG.obj
 $(OBJDIR)/DllMain.obj: $(SRCDIR)/DllMain.cpp $(SRCDIR)/CallMonLOG.h
-    @$(CPP)  /c $(CPP_DEBUG) $(P_CCFLAGS) $(SRCDIR)/DllMain.cpp \
+    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/DllMain.cpp \
              /Fo$(OBJDIR)/DllMain.obj
 $(SRCDIR)/CallMon.cpp: $(SRCDIR)/CallMon.h $(DEPS)
 $(SRCDIR)/CallMonLOG.cpp: $(SRCDIR)/CallMonLOG.h $(DEPS)
