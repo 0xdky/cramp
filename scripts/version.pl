@@ -36,6 +36,6 @@ open(VER,">$ARGV[0]") || die("Cannot open \"$ARGV[0]\" version file");
 print VER "VERSION=\"$n_ver\"\n";
 close(VER);
 
-my $cmd="makensis.exe /V2 /DPRODUCT_VERSION=$n_ver CRAMP.nsi";
+my $cmd="makensis.exe /V2 /DPRODUCT_VERSION=$n_ver ./scripts/CRAMP.nsi";
 print "$cmd";
 system($cmd);

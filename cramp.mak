@@ -93,7 +93,6 @@ UTILITIES=$(BINDIR)/ProfileControl.exe $(BINDIR)/profileDB.exe
 all: cramp
 cramp: dirs res engine library utils vb test
 remake: clean cramp
-setup: remake installer
 
 # Dependancy to force a re-build
 DEPS=$(MAKEFILE) $(INCDIR)/cramp.h
@@ -226,13 +225,13 @@ $(TSTDIR)/TestProf.cpp: $(DEPS)
 $(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
 vb:
-    vb6.exe /make ./vbsrc/mainui/CRAMP.vbp
+    @vb6.exe /make ./vbsrc/mainui/CRAMP.vbp
 
-# Compile the installer program by creating new version string and setup
-installer:
-    @cvs.exe edit ./version
+# Compile the installer
+installer: remake
+    @cvs.exe -z3 edit ./version
     @perl.exe ./scripts/version.pl ./version $(LEVEL)
-    @cvs.exe commit -m "$(LEVEL) modification" ./version
+    @cvs.exe -z3 commit -m "$(LEVEL) modification" ./version
 
 # Cleaning
 clean: mostly-clean clean-vc60
