@@ -1618,7 +1618,7 @@ End Sub
 ' set integer value only
 '***********************************************************
 Private Sub pidText_KeyPress(KeyAscii As Integer)
-  If KeyAscii = 44 Then Exit Sub
+  If KeyAscii = 44 Or KeyAscii = 3 Or KeyAscii = 22 Then Exit Sub
   KeyAscii = ChkForDigit(KeyAscii)
 End Sub
 '***********************************************************
