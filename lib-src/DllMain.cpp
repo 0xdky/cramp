@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-12-03 10:42:13 dhruva>
+// Time-stamp: <2003-12-04 09:57:41 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -22,27 +22,19 @@
 #define MB2BYTE 1048576
 #endif
 
-#ifndef CRAMP_LOG_BUFFER_LIMIT
-#define CRAMP_LOG_BUFFER_LIMIT 100000
-#endif
-
 // The only permitted GLOBAL for the profiler library
 Global_CRAMP_Profiler g_CRAMP_Profiler;
 
 // File static
 static char logpath[256]=".";
 static char logfile[256];
-static HANDLE h_logthread=0;
+static long IsInitialised=0;
 static std::hash_map<unsigned int,BOOLEAN> h_FilteredModAddr;
 
-void DumpLogsTH(void);
-void CALLBACK FlushLogCB(void *,BOOLEAN);
-void LogFileSizeMonTH(void *);
-
-BOOL OnProcessStart(void);
-BOOL OnProcessEnd(void);
-void FlushLogQueue(void);
+void OnProcessStart(void);
+void OnProcessEnd(void);
 BOOL WriteFuncInfo(unsigned int,unsigned long);
+void LogFileSizeMonTH(void *);
 DWORD WINAPI ProfilerMailSlotServerTH(LPVOID);
 
 //-----------------------------------------------------------------------------
@@ -62,7 +54,7 @@ extern "C" __declspec(dllexport)
   FILE *f_stat=0;
   char filename[MAX_PATH];
   sprintf(filename,"%s/cramp_stat#%d.log",logpath,g_CRAMP_Profiler.g_pid);
-  f_stat=fopen(filename,"w+");
+  f_stat=fopen(filename,"wc");
   DEBUGCHK(f_stat);
 
   std::hash_map<unsigned int,FuncInfo>::iterator iter;
@@ -250,29 +242,15 @@ WriteFuncInfo(unsigned int addr,unsigned long calls){
 }
 
 //-----------------------------------------------------------------------------
-// FlushLogQueue
-//-----------------------------------------------------------------------------
-inline void
-FlushLogQueue(void){
-  if(!g_CRAMP_Profiler.g_fLogFile)
-    return;
-  EnterCriticalSection(&g_CRAMP_Profiler.g_cs_log);
-  while(!g_CRAMP_Profiler.g_LogQueue.empty()){
-    fprintf(g_CRAMP_Profiler.g_fLogFile,"%s\n",
-            g_CRAMP_Profiler.g_LogQueue.front().c_str());
-    g_CRAMP_Profiler.g_LogQueue.pop();
-  }
-  LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_log);
-  fflush(g_CRAMP_Profiler.g_fLogFile);
-  return;
-}
-
-//-----------------------------------------------------------------------------
 // OnProcessStart
 //-----------------------------------------------------------------------------
-BOOL
+void
 OnProcessStart(void){
-  BOOL valid=FALSE;
+  long dest=1;
+  InterlockedCompareExchange(&dest,0,IsInitialised);
+  if(!dest)
+    return;
+
   char filename[256];
   CallMonitor::TICKS frequency=0;
 
@@ -392,17 +370,22 @@ OnProcessStart(void){
                         THREAD_PRIORITY_BELOW_NORMAL);
 
     // Set this if all succeeds
-    valid=TRUE;
+    InterlockedExchange(&IsInitialised,1);
   }while(0);
 
-  return(valid);
+  return;
 }
 
 //-----------------------------------------------------------------------------
 // OnProcessEnd
 //-----------------------------------------------------------------------------
-BOOL
+void
 OnProcessEnd(void){
+  long dest=1;
+  InterlockedCompareExchange(&dest,0,IsInitialised);
+  if(dest)
+    return;
+
   InterlockedExchange(&g_CRAMP_Profiler.g_l_stoplogging,1);
   CRAMP_FlushProfileLogs();
 
@@ -428,7 +411,8 @@ OnProcessEnd(void){
 
   DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_log);
   DeleteCriticalSection(&g_CRAMP_Profiler.g_cs_prof);
-  return(TRUE);
+
+  return;
 }
 
 //-----------------------------------------------------------------------------
@@ -461,72 +445,6 @@ LogFileSizeMonTH(void *iLogThread){
 }
 
 //-----------------------------------------------------------------------------
-// FlushLogCB
-//-----------------------------------------------------------------------------
-void CALLBACK
-FlushLogCB(void *iLogThread,BOOLEAN itcb){
-  if(!g_CRAMP_Profiler.g_fLogFile)
-    return;
-  fflush(g_CRAMP_Profiler.g_fLogFile);
-  if(!iLogThread)
-    return;
-
-  // Dynamic modification of thread priority
-  // depending on log queue size
-  HANDLE h_logth=iLogThread;
-  if(g_CRAMP_Profiler.g_LogQueue.size()>(2*CRAMP_LOG_BUFFER_LIMIT))
-    SetThreadPriority(h_logth,THREAD_PRIORITY_ABOVE_NORMAL);
-  else if(g_CRAMP_Profiler.g_LogQueue.size()<CRAMP_LOG_BUFFER_LIMIT)
-    SetThreadPriority(h_logth,THREAD_PRIORITY_BELOW_NORMAL);
-
-  return;
-}
-
-//-----------------------------------------------------------------------------
-// DumpLogsTH
-//-----------------------------------------------------------------------------
-void
-DumpLogsTH(void){
-  if(!g_CRAMP_Profiler.g_fLogFile)
-    return;
-
-  long dest=0;
-  HANDLE h_time=0;
-  HANDLE h_cth=GetCurrentThread();
-  if(!CreateTimerQueueTimer(&h_time,NULL,FlushLogCB,h_cth,
-                            500,1000,
-                            WT_EXECUTEINIOTHREAD))
-    h_time=0;
-
-  while(1){
-    dest=0;
-    InterlockedCompareExchange(&dest,1,g_CRAMP_Profiler.g_l_stoplogging);
-    while(!g_CRAMP_Profiler.g_LogQueue.empty()){
-      EnterCriticalSection(&g_CRAMP_Profiler.g_cs_log);
-      fprintf(g_CRAMP_Profiler.g_fLogFile,"%s\n",
-              g_CRAMP_Profiler.g_LogQueue.front().c_str());
-      g_CRAMP_Profiler.g_LogQueue.pop();
-      // Panic case...
-      while(g_CRAMP_Profiler.g_LogQueue.size()>(3*CRAMP_LOG_BUFFER_LIMIT)){
-        fprintf(g_CRAMP_Profiler.g_fLogFile,"%s\n",
-                g_CRAMP_Profiler.g_LogQueue.front().c_str());
-        g_CRAMP_Profiler.g_LogQueue.pop();
-      }
-      LeaveCriticalSection(&g_CRAMP_Profiler.g_cs_log);
-    }
-    if(!dest)
-      break;
-  }
-
-  if(h_time)
-    DeleteTimerQueueTimer(NULL,h_time,NULL);
-  h_time=0;
-
-  fflush(g_CRAMP_Profiler.g_fLogFile);
-  return;
-}
-
-//-----------------------------------------------------------------------------
 // ProfilerMailSlotServerTH
 //-----------------------------------------------------------------------------
 DWORD WINAPI
@@ -540,7 +458,7 @@ ProfilerMailSlotServerTH(LPVOID idata){
                                                MAILSLOT_WAIT_FOREVER,
                                                NULL);
   if(INVALID_HANDLE_VALUE==g_CRAMP_Profiler.g_h_mailslot)
-    DEBUGCHK(0);
+    return(-1);
 
   // Mail slot server loop
   DWORD wstate=-1;
@@ -612,26 +530,27 @@ ProfilerMailSlotServerTH(LPVOID idata){
 BOOL WINAPI DllMain(HINSTANCE hinstDLL,
                     DWORD fdwReason,
                     LPVOID lpvReserved){
-  static BOOL valid=FALSE;
+  long dest=1;
+  InterlockedCompareExchange(&dest,0,IsInitialised);
 
   switch (fdwReason)
   {
     case DLL_PROCESS_ATTACH:
-      valid=OnProcessStart();
+      OnProcessStart();
     case DLL_THREAD_ATTACH:
-      if(valid)
+      if(!dest)
         CallMonitor::threadAttach(new CallMonLOG());
       break;
     case DLL_PROCESS_DETACH:
-      if(valid)
-        OnProcessEnd();
+      OnProcessEnd();
     case DLL_THREAD_DETACH:
-      if(valid)
+      if(!dest){
         CallMonitor::threadDetach();
-      if(g_CRAMP_Profiler.g_fLogFile)
-        fflush(g_CRAMP_Profiler.g_fLogFile);
-      if(g_CRAMP_Profiler.g_fFuncInfo)
-        fflush(g_CRAMP_Profiler.g_fFuncInfo);
+        if(g_CRAMP_Profiler.g_fLogFile)
+          fflush(g_CRAMP_Profiler.g_fLogFile);
+        if(g_CRAMP_Profiler.g_fFuncInfo)
+          fflush(g_CRAMP_Profiler.g_fFuncInfo);
+      }
       break;
   }
   return(TRUE);
