@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 14:18:53 dhruva>
+// Time-stamp: <2003-11-01 16:49:27 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -29,17 +29,8 @@
 #include <Tlhelp32.h>
 #include <WindowsX.h>
 
-#include <xercesc/util/XMLUni.hpp>
-#include <xercesc/util/XMLUniDefs.hpp>
-#include <xercesc/dom/DOMWriter.hpp>
-#include <xercesc/dom/DOMImplementation.hpp>
-#include <xercesc/dom/DOMImplementationLS.hpp>
-#include <xercesc/dom/DOMImplementationRegistry.hpp>
-#include <xercesc/framework/LocalFileFormatTarget.hpp>
-
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 void InitGlobals(void);
-int DumpLogsToXML(char *);
 DWORD WINAPI JobNotifyTH(LPVOID);
 DWORD WINAPI CreateManagedProcesses(LPVOID);
 DWORD WINAPI MemoryPollTH(LPVOID);
@@ -49,11 +40,6 @@ BOOLEAN ActiveProcessMemoryDetails(TestCaseInfo *,CRAMPMessaging *);
 PROC_INFO *GetHandlesToActiveProcesses(HANDLE);
 SIZE_T GetProcessHandleFromName(const char *,std::list<PROCESS_INFORMATION> &);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
-
-//--------------------------- GLOBAL VARIABLES --------------------------------
-HANDLE g_hIOCP;               // Completion port that receives Job notif
-TestCaseInfo *g_pScenario;    // Pointer to Scenario
-//--------------------------- GLOBAL VARIABLES --------------------------------
 
 //------------------------ IMPLEMENTATION BEGINS ------------------------------
 
@@ -75,10 +61,10 @@ CRAMPServerMessaging::CRAMPServerMessaging(const char *iServer,BOOLEAN isPipe)
 //-----------------------------------------------------------------------------
 BOOLEAN
 CRAMPServerMessaging::Process(void){
-  if(!g_pScenario)
+  if(!g_CRAMP_Engine.g_pScenario)
     return(FALSE);
   TestCaseInfo *prem=0;
-  prem=g_pScenario->Remote();
+  prem=g_CRAMP_Engine.g_pScenario->Remote();
   if(!prem)
     return(FALSE);
   std::string &msg=Message();
@@ -95,8 +81,9 @@ CRAMPServerMessaging::Process(void){
 //-----------------------------------------------------------------------------
 void
 InitGlobals(void){
-  g_hIOCP=0;
-  g_pScenario=0;
+  g_CRAMP_Engine.g_hIOCP=0;
+  g_CRAMP_Engine.g_fLogFile=0;
+  g_CRAMP_Engine.g_pScenario=0;
   return;
 }
 
@@ -398,7 +385,7 @@ MemoryPollTH(LPVOID lpParameter){
     return(1);
   }
   SIZE_T monint=0;
-  monint=g_pScenario->MonitorInterval();
+  monint=g_CRAMP_Engine.g_pScenario->MonitorInterval();
   while(1){
     WaitForSingleObject(h_mutex,INFINITE);
     ActiveProcessMemoryDetails(pScenario,pmsg);
@@ -487,7 +474,7 @@ JobNotifyTH(LPVOID){
     DWORD dwBytesXferred;
     ULONG_PTR CompKey;
     LPOVERLAPPED po;
-    GetQueuedCompletionStatus(g_hIOCP,
+    GetQueuedCompletionStatus(g_CRAMP_Engine.g_hIOCP,
                               &dwBytesXferred,
                               &CompKey,
                               &po,
@@ -501,7 +488,7 @@ JobNotifyTH(LPVOID){
       char msg[256];
       switch(dwBytesXferred){
         case JOB_OBJECT_MSG_NEW_PROCESS:
-          ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
+          ptc=g_CRAMP_Engine.g_pScenario->FindTCFromPID((SIZE_T)po);
           do{
             // Has test case created a sub process?
             if(ptc)
@@ -525,7 +512,7 @@ JobNotifyTH(LPVOID){
             if(ppid==(SIZE_T)po)
               break;
 
-            ptc=g_pScenario->FindTCFromPID(ppid);
+            ptc=g_CRAMP_Engine.g_pScenario->FindTCFromPID(ppid);
             if(!ptc)
               break;
             HANDLE h_proc=0;
@@ -551,7 +538,7 @@ JobNotifyTH(LPVOID){
           }while(0);
           break;
         case JOB_OBJECT_MSG_EXIT_PROCESS:
-          ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
+          ptc=g_CRAMP_Engine.g_pScenario->FindTCFromPID((SIZE_T)po);
           if(!ptc)
             break;
           {
@@ -562,7 +549,7 @@ JobNotifyTH(LPVOID){
           }
           break;
         case JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS:
-          ptc=g_pScenario->FindTCFromPID((SIZE_T)po);
+          ptc=g_CRAMP_Engine.g_pScenario->FindTCFromPID((SIZE_T)po);
           if(!ptc)
             break;
           {
@@ -574,7 +561,7 @@ JobNotifyTH(LPVOID){
           break;
         case JOB_OBJECT_MSG_END_OF_JOB_TIME:
         case JOB_OBJECT_TERMINATE_AT_END_OF_JOB:
-          // fprintf(g_LogFile,"%d:End of Job\n",(SIZE_T)po);
+          // fprintf(g_CRAMP_Engine.g_LogFile,"%d:End of Job\n",(SIZE_T)po);
           break;
         case JOB_OBJECT_MSG_ACTIVE_PROCESS_LIMIT:
           break;
@@ -585,7 +572,7 @@ JobNotifyTH(LPVOID){
         case JOB_OBJECT_MSG_JOB_MEMORY_LIMIT:
           break;
         default:
-          // fprintf(g_LogFile,"%d:Unknown event in Job:%d\n",
+          // fprintf(g_CRAMP_Engine.g_LogFile,"%d:Unknown event in Job:%d\n",
           //         (SIZE_T)po,dwBytesXferred);
           break;
       }
@@ -646,52 +633,6 @@ GetProcessHandleFromName(const char *iProcName,
   }
 
   return(found);
-}
-
-//-----------------------------------------------------------------------------
-// DumpLogsToXML
-//-----------------------------------------------------------------------------
-int
-DumpLogsToXML(char *logfile){
-  try{
-    XMLPlatformUtils::Initialize();
-  }
-  catch(const XMLException& toCatch){
-    return(1);
-  }
-
-  {
-    DOMDocument *doc=0;
-    DOMImplementation *impl=0;
-
-    XMLCh tempStr[100];
-    XMLString::transcode("Core",tempStr,99);
-    impl=DOMImplementationRegistry::getDOMImplementation(tempStr);
-    DEBUGCHK(impl);
-
-    XMLString::transcode("CRAMPLOG",tempStr,99);
-    doc=impl->createDocument(0,tempStr,0);
-    DEBUGCHK(doc);
-    DOMElement *rootElem=doc->getDocumentElement();
-    g_pScenario->DumpLogToDOM(rootElem);
-
-    DOMWriter *theSerializer=0;
-    XMLString::transcode("LS",tempStr,99);
-    impl=DOMImplementationRegistry::getDOMImplementation(tempStr);
-    DEBUGCHK(impl);
-    theSerializer=((DOMImplementationLS *)impl)->createDOMWriter();
-    DEBUGCHK(theSerializer);
-
-    XMLFormatTarget *myFormTarget=0;
-    myFormTarget=new LocalFileFormatTarget(logfile);
-    theSerializer->writeNode(myFormTarget,*doc);
-
-    delete theSerializer;
-    delete myFormTarget;
-    doc->release();
-  }
-  XMLPlatformUtils::Terminate();
-  return(0);
 }
 
 //-----------------------------------------------------------------------------

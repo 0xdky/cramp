@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 13:58:05 dhruva>
+// Time-stamp: <2003-11-01 17:10:49 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -14,15 +14,6 @@
 #include "cramp.h"
 #include "TestCaseInfo.h"
 #include <algorithm>
-
-#include <xercesc/util/XMLString.hpp>
-#include <xercesc/util/PlatformUtils.hpp>
-
-#include <xercesc/dom/DOMAttr.hpp>
-#include <xercesc/dom/DOMNode.hpp>
-#include <xercesc/dom/DOMText.hpp>
-#include <xercesc/dom/DOMElement.hpp>
-#include <xercesc/dom/DOMDocument.hpp>
 
 // Initialize static
 ListOfTestCaseInfo TestCaseInfo::l_gc;
@@ -90,12 +81,6 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   Init();
 
   // Spin count may be used if on multi-processor
-  if(!InitializeCriticalSectionAndSpinCount(&cs_log,4000L)){
-    CRAMPException excep;
-    excep._message="ERROR: Unable to initialize log critical section";
-    excep._error=GetLastError();
-    throw(excep);
-  }
   if(!InitializeCriticalSectionAndSpinCount(&cs_tci,4000L)){
     CRAMPException excep;
     excep._message="ERROR: Unable to initialize tci critical section";
@@ -164,9 +149,6 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
 // ~TestCaseInfo
 //-----------------------------------------------------------------------------
 TestCaseInfo::~TestCaseInfo(){
-  EnterCriticalSection(&cs_log);
-  l_log.clear();
-  LeaveCriticalSection(&cs_log);
   if(GroupStatus()||PseudoGroupStatus()){
     EnterCriticalSection(&cs_tci);
     l_tci.clear();
@@ -178,7 +160,6 @@ TestCaseInfo::~TestCaseInfo(){
     if(pi_procinfo.hProcess)
       CloseHandle(pi_procinfo.hProcess);
   }
-  DeleteCriticalSection(&cs_log);
   DeleteCriticalSection(&cs_tci);
   DeleteCriticalSection(&cs_pin);
   Init();
@@ -271,6 +252,14 @@ TestCaseInfo::DeleteScenario(TestCaseInfo *ipScenario){
   }
   ::delete ipScenario;
   ipScenario=0;
+
+  EnterCriticalSection(&g_CRAMP_Engine.g_cs_log);
+  if(g_CRAMP_Engine.g_fLogFile)
+    fclose(g_CRAMP_Engine.g_fLogFile);
+  g_CRAMP_Engine.g_fLogFile=0;
+  LeaveCriticalSection(&g_CRAMP_Engine.g_cs_log);
+  DeleteCriticalSection(&g_CRAMP_Engine.g_cs_log);
+
   return(TRUE);
 }
 
@@ -725,94 +714,12 @@ TestCaseInfo::IsReferenceValid(TestCaseInfo *ipEntry,
 //-----------------------------------------------------------------------------
 void
 TestCaseInfo::AddLog(std::string ilog){
-  EnterCriticalSection(&cs_log);
-  l_log.push_back(ilog);
-  LeaveCriticalSection(&cs_log);
+  if(!g_CRAMP_Engine.g_fLogFile)
+    return;
+
+  EnterCriticalSection(&g_CRAMP_Engine.g_cs_log);
+  fprintf(g_CRAMP_Engine.g_fLogFile,"%s\n",ilog.c_str());
+  LeaveCriticalSection(&g_CRAMP_Engine.g_cs_log);
+
   return;
-}
-
-//-----------------------------------------------------------------------------
-// DumpLog
-//-----------------------------------------------------------------------------
-BOOLEAN
-TestCaseInfo::DumpLog(ofstream &ifout){
-  if(!ifout.is_open())
-    return(FALSE);
-
-  EnterCriticalSection(&cs_log);
-  std::list<std::string>::iterator liter=l_log.begin();
-  for(;liter!=l_log.end();liter++)
-    ifout << (*liter).c_str() << endl;
-  LeaveCriticalSection(&cs_log);
-
-  ListOfTestCaseInfo::iterator iter=l_tci.begin();
-  for(;iter!=l_tci.end();iter++)
-    (*iter)->DumpLog(ifout);
-
-  return(TRUE);
-}
-
-//-----------------------------------------------------------------------------
-// DumpLogToDOM
-//-----------------------------------------------------------------------------
-BOOLEAN
-TestCaseInfo::DumpLogToDOM(DOMNode *ipDomNode){
-  if(!ipDomNode)
-    return(FALSE);
-
-  XMLCh xmlstr[256];
-  DOMText *pDomText=0;
-  DOMElement *pDomElem=0;
-  DOMDocument *pDomDoc=0;
-  TestCaseInfo *preftc=0;
-
-  // For getting the actual details
-  if(ReferStatus())
-    preftc=Reference();
-  else
-    preftc=this;
-
-  // Get the document or factory
-  pDomDoc=ipDomNode->getOwnerDocument();
-
-  // Create the element
-  if(GroupStatus()){
-    if(GetParentGroup())
-      if(RemoteStatus())
-        XMLString::transcode("REMOTE",xmlstr,255);
-      else
-        XMLString::transcode("GROUP",xmlstr,255);
-    else
-      XMLString::transcode("SCENARIO",xmlstr,255);
-  }else
-    XMLString::transcode("TESTCASE",xmlstr,255);
-  pDomElem=pDomDoc->createElement(xmlstr);
-  ipDomNode->appendChild(pDomElem);
-
-  // Create the text for element
-  if(GroupStatus())
-    XMLString::transcode(preftc->TestCaseName().c_str(),xmlstr,255);
-  else
-    XMLString::transcode(preftc->TestCaseExec().c_str(),xmlstr,255);
-  pDomText=pDomDoc->createTextNode(xmlstr);
-  pDomElem->appendChild(pDomText);
-
-  EnterCriticalSection(&cs_log);
-  std::list<std::string>::iterator liter=l_log.begin();
-  for(;liter!=l_log.end();liter++){
-    DOMElement *pDomChildElem=0;
-    XMLString::transcode("LOG",xmlstr,255);
-    pDomChildElem=pDomDoc->createElement(xmlstr);
-    pDomElem->appendChild(pDomChildElem);
-    XMLString::transcode((*liter).c_str(),xmlstr,255);
-    pDomText=pDomDoc->createTextNode(xmlstr);
-    pDomChildElem->appendChild(pDomText);
-  }
-  LeaveCriticalSection(&cs_log);
-
-  ListOfTestCaseInfo::iterator iter=l_tci.begin();
-  for(;iter!=l_tci.end();iter++)
-    (*iter)->DumpLogToDOM(pDomElem);
-
-  return(TRUE);
 }

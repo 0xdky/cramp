@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-15 13:56:27 dhruva>
+// Time-stamp: <2003-11-01 16:52:53 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -16,12 +16,6 @@
 
 #include <list>
 #include <string>
-
-// XERCES related
-#include <xercesc/dom/DOM.hpp>
-#include <xercesc/dom/DOMNode.hpp>
-#include <xercesc/util/XMLString.hpp>
-XERCES_CPP_NAMESPACE_USE
 
 // Could use CS instead of mutex
 #define GC_MUTEX "GC_LIST_MUTEX"
@@ -109,8 +103,6 @@ public:
   void NumberOfRuns(SIZE_T iNumberOfRuns);
 
   void AddLog(std::string ilog);
-  BOOLEAN DumpLog(ofstream &ifout);
-  BOOLEAN DumpLogToDOM(DOMNode *ipDomNode);
 
   // Internal methods: Not to be used other than in main engine
   TestCaseInfo *Reference(void);
@@ -140,8 +132,6 @@ private:
   TestCaseInfo *p_pgroup;           // Pointer to the group this belongs to
   TestCaseInfo *p_refertc;          // Pointer to reference element
 
-
-  std::list<std::string> l_log;     // Test case Log list
   std::list<TestCaseInfo *> l_tci;  // For groups, test cases are stored here
 
   // Process monitoring data
@@ -156,7 +146,6 @@ private:
   static std::list<TestCaseInfo *> l_gc; // For garbage collection
 
   // Critical sections
-  CRITICAL_SECTION cs_log;          // Critical section for logging
   CRITICAL_SECTION cs_tci;          // Critical section for TCI
   CRITICAL_SECTION cs_pin;          // Critical section for Process Info
 private:
