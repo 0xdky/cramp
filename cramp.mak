@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-20 10:27:59 dhruva>
+## Time-stamp: <2003-10-20 19:36:28 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -34,6 +34,8 @@ MD=MKDIR
 
 # Existing folders
 SRCDIR=src
+INCDIR=inc
+LIBSRCDIR=lib-src
 TSTDIR=test
 
 # Folders created
@@ -53,7 +55,7 @@ LINK_DEBUG=/DEBUG
 XML_LIB=xerces-c_2D.lib
 !ENDIF
 
-INCLUDE=./src;$(INCLUDE)
+INCLUDE=.;./inc;$(INCLUDE)
 
 # Version info
 CFLAGS=$(CFLAGS) /V$(VERSION)
@@ -81,7 +83,7 @@ cramp: dirs engine library test
 remake: clean cramp
 
 # Dependancy to force a re-build
-DEPS=$(MAKEFILE) $(SRCDIR)/cramp.h
+DEPS=$(MAKEFILE) $(INCDIR)/cramp.h
 
 # Rebuild on changes to makefile
 $(MAKEFILE):
@@ -121,7 +123,7 @@ $(SRCDIR)/engine.cpp: $(SRCDIR)/engine.h
 $(SRCDIR)/TestCaseInfo.cpp: $(SRCDIR)/TestCaseInfo.h
 $(SRCDIR)/XMLParse.cpp: $(SRCDIR)/XMLParse.h
 
-$(SRCDIR)/cramp.h:
+$(INCDIR)/cramp.h:
 $(SRCDIR)/ipc.h: $(DEPS)
 $(SRCDIR)/ipcmsg.h: $(DEPS)
 $(SRCDIR)/engine.h: $(DEPS)
@@ -133,26 +135,26 @@ library: dirs $(PROFLIB).dll
 $(PROFLIB).dll: $(POBJS)
     @$(LINK) /DLL $(LINK_DEBUG) $(E_LDFLAGS) $(POBJS) imagehlp.lib \
              libdb41s.lib /OUT:$(BINDIR)/$(PROFLIB).dll
-$(OBJDIR)/CallMon.obj: $(SRCDIR)/CallMon.cpp
-    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/CallMon.cpp \
+$(OBJDIR)/CallMon.obj: $(LIBSRCDIR)/CallMon.cpp
+    @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/CallMon.cpp \
              /Fo$(OBJDIR)/CallMon.obj
-$(OBJDIR)/CallMonLOG.obj: $(SRCDIR)/CallMonLOG.cpp
-    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/CallMonLOG.cpp \
+$(OBJDIR)/CallMonLOG.obj: $(LIBSRCDIR)/CallMonLOG.cpp
+    @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/CallMonLOG.cpp \
              /Fo$(OBJDIR)/CallMonLOG.obj
-$(OBJDIR)/ProfileLimit.obj: $(SRCDIR)/ProfileLimit.cpp
-    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/ProfileLimit.cpp \
+$(OBJDIR)/ProfileLimit.obj: $(LIBSRCDIR)/ProfileLimit.cpp
+    @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/ProfileLimit.cpp \
              /Fo$(OBJDIR)/ProfileLimit.obj
-$(OBJDIR)/DllMain.obj: $(SRCDIR)/DllMain.cpp $(SRCDIR)/CallMonLOG.h
-    @$(CPP)  /c $(E_CCFLAGS) $(SRCDIR)/DllMain.cpp \
+$(OBJDIR)/DllMain.obj: $(LIBSRCDIR)/DllMain.cpp $(LIBSRCDIR)/CallMonLOG.h
+    @$(CPP)  /c $(E_CCFLAGS) $(LIBSRCDIR)/DllMain.cpp \
              /Fo$(OBJDIR)/DllMain.obj
 
-$(SRCDIR)/CallMon.cpp: $(SRCDIR)/CallMon.h
-$(SRCDIR)/CallMonLOG.cpp: $(SRCDIR)/CallMonLOG.h $(SRCDIR)/ProfileLimit.h
-$(SRCDIR)/ProfileLimit.cpp: $(SRCDIR)/ProfileLimit.h
+$(LIBSRCDIR)/CallMon.cpp: $(LIBSRCDIR)/CallMon.h
+$(LIBSRCDIR)/CallMonLOG.cpp: $(LIBSRCDIR)/CallMonLOG.h
+$(LIBSRCDIR)/ProfileLimit.cpp: $(LIBSRCDIR)/ProfileLimit.h
 
-$(SRCDIR)/CallMon.h: $(DEPS)
-$(SRCDIR)/CallMonLOG.h: $(SRCDIR)/CallMon.h $(DEPS)
-$(SRCDIR)/ProfileLimit.h: $(DEPS)
+$(LIBSRCDIR)/CallMon.h: $(DEPS)
+$(LIBSRCDIR)/CallMonLOG.h: $(LIBSRCDIR)/CallMon.h $(DEPS)
+$(LIBSRCDIR)/ProfileLimit.h: $(DEPS)
 
 # Base class for test cases
 baseclass: $(OBJDIR)/DPEBaseClass.obj
@@ -183,7 +185,7 @@ $(OBJDIR)/TestProf.obj: $(TSTDIR)/TestProf.cpp
              /Fo$(OBJDIR)/TestProf.obj
 $(OBJDIR)/XMLtest.obj: $(TSTDIR)/XMLtest.cpp
     @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(TSTDIR)/XMLtest.cpp \
-             /Fo$(OBJDIR)/XMLtest.obj
+             /Isrc /Fo$(OBJDIR)/XMLtest.obj
 $(OBJDIR)/DPEBaseClassTest.obj: $(TSTDIR)/DPEBaseClassTest.cpp
     @$(CPP)  /c $(CPP_DEBUG) /GX /I$(DPE_COMINC) \
              $(TSTDIR)/DPEBaseClassTest.cpp /Fo$(OBJDIR)/DPEBaseClassTest.obj
