@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 09:52:50 dhruva>
+// Time-stamp: <2003-10-31 11:42:14 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMonLOG.h
 // Desc: Derived class to over ride the log file generation
@@ -21,6 +21,7 @@ extern CRITICAL_SECTION g_cs_log;
 extern CRITICAL_SECTION g_cs_prof;
 extern std::queue<std::string> g_LogQueue;
 extern std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
+extern BOOL WriteFuncInfo(unsigned int,unsigned long);
 
 //-----------------------------------------------------------------------------
 // CallMonLOG
@@ -67,10 +68,15 @@ CallMonLOG::logExit(CallInfo &ci,bool normalRet){
   g_LogQueue.push(logmsg);
   LeaveCriticalSection(&g_cs_log);
 #else
-  EnterCriticalSection(&g_cs_prof);
   std::hash_map<ADDR,FuncInfo>::iterator iter;
+  EnterCriticalSection(&g_cs_prof);
   iter=g_hFuncCalls.find(ci.funcAddr);
-  if(iter!=g_hFuncCalls.end()){
+  if(iter==g_hFuncCalls.end()){
+    FuncInfo fi={1,TRUE,elapsedticks,elapsedticks};
+    fi._pending=WriteFuncInfo(ci.funcAddr,1);
+    g_hFuncCalls[ci.funcAddr]=fi;
+  }else{
+    (*iter).second._calls++;
     (*iter).second._totalticks+=elapsedticks;
     if((*iter).second._maxticks<elapsedticks)
       (*iter).second._maxticks=elapsedticks;

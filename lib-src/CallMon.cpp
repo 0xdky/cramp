@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-31 10:22:47 dhruva>
+// Time-stamp: <2003-10-31 11:41:05 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -21,8 +21,6 @@
 #include "CallMonLOG.h"
 #include "ProfileLimit.h"
 
-#include <hash_map>
-
 using namespace std;
 
 typedef CallMonitor::ADDR ADDR;
@@ -36,8 +34,6 @@ static const unsigned OFFSET_CALL_BYTES=5;
 extern long g_l_profile;
 extern long g_l_calldepthlimit;
 extern CRITICAL_SECTION g_cs_prof;
-extern std::hash_map<unsigned int,FuncInfo> g_hFuncCalls;
-extern BOOL WriteFuncInfo(unsigned int,unsigned long);
 
 // Start of MSVC-specific code
 
@@ -280,18 +276,6 @@ CallMonitor::enterProcedure(ADDR parentFramePtr,
   callInfoStack.push_back(CallInfo());
   CallInfo &ci=callInfoStack.back();
   ci.funcAddr=funcAddr;
-
-  std::hash_map<ADDR,FuncInfo>::iterator iter;
-  EnterCriticalSection(&g_cs_prof);
-  iter=g_hFuncCalls.find(funcAddr);
-  if(iter==g_hFuncCalls.end()){
-    FuncInfo fi={1,TRUE};
-    fi._pending=WriteFuncInfo(funcAddr,1);
-    g_hFuncCalls[funcAddr]=fi;
-  }else{
-    (*iter).second._calls++;
-  }
-  LeaveCriticalSection(&g_cs_prof);
 
   ci.startTime=0;
   ci.parentFrame=parentFramePtr;
