@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-11-03 20:26:03 dhruva>
+## Time-stamp: <2003-11-05 11:15:43 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -25,8 +25,8 @@ DPE_COMINC=../../DPE/Cominc
 
 PROJ=CRAMP
 MAKEFILE=$(PROJ).mak
-ENGINE=$(PROJ)
-PROFLIB=lib$(ENGINE)
+ENGINE=CRAMPEngine
+PROFLIB=lib$(PROJ)
 
 CPP=CL
 LINK=LINK
