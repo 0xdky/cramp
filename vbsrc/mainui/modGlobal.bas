@@ -38,6 +38,8 @@ Public gstrSlection As String
 Public gstrRawTick As String
 Public gFileSize As Long
 Public gIsFileExist As Boolean
+Public starstopBool As Boolean
+Public compExist As Boolean
 
 '****************************************************
 ' Return the node's object type
@@ -862,6 +864,7 @@ With frmMainui
           .queryLV.ListItems.Add = strQuery
         Else
           .queryLV.ListItems(aa + 1).SubItems(ss) = strQuery
+          '.queryLV.SelectedItem.SubItems(4)
         End If
       Next
       aa = aa + 1
@@ -909,5 +912,105 @@ With frmMainui
 End With
 End Sub
 
+Public Function CkeckComputer() As Integer
+  Dim hInst As Long
+  Dim strPing As String
+  Dim Command As String
+  Dim TaskID As Long
+  Dim pInfo As PROCESS_INFORMATION
+  Dim sInfo As STARTUPINFO
+  Dim sNull As String
+  Dim lSuccess As Long
+  Dim lRetValue As Long
+  Dim retVal As Boolean
+  Dim Response
+  
+  Const SYNCHRONIZE = 1048576
+  Const NORMAL_PRIORITY_CLASS = &H20&
+  Const INFINITE = -1
 
+  If compExist = True Then
+    CkeckComputer = 0
+    Exit Function
+  End If
+  
+  If frmMainui.compnameText.Text <> "" Then
+    Command = "ping.exe " & frmMainui.compnameText.Text
+    MsgBox Command
+  Else
+    MsgBox "Specify Computer Name"
+    CkeckComputer = 1
+    compExist = False
+    Exit Function
+  End If
+    
+  sInfo.cb = Len(sInfo)
+  lSuccess = CreateProcess(sNull, _
+                            Command, _
+                            ByVal 0&, _
+                            ByVal 0&, _
+                            1&, _
+                            NORMAL_PRIORITY_CLASS, _
+                            ByVal 0&, _
+                            sNull, _
+                            sInfo, _
+                            pInfo)
+    
+  lRetValue = WaitForSingleObject(pInfo.hProcess, INFINITE)
+  retVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
+        
+  If lRetValue <> 0 Then
+    Response = MsgBox("ERROR :: Compter " & frmMainui.compnameText.Text & " not exist")
+    compExist = False
+  Else
+    compExist = True
+  End If
+
+  CkeckComputer = lRetValue
+  lRetValue = CloseHandle(pInfo.hThread)
+  lRetValue = CloseHandle(pInfo.hProcess)
+End Function
+
+Public Sub DoProfiling(arg As String)
+  Dim hInst As Long
+  Dim strProCon As String
+  
+  strProCon = gCRAMPPath & "/bin/ProfileControl.exe"
+  IsFileExistAndSize strProCon, gIsFileExist, gFileSize
+  If gIsFileExist = False And gFileSize = 0 Then
+    MsgBox "ERROR :: File " & strProCon & " not found"
+    Exit Sub
+  End If
+  
+  If arg <> "" Then
+    If frmMainui.compnameText.Text <> "" _
+       And frmMainui.pidText.Text <> "" Then
+      strProCon = strProCon & gstrSpace & frmMainui.compnameText.Text & ".ds" & _
+                  gstrSpace & frmMainui.pidText.Text + gstrSpace + arg
+      MsgBox strProCon
+      hInst = Shell(strProCon, vbNormalFocus)
+    End If
+  End If
+  
+  gIsFileExist = False
+  gFileSize = 0
+End Sub
+
+Public Sub SetValueFromLV()
+  Dim lvValue As String
+  
+  If frmMainui.staCombo.Text = "ADDR" Then
+    'address
+    lvValue = frmMainui.queryLV.SelectedItem.SubItems(3)
+    frmMainui.addrCombo.Text = lvValue
+    'set query text
+    SetQueryText (frmMainui.staCombo.Text)
+  ElseIf frmMainui.staCombo.Text = "THREADS" Then
+    'threads
+    lvValue = frmMainui.queryLV.SelectedItem.SubItems(1)
+    frmMainui.threadCombo.Text = lvValue
+    'set query text
+    SetQueryText (frmMainui.staCombo.Text)
+  End If
+End Sub
 
