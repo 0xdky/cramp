@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-02 17:04:59 dhruva>
+// Time-stamp: <2003-10-02 18:24:24 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -170,7 +170,7 @@ TestCaseInfo::DeleteScenario(TestCaseInfo *ipScenario){
 //-----------------------------------------------------------------------------
 TestCaseInfo
 *TestCaseInfo::AddGroup(const char *iUniqueID,BOOLEAN iBlock){
-  if(!GroupStatus())
+  if(!GroupStatus()&&!PseudoGroupStatus())
     return(0);
   TestCaseInfo *pTCG=0;
   pTCG=new TestCaseInfo(this,iUniqueID,TRUE,iBlock);
@@ -182,7 +182,7 @@ TestCaseInfo
 //-----------------------------------------------------------------------------
 TestCaseInfo
 *TestCaseInfo::AddTestCase(const char *iUniqueID,BOOLEAN iBlock){
-  if(!GroupStatus())
+  if(!GroupStatus()&&!PseudoGroupStatus())
     return(0);
   TestCaseInfo *pTC=0;
   pTC=new TestCaseInfo(this,iUniqueID,FALSE,iBlock);
@@ -287,12 +287,16 @@ TestCaseInfo::NumberOfRuns(SIZE_T iNumberOfRuns){
   u_numruns=iNumberOfRuns;
   if(u_numruns<2)
     return;
+  b_pseudogroup=TRUE;
   for(unsigned int ii=0;ii<iNumberOfRuns;ii++){
-    TestCaseInfo *nptc=AddTestCase(0,BlockStatus());
+    TestCaseInfo *nptc=0;
+    if(GroupStatus())
+      nptc=AddGroup(0,BlockStatus());
+    else
+      nptc=AddTestCase(0,BlockStatus());
     nptc->ReferStatus(TRUE);
     nptc->Reference(this);
   }
-  b_pseudogroup=TRUE;
   return;
 }
 

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-02 16:22:36 dhruva>
+// Time-stamp: <2003-10-02 18:43:44 dhruva>
 //-----------------------------------------------------------------------------
 // File  : cramp.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -150,16 +150,14 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
   for(SIZE_T tc=0;iter!=l_tci.end();iter++){
     TestCaseInfo *ptc=(*iter);
     TestCaseInfo *porigtc=ptc;
-    if(!ptc->PseudoGroupStatus()){
-      while(ptc&&ptc->ReferStatus())
-        ptc=ptc->Reference();
-      if(!ptc)
-        continue;
-    }
+    while(ptc&&ptc->ReferStatus())
+      ptc=ptc->Reference();
+    if(!ptc)
+      continue;
 
-    // If it is a group... call recursively
-    // no exec in groups!!
-    if(ptc->GroupStatus()||ptc->PseudoGroupStatus()){
+    // If it is a group OR original is a pseudo group
+    // call recursively
+    if(ptc->GroupStatus()||porigtc->PseudoGroupStatus()){
       if(blocked){
         CreateManagedProcesses(ptc);
       }else if(tc<numgroups){
