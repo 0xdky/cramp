@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2004-03-11 11:29:20 dky>
+// Time-stamp: <2004-03-11 12:08:21 dky>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -45,9 +45,6 @@ extern "C" __declspec(dllexport)
     CallMonitor::TICKS frequency=0;
     CallMonitor::queryTickFreq(&frequency);
 
-    if(g_CRAMP_Profiler.g_fLogFile)
-        fflush(g_CRAMP_Profiler.g_fLogFile);
-
     // Block the modification of hash
     CRAMP_CS csp(&g_CRAMP_Profiler.g_cs_prof);
     csp.enter();
@@ -86,6 +83,10 @@ extern "C" __declspec(dllexport)
 
     // Flush and close the file handles
     fclose(f_stat);
+    if(g_CRAMP_Profiler.g_fFuncInfo)
+        fflush(g_CRAMP_Profiler.g_fFuncInfo);
+    if(g_CRAMP_Profiler.g_fLogFile)
+        fflush(g_CRAMP_Profiler.g_fLogFile);
 
     // Unlock the hash
     csp.leave();
@@ -139,6 +140,8 @@ extern "C" __declspec(dllexport)
 //-----------------------------------------------------------------------------
 BOOL
 WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
+    static std::list<DWORD> l_mod;
+
     if(!f_func)
         f_func=g_CRAMP_Profiler.g_fFuncInfo;
     if(!f_func)
@@ -185,13 +188,19 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
         DWORD symDisplacement=0;
 
         csf.enter();
-        if(!SymLoadModule(h_proc,
-                          NULL,
-                          moduleName,
-                          NULL,
-                          (DWORD)mbi.AllocationBase,
-                          0))
-            break;
+
+        std::list<DWORD>::iterator res;
+        res=std::find(l_mod.begin(),l_mod.end(),(DWORD)mbi.AllocationBase);
+        if(l_mod.end()==res){
+            if(!SymLoadModule(h_proc,
+                              NULL,
+                              moduleName,
+                              NULL,
+                              (DWORD)mbi.AllocationBase,
+                              0))
+                break;
+            l_mod.push_back((DWORD)mbi.AllocationBase);
+        }
 
         SymSetOptions(SymGetOptions()&~SYMOPT_UNDNAME);
         bool match=TRUE;
@@ -210,8 +219,6 @@ WriteFuncInfo(unsigned int addr,unsigned long calls,FILE *f_func){
                                        UNDNAME_NO_MEMBER_TYPE))
                 strcpy(undName,pSymbol->Name);
         }
-
-        SymUnloadModule(h_proc,(DWORD)mbi.AllocationBase);
         csf.leave();
 
         // Find if method is filtered
