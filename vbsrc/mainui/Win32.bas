@@ -359,8 +359,8 @@ Private Sub SetKeyValue(sKeyName As String, sValueName As String, _
 Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
 
    Dim fHandle As Long
-   Dim Location As Integer
-   Dim strLength As Integer
+   Dim Location As Long
+   Dim strLength As Long
    Dim FileName As String
    Dim ProcessID As String
    Dim pidArray() As String
@@ -377,6 +377,9 @@ Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
    
    addValue = False
    cmbBool = False
+   fHandle = 0
+   Location = 0
+   strLength = 0
    'add a trailing / if there isn't one
    SetPath fld
    'find the first file/folder in the root path
@@ -425,6 +428,11 @@ Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
      MsgBox "ERROR :: No DataBase Under " + fld + " Folder"
      frmMainui.queryCommand.Enabled = False
    End If
+   
+   fHandle = 0
+   Location = 0
+   strLength = 0
+
 End Function
 '***********************************************************
 ' add / at the end of the path if it is not there

@@ -93,11 +93,12 @@ Public Sub SetThreAndAddrCombo()
   Dim strAll As String
   Dim addValue As Boolean
   Dim cmbBool As Boolean
-  Dim ss As Integer
+  Dim ss As Long
   
   ReDim threadArray(0)
   ReDim addrArray(0)
   strAll = "ALL"
+  ss = 0
   
   'move query.psf to querynew.psf
   IsFileExistAndSize gstrCLogPath + "query.psf", gIsFileExist, gFileSize
@@ -176,6 +177,7 @@ Public Sub SetThreAndAddrCombo()
   
   ReDim threadArray(0)
   ReDim addrArray(0)
+  ss = 0
 
   'move querynew.psf to query.psf
   IsFileExistAndSize gstrCLogPath + "query.psf", gIsFileExist, gFileSize

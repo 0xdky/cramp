@@ -827,6 +827,7 @@ Public Sub SetValueInComboBox(tmpArry() As String, tmpStr As String, thisCombo A
     thisCombo.Text = tmpStr
     thisCombo.AddItem (tmpStr)
   End If
+  aa = 0
 End Sub
 
 '***********************************************************
@@ -834,8 +835,7 @@ End Sub
 '***********************************************************
 Public Sub SetValueInListView()
 
-Dim MyArray, MyFileStream, ThisFileText, arrFile
-Dim cur As MousePointerConstants
+Dim MyArray
 Dim strQuery As String
 Dim ss As Long
 Dim aa As Long
@@ -887,6 +887,10 @@ With frmMainui
     End If
   End If
 End With
+
+ss = 0
+aa = 0
+kk = 0
 
 End Sub
 '***********************************************************
@@ -947,6 +951,7 @@ Public Sub DoProfiling(arg As String)
   
   gIsFileExist = False
   gFileSize = 0
+  hInst = 0
 End Sub
 
 '***********************************************************
@@ -1027,6 +1032,8 @@ Public Sub RunPerlScriptWithCP()
    Else
      MsgBox "ERROR :: Query Argument Is Not Exists"
    End If
+   lSuccess = 0
+   lRetValue = 0
 End Sub
 
 '***********************************************************
@@ -1053,6 +1060,7 @@ Public Sub CreateDictionary()
   Loop
   'Close file
   MyFileStream.Close
+  i = 0
 End Sub
 '***********************************************************
 ' hide-show of next and previous button
@@ -1083,4 +1091,9 @@ Public Sub CleanUp()
   If gobjDic.Count > 0 Then
     gobjDic.removeAll
   End If
+  
+  gFileSize = 0
+  gDicCountUpper = 0
+  gDicCountLower = 0
+
 End Sub
