@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-11-06 16:13:40 dhruva>
+## Time-stamp: <2003-11-12 15:45:25 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : caaidlpp.pl
 ## Usage : caaidlpp.pl listOfIdl OUTPATH
@@ -46,6 +46,16 @@ while(<LIST>){
     my @arr=split(/\//,$_);
     print "Processing: $arr[-1]\n";
     my $f_out="$OUTPATH/$arr[-1]";
+
+    # Check for modified files only
+    if(-f $f_out){
+        my @msidl=stat($_);
+        my @dsidl=stat($f_out);
+        if($msidl[9]<$dsidl[9]){
+            next;
+        }
+    }
+
     open(IDLIN,"<$_") || die("Cannot open \"$_\" for read");
     open(IDLOUT,">$f_out") || die("Cannot open \"$f_out\" for write");
     print IDLOUT $default;
