@@ -35,6 +35,8 @@ Public gperlScript As String
 Public gquerySort As String
 Public gstrSpace As String
 Public giFileName As String
+Public gPrevQuery As String
+Public gSPrevQuery As String
 Public currsettingArray() As String
 Public currsetArrayStat() As String
 Public chbstatusArray() As String
@@ -762,6 +764,59 @@ Public Sub IsFileExistAndSize(giFileName, gIsFileExist, gFileSize)
   End If
 End Sub
 '***********************************************************
+' hide show the controls
+'***********************************************************
+Public Sub HideShowControls(strVal As String)
+  With frmMainui
+    Select Case strVal
+      Case "QUERY"
+           'hide-show controls
+           .staCombo.Visible = True
+           .threadCombo.Visible = True
+           .rtCombo.Visible = True
+           .addressText.Visible = True
+           .limitText.Visible = True
+           .appendCheck.Visible = True
+           .tableCombo.Visible = False
+           'hide-show lables
+           .selLabel.Visible = True
+           .threadLabel.Visible = True
+           .rtLabel.Visible = True
+           .addLabel.Visible = False
+           .limitLabel.Visible = True
+           .tableLabel.Visible = False
+           'move controls
+           .actionCombo.Move 1200, 480
+           .staCombo.Move 2280, 480
+           .appendCheck.Move 3600, 480
+           'move lables
+           .actionLabel.Move 1200, 240
+           .selLabel.Move 2352, 240
+           MoveControls (frmMainui.staCombo.Text)
+      Case "DUMP"
+           'hide-show controls
+           .tableCombo.Visible = True
+           .staCombo.Visible = False
+           .threadCombo.Visible = False
+           .rtCombo.Visible = False
+           .addressText.Visible = False
+           .limitText.Visible = False
+           .appendCheck.Visible = False
+           'hide-show lables
+           .tableLabel.Visible = True
+           .selLabel.Visible = False
+           .threadLabel.Visible = False
+           .rtLabel.Visible = False
+           .addLabel.Visible = False
+           .limitLabel.Visible = False
+           'move controls
+           .tableCombo.Move 2280, 480
+           'move lables
+           .tableLabel.Move 2280, 240
+    End Select
+  End With
+End Sub
+'***********************************************************
 ' moving the controls
 '***********************************************************
 Public Sub MoveControls(strVal As String)
@@ -777,13 +832,18 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = True
-           .AddLabel.Visible = False
+           .addLabel.Visible = False
            .limitLabel.Visible = True
            'move controls
-           .limitText.Move 4680, 480
-           .appendCheck.Move 5640, 480
+           .threadCombo.Move 3600, 480
+           .rtCombo.Move 4700, 480
+           .limitText.Move 5790, 480
+           .appendCheck.Move 6750, 480
            'move lables
-           .limitLabel.Move 4680, 240
+           .threadLabel.Move 3600, 240
+           .rtLabel.Move 4700, 240
+           .limitLabel.Move 5790, 240
+           .appendCheck.Visible = True
       Case "ADDR"
            'hide-show controls
            .threadCombo.Visible = True
@@ -793,15 +853,17 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = True
            .rtLabel.Visible = False
-           .AddLabel.Visible = True
+           .addLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
-           .addressText.Move 3600, 480
-           .limitText.Move 4800, 480
-           .appendCheck.Move 5740, 480
-           'move lables
-           .AddLabel.Move 3600, 240
-           .limitLabel.Move 4800, 240
+           .threadCombo.Move 3600, 480
+           .addressText.Move 4680, 480
+           .limitText.Move 5880, 480
+           .appendCheck.Move 6840, 480
+           'move lables 5740
+           .threadLabel.Move 3600, 240
+           .addLabel.Move 4680, 240
+           .limitLabel.Move 5880, 240
       Case "STAT"
            'hide-show controls
            .threadCombo.Visible = False
@@ -811,21 +873,28 @@ Public Sub MoveControls(strVal As String)
            'hide-show lables
            .threadLabel.Visible = False
            .rtLabel.Visible = False
-           .AddLabel.Visible = False
+           .addLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
-           .appendCheck.Move 2510, 480
-    End Select
+           .threadCombo.Move 3600, 480
+           .appendCheck.Move 3600, 480
+           'move lables
+           .threadLabel.Move 3600, 240
+   End Select
   End With
 End Sub
 '***********************************************************
 ' set query text
 '***********************************************************
-Public Sub SetQueryText(strVal As String)
+Public Sub SetQueryText(strVal As String, Optional intColNum As Variant)
 
 Dim queryText As String
 
 On Error Resume Next
+
+If frmMainui.actionCombo.Text = "DUMP" Then
+  strVal = "DUMP"
+End If
 
 Select Case strVal
     Case "THREADS"
@@ -834,22 +903,11 @@ Select Case strVal
                      & frmMainui.threadCombo.Text & gstrSpace & frmMainui.rtCombo.Text _
                      & gstrSpace & frmMainui.limitText.Text
       Else 'RAW
-        Dim ss As Integer
-        Dim colname As String
         Dim strPosi As Long
-        ss = 0
         strPosi = 0
-        colname = ""
-        'get the position value
-        For ss = 1 To frmMainui.queryLV.ColumnHeaders.Count
-          colname = frmMainui.queryLV.ColumnHeaders.Item(ss).Text
-          If colname = "Position" Then
-            If IsNumeric(frmMainui.queryLV.SelectedItem) Then
-              strPosi = frmMainui.queryLV.SelectedItem
-              Exit For
-            End If
-          End If
-        Next
+        If Not IsMissing(intColNum) Then
+          strPosi = intColNum
+        End If
         
         queryText = strPosi & gstrSpace & frmMainui.limitText.Text
          
@@ -899,17 +957,25 @@ Select Case strVal
             frmMainui.queryCommand.Enabled = True
          End If
          frmMainui.manuStack.Enabled = False
+    Case "DUMP"
+         queryText = frmMainui.pidCombo.Text & gstrSpace & frmMainui.actionCombo.Text & _
+                     gstrSpace & frmMainui.tableCombo.Text
 End Select
-
-If frmMainui.queryLV.ListItems.Count <> 0 Then
-  frmMainui.queryLV.SetFocus
-End If
 
 'MsgBox queryText
 If frmMainui.queryCommand.Enabled = True Then
   frmMainui.queryText.Text = queryText
   queryText = ""
 End If
+
+'disable run button when respective db file is not there
+'If frmMainui.staCombo.Text = "THREADS" And frmMainui.threadCombo.Text = "" _
+'   Xor frmMainui.queryText.Text = "" Then
+'  frmMainui.queryCommand.Enabled = False
+'Else
+'  frmMainui.queryCommand.Enabled = True
+'End If
+
 End Sub
 '***********************************************************
 ' checking for the duplicate entry in the array
@@ -1096,9 +1162,12 @@ End Sub
 '***********************************************************
 Public Sub SetValueFromLV(strType As String)
   Dim ss As Long
+  Dim strPosi As Long
   Dim colname As String
+  
 
   ss = 0
+  strPosi = 0
   colname = ""
   
   On Error Resume Next
@@ -1138,6 +1207,22 @@ Public Sub SetValueFromLV(strType As String)
             .threadCombo.Text = .queryLV.SelectedItem.SubItems(ss - 1)
           End If
         End If
+        
+        'set the position value when raw is selected
+        If .rtCombo.Text = "RAW" Then
+          Dim kk As Integer
+          'get the position value
+          For kk = 1 To frmMainui.queryLV.ColumnHeaders.Count
+            colname = frmMainui.queryLV.ColumnHeaders.Item(kk).Text
+            If colname = "Position" Then
+              If IsNumeric(frmMainui.queryLV.SelectedItem) Then
+                strPosi = frmMainui.queryLV.SelectedItem
+                Exit For
+              End If
+            End If
+          Next
+        End If
+        
         Exit For
       ElseIf colname = "Address" And .staCombo.Text = "ADDR" Then
         If ss = 1 Then
@@ -1149,7 +1234,7 @@ Public Sub SetValueFromLV(strType As String)
       End If
     Next
   
-    SetQueryText (.staCombo.Text)
+    SetQueryText .staCombo.Text, strPosi
   End With
   
   ss = 0
@@ -1237,6 +1322,15 @@ Public Sub CreateDictionary()
     Loop
     'Close file
     MyFileStream.Close
+    'save previous query
+    If gSPrevQuery <> gPrevQuery Then
+      gSPrevQuery = gPrevQuery
+      frmMainui.backCommand.Enabled = True
+    End If
+    'save current query
+    If gPrevQuery <> frmMainui.queryText.Text Then
+      gPrevQuery = frmMainui.queryText.Text
+    End If
   Else
     'MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
     'clean up ui

@@ -20,8 +20,8 @@ Begin VB.Form frmMainui
       Visible         =   0   'False
       Width           =   7450
       Begin MSComctlLib.ImageList SortIconImageList 
-         Left            =   6720
-         Top             =   6840
+         Left            =   6840
+         Top             =   7080
          _ExtentX        =   794
          _ExtentY        =   794
          BackColor       =   -2147483643
@@ -44,10 +44,10 @@ Begin VB.Form frmMainui
       Begin VB.Frame Frame4 
          Caption         =   "Profiling"
          Height          =   972
-         Left            =   300
+         Left            =   120
          TabIndex        =   32
          Top             =   240
-         Width           =   6852
+         Width           =   7215
          Begin VB.CommandButton stopCommand 
             Caption         =   "Stop"
             Height          =   288
@@ -106,10 +106,10 @@ Begin VB.Form frmMainui
       Begin VB.Frame Frame3 
          Caption         =   "Result"
          Height          =   3972
-         Left            =   300
+         Left            =   120
          TabIndex        =   29
          Top             =   3120
-         Width           =   6852
+         Width           =   7215
          Begin VB.CommandButton preCommand 
             Caption         =   "Previous"
             Height          =   288
@@ -134,12 +134,12 @@ Begin VB.Form frmMainui
             Width           =   951
          End
          Begin MSComctlLib.ListView queryLV 
-            Height          =   3132
+            Height          =   3135
             Left            =   120
             TabIndex        =   30
             Top             =   720
-            Width           =   6612
-            _ExtentX        =   11668
+            Width           =   6975
+            _ExtentX        =   12303
             _ExtentY        =   5530
             LabelEdit       =   1
             LabelWrap       =   -1  'True
@@ -216,23 +216,31 @@ Begin VB.Form frmMainui
       Begin VB.Frame Frame2 
          Caption         =   "Query"
          Height          =   700
-         Left            =   300
+         Left            =   120
          TabIndex        =   26
          Top             =   2400
-         Width           =   6852
+         Width           =   7215
+         Begin VB.CommandButton backCommand 
+            Caption         =   "Back"
+            Height          =   288
+            Left            =   6120
+            TabIndex        =   55
+            Top             =   240
+            Width           =   972
+         End
          Begin VB.CommandButton runCommand 
             Caption         =   "Init"
             Height          =   288
-            Left            =   5640
+            Left            =   5040
             TabIndex        =   31
             Top             =   240
             Width           =   972
          End
          Begin VB.CommandButton queryCommand 
-            Caption         =   "Query"
+            Caption         =   "Run"
             Enabled         =   0   'False
             Height          =   288
-            Left            =   4200
+            Left            =   3960
             TabIndex        =   28
             Top             =   240
             Width           =   972
@@ -249,10 +257,26 @@ Begin VB.Form frmMainui
       Begin VB.Frame Frame1 
          Caption         =   "Query Option"
          Height          =   972
-         Left            =   300
+         Left            =   120
          TabIndex        =   13
          Top             =   1320
-         Width           =   6852
+         Width           =   7215
+         Begin VB.ComboBox tableCombo 
+            Height          =   315
+            Left            =   2520
+            Style           =   2  'Dropdown List
+            TabIndex        =   53
+            Top             =   840
+            Width           =   972
+         End
+         Begin VB.ComboBox actionCombo 
+            Height          =   315
+            Left            =   120
+            Style           =   2  'Dropdown List
+            TabIndex        =   51
+            Top             =   840
+            Width           =   972
+         End
          Begin VB.TextBox addressText 
             Enabled         =   0   'False
             Height          =   288
@@ -264,9 +288,9 @@ Begin VB.Form frmMainui
          Begin VB.CheckBox appendCheck 
             Caption         =   "Append"
             Height          =   312
-            Left            =   5880
+            Left            =   6840
             TabIndex        =   20
-            Top             =   840
+            Top             =   480
             Width           =   852
          End
          Begin VB.TextBox limitText 
@@ -308,6 +332,22 @@ Begin VB.Form frmMainui
             TabIndex        =   14
             Top             =   480
             Width           =   972
+         End
+         Begin VB.Label tableLabel 
+            Caption         =   "Table"
+            Height          =   255
+            Left            =   3600
+            TabIndex        =   54
+            Top             =   840
+            Width           =   975
+         End
+         Begin VB.Label actionLabel 
+            Caption         =   "Action"
+            Height          =   255
+            Left            =   1200
+            TabIndex        =   52
+            Top             =   840
+            Width           =   975
          End
          Begin VB.Label limitLabel 
             Caption         =   "Limit"
@@ -777,6 +817,8 @@ Private Sub Form_Load()
     '***********************************************************
     ' My Code Starts Here
     '***********************************************************
+    'set the initial ui width
+    Me.Width = 9400
     'descending order
     imgIconNo = lvwDescending
     'get all cramp environment variable
@@ -785,6 +827,12 @@ Private Sub Form_Load()
     SetRTCombo
     'set stat/thread/addr combobox
     SetSTACombo
+    'set action combobox
+    SetActionCB
+    'set table combobox
+    SetTableCB
+    'move action controls
+    HideShowControls (actionCombo.Text)
     'move controls
     MoveControls (staCombo.Text)
 
@@ -1129,7 +1177,6 @@ Private Sub mnuSaveAs_Click()
   End If
     
 End Sub
-
 '***********************************************************
 'User has changed the tab strip option, set the Application
 'header accordingly by calling RenameFormWindow
@@ -1281,6 +1328,7 @@ End Sub
 ' set integer value only
 '***********************************************************
 Private Sub pidText_KeyPress(KeyAscii As Integer)
+  If KeyAscii = 44 Then Exit Sub
   KeyAscii = ChkForDigit(KeyAscii)
 End Sub
 '***********************************************************
@@ -1307,6 +1355,22 @@ End Sub
 '***********************************************************
 Private Sub queryCommand_Click()
 Screen.MousePointer = vbHourglass
+
+If Me.threadCombo.Text = "" Then
+  MsgBox "ERROR :: Wrong query arguments passed. No value in the thread combo box."
+  Screen.MousePointer = vbDefault
+  Exit Sub
+End If
+
+'while dumping do not load any thing in the LV
+If Me.actionCombo.Text = "DUMP" Then
+  MsgBox "Dumping of database will take time."
+  'run perl script
+  RunPerlScriptWithCP
+  Screen.MousePointer = vbDefault
+  Exit Sub
+End If
+
 'run perl script
 RunPerlScriptWithCP
 'store query.psf file into the dictionary
@@ -1657,12 +1721,11 @@ Private Sub Form_Resize()
     fraMainUI(1).Width = tspMainUI.Width - (2 * (fraMainUI(0).Left - tspMainUI.Left))
     fraMainUI(1).Height = tspMainUI.Height - (1.5 * (fraMainUI(0).Top - tspMainUI.Top))
     
-    Frame4.Width = fraMainUI(1).Width - (2 * (fraMainUI(1).Left - Frame4.Left))
-    Frame1.Width = fraMainUI(1).Width - (2 * (fraMainUI(1).Left - Frame1.Left))
-    Frame2.Width = fraMainUI(1).Width - (2 * (fraMainUI(1).Left - Frame2.Left))
-    Frame3.Width = fraMainUI(1).Width - (2 * (fraMainUI(1).Left - Frame3.Left))
+    Frame4.Width = fraMainUI(1).Width - (((fraMainUI(1).Left - Frame4.Left) - 250))
+    Frame1.Width = fraMainUI(1).Width - (((fraMainUI(1).Left - Frame1.Left) - 250))
+    Frame2.Width = fraMainUI(1).Width - (((fraMainUI(1).Left - Frame2.Left) - 250))
+    Frame3.Width = fraMainUI(1).Width - (((fraMainUI(1).Left - Frame3.Left) - 250))
     
-    'Frame3.Height = fraMainUI(1).Height - 3260
     Frame3.Height = fraMainUI(1).Height - Frame4.Height - Frame1.Height _
                     - Frame2.Height - (fraMainUI(1).Top - Frame4.Top + 100)
     
@@ -1670,7 +1733,7 @@ Private Sub Form_Resize()
     With Me.queryLV
       l = .Left
       t = .Top
-      w = Frame3.Width - (2 * (Frame3.Left - .Left))
+      w = Frame3.Width - ((Frame3.Left + .Left) + 150)
       h = Frame3.Height - 950
       .Move l, t, w + 150, h
     End With
@@ -1680,4 +1743,50 @@ Private Sub Form_Resize()
 
 End Sub
 
+'***********************************************************
+' set action combo box
+'***********************************************************
+Private Sub actionCombo_Click()
+  HideShowControls (actionCombo.Text)
+  If actionCombo.Text = "DUMP" Then
+    SetQueryText (actionCombo.Text)
+  Else
+    SetQueryText (staCombo.Text)
+  End If
+End Sub
+'***********************************************************
+' call previous query
+'***********************************************************
+Private Sub backCommand_Click()
+If gSPrevQuery <> "" Then
+  Screen.MousePointer = vbHourglass
+  Me.queryText.Text = gSPrevQuery
+  'run perl script
+  RunPerlScriptWithCP
+  'store query.psf file into the dictionary
+  CreateDictionary
+  gDicCountLower = 0
+  gDicCountUpper = listitemText.Text
+  'set query.psf output into the listview
+  SetValueInListView
+  HideShowNextPre
+  'show hide col
+  ShowHideCol
+  'add-remove ADDR
+  AddRemAddrInSTACB
+  manuCurrSetting.Checked = False
+  If frmMainui.queryLV.ListItems.Count <> 0 Then
+    frmMainui.queryLV.SetFocus
+  End If
+  frmMainui.backCommand.Enabled = False
+  Screen.MousePointer = vbDefault
+End If
+End Sub
+
+'***********************************************************
+' table combo box
+'***********************************************************
+Private Sub tableCombo_Click()
+  SetQueryText (actionCombo.Text)
+End Sub
 

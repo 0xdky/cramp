@@ -49,6 +49,9 @@ Public Sub GetEnvironmentVariable()
   ss = 0
   
   gstrSpace = Space(1)
+  gPrevQuery = ""
+  gSPrevQuery = ""
+  frmMainui.backCommand.Enabled = False
   frmMainui.listitemText.Text = 100
   gDicCountLower = 0
   gDicCountUpper = frmMainui.listitemText.Text
@@ -121,6 +124,7 @@ End Sub
 Public Sub GetAllThreads(pidPosition As Long, strPID As String)
   Dim MyArray, MyFileStream, ThisFileText, arrFile
   Dim strLine As String
+  Dim strDB As String
   Dim addValue As Boolean
   Dim cmbBool As Boolean
   Dim ss As Long
@@ -132,6 +136,13 @@ Public Sub GetAllThreads(pidPosition As Long, strPID As String)
   
   If pidPosition < 0 Then Exit Sub
   If strPID = "" Then Exit Sub
+  
+  strDB = "cramp#" & strPID & ".db"
+  strDB = gstrCLogPath & strDB
+  IsFileExistAndSize strDB, gIsFileExist, gFileSize
+  If gIsFileExist = False And gFileSize = 0 Then
+    Exit Sub
+  End If
   
   pidHand = pidArray(pidPosition)
   ReDim pidHand.thrArray(0)
@@ -480,6 +491,30 @@ Public Sub ReorderColumnPosition(strCol As String, chbVal As Boolean)
 
 End Sub
 
+'***********************************************************
+' set action combo box
+'***********************************************************
+Public Sub SetActionCB()
+  Dim strQueDump As String
+  strQueDump = "QUERY"
+  frmMainui.actionCombo.AddItem (strQueDump)
+  strQueDump = "DUMP"
+  frmMainui.actionCombo.AddItem (strQueDump)
+  frmMainui.actionCombo.ListIndex = 0
+End Sub
 
-
-
+'***********************************************************
+' set table combo box
+'***********************************************************
+Public Sub SetTableCB()
+  Dim strDump As String
+  strDump = "ALL"
+  frmMainui.tableCombo.AddItem (strDump)
+  strDump = "ADDR"
+  frmMainui.tableCombo.AddItem (strDump)
+  strDump = "TICK"
+  frmMainui.tableCombo.AddItem (strDump)
+  strDump = "STAT"
+  frmMainui.tableCombo.AddItem (strDump)
+  frmMainui.tableCombo.ListIndex = 0
+End Sub

@@ -412,10 +412,12 @@ Public Function SetPIDCombo(fld As String) As String
    Dim bRet As Boolean
    Dim addValue As Boolean
    Dim cmbBool As Boolean
+   Dim processidArray() As String
    Dim findData As WIN32_FIND_DATA
      
    On Error Resume Next
    ReDim Preserve pidArray(0)
+   ReDim Preserve processidArray(0)
    
    addValue = False
    cmbBool = False
@@ -447,18 +449,25 @@ Public Function SetPIDCombo(fld As String) As String
       tmpStr = Replace(tmpStr, "\", "/")
       IsFileExistAndSize tmpStr, gIsFileExist, gFileSize
       If gIsFileExist <> False And gFileSize <> 0 Then
-       tmpStr = Right$(FileName, 3)
-       If tmpStr = ".db" Then
+       'tmpStr = Right$(FileName, 3)
+       tmpStr = Right$(FileName, 4)
+       'If tmpStr = ".db" Then
+       If tmpStr = ".log" Then
         strLength = Len(FileName)
         Location = InStr(FileName, "#")
         Location = strLength - Location
         ProcessID = Right(FileName, Location)
         Location = InStr(ProcessID, ".")
         strLength = Len(ProcessID)
-        Location = strLength - 3        '3 for .db
+        'Location = strLength - 3        '3 for .db
+        Location = strLength - 4        '4 for .log
         ProcessID = Left(ProcessID, Location)
-        'addValue = ChkValueInArray(pidArray(), ProcessID)
-        If IsNumeric(ProcessID) Then
+        addValue = ChkDuplicateValueInArray(processidArray(), ProcessID)
+        If IsNumeric(ProcessID) And addValue = True Then
+          
+          processidArray(UBound(processidArray)) = ProcessID
+          ReDim Preserve processidArray(UBound(processidArray) + 1)
+        
           Dim X As udtPID
           pidArray(UBound(pidArray)) = X
           If cmbBool = False Then
@@ -491,6 +500,7 @@ Public Function SetPIDCombo(fld As String) As String
    Location = 0
    strLength = 0
    cmbBool = False
+   Erase processidArray
    
 End Function
 '***********************************************************
@@ -683,4 +693,28 @@ End Sub
 'icon code end - pie
 
 
+'***********************************************************
+' checking for the duplicate entry in the array
+'***********************************************************
+Public Function ChkDuplicateValueInArray(processidArray() As String, tmpStr As String) As Boolean
+    Dim iCounter As Integer
+    Dim arrValue As String
+    
+    iCounter = 0
+    arrValue = ""
+    
+    On Error Resume Next
+    
+    If UBound(processidArray) < 0 Then Exit Function
+    
+    For iCounter = 0 To UBound(processidArray)
+      arrValue = processidArray(iCounter)
+      If arrValue = tmpStr Then
+        ChkDuplicateValueInArray = False
+        Exit For
+      Else
+        ChkDuplicateValueInArray = True
+      End If
+  Next
+End Function
 
