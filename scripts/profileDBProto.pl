@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-12-26 13:30:28 dhruva>
+## Time-stamp: <2004-01-01 09:50:53 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -13,6 +13,9 @@
 ##                  stack trace and reduced DB file size. Results except
 ##                  thread ID are prefixed by position in RAW record. This
 ##                  is mainly for STACK trace.
+## 01-01-2004  Mod  Bufferred reading of log file to reduce process memory  dky
+##                  footprint. Env 'PROFILEDB_BUFFER_LIMIT' to alter size.
+##                  If set, MUST be greater than 5000.
 ##-----------------------------------------------------------------------------
 ## Log file syntax:
 ##  Thread ID|Function address|Depth|Raw Ticks|Time in Ns|Ticks
@@ -24,6 +27,7 @@
 use DB_File;
 use BerkeleyDB;
 
+# Global variables
 my $g_pid;
 my $f_logdb;
 my $f_logtxt;
@@ -33,12 +37,13 @@ my $f_queryout;
 my $g_append=0;
 my $cramplogdir=".";
 my $progname=$0;
-$progname=~s,.*/,,;
 
-# Global variables
 my $g_db_RAW;
+my @g_TIDs=();
 my @g_tie_RAW=();
+my $g_BUFFER_LIMIT=50000;
 
+$progname=~s,.*/,,;
 ##-----------------------------------------------------------------------------
 ## usage
 ##-----------------------------------------------------------------------------
@@ -47,7 +52,7 @@ sub usage{
 ARGS  : PID DUMP ALL|TICK|ADDR
         PID QUERY STAT [APPEND]
         PID QUERY THREADS [APPEND]
-        PID QUERY thread_id STACK pos Start End [APPEND]
+        PID QUERY thread_id STACK pos Start End [APPEND] (Not yet implemented)
         PID QUERY thread_id|ALL RAW Start End (-1 till end) [APPEND]
         PID QUERY thread_id|ALL TICK limit [APPEND]
         PID QUERY thread_id|ALL ADDR function_address limit [APPEND]
@@ -80,11 +85,26 @@ sub TickCompare{
   my $k1=$g_tie_RAW[$a];
   my $k2=$g_tie_RAW[$b];
 
-  $k1=~s/\0$//;
-  $k2=~s/\0$//;
-
   $k1=~s/([0-9]+)$/{$key1=$1}/e;
   $k2=~s/([0-9]+)$/{$key2=$1}/e;
+
+  if ($key1 < $key2) {
+    return 1;
+  } elsif ($key1 > $key2) {
+    return -1;
+  }
+  return 0;
+}
+
+##-----------------------------------------------------------------------------
+## ThreadCompare
+##-----------------------------------------------------------------------------
+sub ThreadCompare{
+  my $k1=$a;
+  my $k2=$b;
+
+  $k1=~s/^([0-9]+)/{$key1=$1}/e;
+  $k2=~s/^([0-9]+)/{$key2=$1}/e;
 
   if ($key1 < $key2) {
     return 1;
@@ -124,7 +144,7 @@ sub WriteResults{
 sub ProcessArgs{
   chomp(@ARGV);
 
-  if ($ENV{'CRAMP_LOGPATH'}) {
+  if (exists($ENV{'CRAMP_LOGPATH'})) {
     $cramplogdir=$ENV{'CRAMP_LOGPATH'};
     $cramplogdir=~tr/\\/\//;
     $cramplogdir=~s/\/+$//g;
@@ -132,6 +152,14 @@ sub ProcessArgs{
     if (! -d $cramplogdir) {
       print STDERR "Error: Invalid \"$cramplogdir\" log path\n";
       return 1;
+    }
+  }
+
+  if (exists($ENV{'PROFILEDB_BUFFER_LIMIT'})) {
+    my $buff=$ENV{'PROFILEDB_BUFFER_LIMIT'};
+    $buff=~s/[^0-9]//g;
+    if (length($buff) && $buff>5000) {
+      $g_BUFFER_LIMIT=$buff;
     }
   }
 
@@ -434,8 +462,8 @@ sub GetRawValuesFromIDs{
   $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
                 -Filename    => $f_logdb,
                 -Subname     => "RAW#$tid",
-                -Flags       => DB_RDONLY,
-                -Property    => DB_RENUMBER)
+                -Property    => DB_RENUMBER,
+                -Flags       => DB_RDONLY)
     || die("Error: $BerkeleyDB::Error");
   if (!defined($g_db_RAW)) {
     return ();
@@ -516,15 +544,20 @@ sub GetAddrSortedData{
 
 ##-----------------------------------------------------------------------------
 ## GetThreadIDs
+##  Added caching during dumping, performance improvement
 ##-----------------------------------------------------------------------------
 sub GetThreadIDs{
+  if ($#g_TIDs>=0) {
+    return @g_TIDs;
+  }
+
   my @tie_TID=();
   my $db;
   $db=tie(@tie_TID,'BerkeleyDB::Recno',
           -Filename    => $f_logdb,
           -Subname     => "TID",
-          -Flags       => DB_RDONLY,
-          -Property    => DB_RENUMBER)
+          -Property    => DB_RENUMBER,
+          -Flags       => DB_RDONLY)
     || die("Error: $BerkeleyDB::Error");
   if (!defined($db)) {
     return ();
@@ -533,37 +566,50 @@ sub GetThreadIDs{
     return ();
   }
 
-  my @results=@tie_TID;
+  push(@g_TIDs,@tie_TID);
 
   undef $db;
   untie @tie_TID;
 
-  return @results;
+  return @g_TIDs;
 }
 
 ##-----------------------------------------------------------------------------
 ## AddRawLogs
-##  Check when log files are really huge ie., 500+Mb
+##  Buffered reading of log file to handle list size for sorting
 ##-----------------------------------------------------------------------------
 sub AddRawLogs{
-  open(LOGTXT,$_[0]) || die("Cannot open \"$_[0]\" for read");
   my $db;
   my $tid=0;
   my $ptid=0;
-  my @tids=();
+  my $pend=1;
+  my %h_tid;
+  my $count=0;
   my @rawlogs=();
 
+  open(LOGTXT,$_[0]) || die("Cannot open \"$_[0]\" for read");
+
+ logread:
+  $count=0;
+  @rawlogs=();
   while (<LOGTXT>) {
     chomp();
     push(@rawlogs,$_);
+    $count++;
+    if ($count>$g_BUFFER_LIMIT) {
+      goto logdump;
+    }
   }
+  close(LOGTXT);
+  $pend=0;
 
-  foreach (sort @rawlogs) {
+ logdump:
+  foreach (sort ThreadCompare @rawlogs) {
     my $buf=$_;
     $buf=~s/^([0-9]+)/{$tid=$1}/e;
     if ($tid != $ptid) {
       $ptid=$tid;
-      push(@tids,$tid);
+      $h_tid{$tid}=1;
       if (defined($db)) {
         undef $db;
       }
@@ -571,23 +617,32 @@ sub AddRawLogs{
       $db=new BerkeleyDB::Recno
         -Filename    => $f_logdb,
           -Subname     => "RAW#$tid",
-            -Flags       => DB_EXCL|DB_CREATE,
-              -Property    => DB_RENUMBER
-                || return 1;
+            -Property    => DB_RENUMBER,
+              -Flags       => DB_CREATE
+                || die("Error in creating/opening RAW#$tid table");
       die if !defined($db);
       if (SetDBFilters($db)) {
         return 1;
       }
-      my $count=0;
-      $db->truncate($count);
     }
-    my $key=$tid;
-    $db->db_put($key,$_,DB_APPEND);
+    $db->db_put($tid,$_,DB_APPEND);
   }
-  close(LOGTXT);
+  if ($pend) {
+    goto logread;
+  }
 
-  if ($#tids) {
-    AddThreadIDs(@tids);
+  # Close the last open DB handle
+  if (defined($db)) {
+    undef $db;
+  }
+
+  @g_TIDs=();
+  foreach (keys %h_tid) {
+    push(@g_TIDs,$_);
+  }
+
+  if ($#g_TIDs>=0) {
+    AddThreadIDs(@g_TIDs);
   }
 
   return 0;
@@ -602,21 +657,20 @@ sub AddThreadIDs{
   $db=tie(@tie_TID,'BerkeleyDB::Recno',
           -Filename    => $f_logdb,
           -Subname     => "TID",
-          -Flags       => DB_EXCL|DB_CREATE,
-          -Property    => DB_RENUMBER)
-    || return 1;
+          -Property    => DB_RENUMBER,
+          -Flags       => DB_EXCL|DB_CREATE)
+    || die("Error in dumping thread id");
   if (!defined($db)) {
     return 1;
   }
   if (SetDBFilters($db)) {
     return 1;
   }
-  my $count=0;
-  $db->truncate($count);
 
   foreach (@_) {
     push(@tie_TID,$_);
   }
+
   undef $db;
   untie @tie_TID;
 
@@ -648,8 +702,8 @@ sub AddAddrSortedData{
     $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
                   -Filename    => $f_logdb,
                   -Subname     => "RAW#$tid",
-                  -Flags       => DB_RDONLY,
-                  -Property    => DB_RENUMBER)
+                  -Property    => DB_RENUMBER,
+                  -Flags       => DB_RDONLY)
       || last;
     if (!defined($g_db_RAW)) {
       next;
@@ -692,8 +746,8 @@ sub AddSortedData{
     $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
                   -Filename    => $f_logdb,
                   -Subname     => "RAW#$tid",
-                  -Flags       => DB_RDONLY,
-                  -Property    => DB_RENUMBER)
+                  -Property    => DB_RENUMBER,
+                  -Flags       => DB_RDONLY)
       || last;
     if (!defined($g_db_RAW)) {
       last;
@@ -706,8 +760,8 @@ sub AddSortedData{
     my $dbw=tie(@tie_SORT,'BerkeleyDB::Recno',
                 -Filename    => $f_logdb,
                 -Subname     => "$base#$tid",
-                -Flags       => DB_EXCL|DB_CREATE,
-                -Property    => DB_RENUMBER)
+                -Property    => DB_RENUMBER,
+                -Flags       => DB_EXCL|DB_CREATE)
       || next;
     if (!defined($dbw)) {
       next;
@@ -742,8 +796,8 @@ sub GetSortedData{
   $db=tie(@tie_DATA,'BerkeleyDB::Recno',
           -Filename    => $f_logdb,
           -Subname     => "$base#$tid",
-          -Flags       => DB_RDONLY,
-          -Property    => DB_RENUMBER)
+          -Property    => DB_RENUMBER,
+          -Flags       => DB_RDONLY)
     || die("Error: $BerkeleyDB::Error");
   if (!defined($db)) {
     return ();
@@ -764,8 +818,8 @@ sub GetSortedData{
   $g_db_RAW=tie(@g_tie_RAW,'BerkeleyDB::Recno',
                 -Filename    => $f_logdb,
                 -Subname     => "RAW#$tid",
-                -Flags       => DB_RDONLY,
-                -Property    => DB_RENUMBER)
+                -Property    => DB_RENUMBER,
+                -Flags       => DB_RDONLY)
     || return ();
   if (!defined($g_db_RAW)) {
     return ();
