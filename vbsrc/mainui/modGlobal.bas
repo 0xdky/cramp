@@ -436,11 +436,21 @@ Public Sub InitialiseMRUFileList()
     Do Until EOF(1)
         frmMainui.mnuSpace3.Visible = True
         Input #1, sMRUFile
-        gMRUList(0, gMRUListCtr) = sMRUFile
-        gMRUList(1, gMRUListCtr) = "&" & gMRUListCtr + 1 & " " & sMRUFile
-        gMRUListCtr = gMRUListCtr + 1
-        If gMRUListCtr = 4 Then
-            Exit Do
+
+        ' Strip trailing spaces
+        If (0 = Len(sMRUFile)) Then
+            While (" " = Right$(sMRUFile, 1))
+                sMRUFile = Left$(sMRUFile, Len(sMRUFile) - 1)
+            Wend
+        End If
+
+        If (0 <> Len(sMRUFile)) Then
+            gMRUList(0, gMRUListCtr) = sMRUFile
+            gMRUList(1, gMRUListCtr) = "&" & gMRUListCtr + 1 & " " & sMRUFile
+            gMRUListCtr = gMRUListCtr + 1
+            If gMRUListCtr = 4 Then
+                Exit Do
+            End If
         End If
     Loop
     
