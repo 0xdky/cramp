@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-02 13:55:45 dhruva>
+// Time-stamp: <2003-10-02 17:04:59 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -12,6 +12,7 @@
 //-----------------------------------------------------------------------------
 #include "cramp.h"
 #include "TestCaseInfo.h"
+#include <algorithm>
 
 //-----------------------------------------------------------------------------
 // Init
@@ -22,6 +23,7 @@ TestCaseInfo::Init(void){
   b_refer=FALSE;
   b_block=TRUE;
   b_group=FALSE;
+  b_pseudogroup=FALSE;
 
   s_name.erase();
   s_exec.erase();
@@ -63,7 +65,6 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   if(p_pgroup){
     p_pgroup->l_tci.push_back(this);
     p_scenario=p_pgroup->Scenario();
-    p_scenario->l_gc.push_back(this);
   }else{
     p_scenario=this;
   }
@@ -78,19 +79,23 @@ TestCaseInfo::TestCaseInfo(TestCaseInfo *ipParentGroup,
   }else if(p_pgroup){
     u_uid=AUTO_UNIQUE_BASE+Scenario()->l_gc.size();
   }
+
+  // Add this at end or you will find it and make a infinite RECURSE!!
+  if(ipParentGroup)
+    p_scenario->l_gc.push_back(this);
 }
 
 //-----------------------------------------------------------------------------
 // ~TestCaseInfo
 //-----------------------------------------------------------------------------
 TestCaseInfo::~TestCaseInfo(){
-  if(!GroupStatus()){
+  if(GroupStatus()||PseudoGroupStatus()){
+    l_tci.clear();
+  }else{
     if(pi_procinfo.hThread)
       CloseHandle(pi_procinfo.hThread);
     if(pi_procinfo.hProcess)
       CloseHandle(pi_procinfo.hProcess);
-  }else{
-    l_tci.clear();
   }
   Init();
 }
@@ -134,15 +139,27 @@ TestCaseInfo
 }
 
 //-----------------------------------------------------------------------------
+// ApplyDelete
+//-----------------------------------------------------------------------------
+inline
+void ApplyDelete(TestCaseInfo *ipTC){
+  if(!ipTC)
+    return;
+  ::delete ipTC;
+  ipTC=0;
+  return;
+}
+
+//-----------------------------------------------------------------------------
 // DeleteScenario
 //-----------------------------------------------------------------------------
 BOOLEAN
 TestCaseInfo::DeleteScenario(TestCaseInfo *ipScenario){
   if(!ipScenario||!ipScenario->GroupStatus()||ipScenario->GetParentGroup())
     return(FALSE);
-  ListOfTestCaseInfo::iterator iter=ipScenario->l_gc.begin();
-  for(;iter!=ipScenario->l_gc.end();iter++)
-    delete (*iter);
+  ListOfTestCaseInfo::iterator start=ipScenario->l_gc.begin();
+  ListOfTestCaseInfo::iterator end=ipScenario->l_gc.end();
+  std::for_each(start,end,ApplyDelete);
   ::delete ipScenario;
   ipScenario=0;
   return(TRUE);
@@ -178,6 +195,14 @@ TestCaseInfo
 TestCaseInfo
 *TestCaseInfo::GetParentGroup(void){
   return(p_pgroup);
+}
+
+//-----------------------------------------------------------------------------
+// PseudoGroupStatus
+//-----------------------------------------------------------------------------
+BOOLEAN
+TestCaseInfo::PseudoGroupStatus(void){
+  return(b_pseudogroup);
 }
 
 //-----------------------------------------------------------------------------
@@ -254,26 +279,20 @@ void
 TestCaseInfo::NumberOfRuns(SIZE_T iNumberOfRuns){
   if(u_numruns==iNumberOfRuns)
     return;
-  TestCaseInfo *pgtc=GetParentGroup();
-  if(!pgtc)
-    return;
-  ListOfTestCaseInfo ltc=pgtc->GetListOfTCI();
+  ListOfTestCaseInfo ltc=GetListOfTCI();
   ListOfTestCaseInfo::iterator iter=ltc.begin();
-  while(iter!=ltc.end()){
-    TestCaseInfo *ptc=(*iter);
-    if(ptc&&
-       ptc->ReferStatus()&&ptc->Reference()&&
-       ptc->Reference()->UniqueID()==this->UniqueID())
-      ltc.erase(iter);
-    else
-      iter++;
-  }
+  for(;iter!=ltc.end();iter++)
+    delete (*iter);
+  ltc.clear();
+  u_numruns=iNumberOfRuns;
+  if(u_numruns<2)
+    return;
   for(unsigned int ii=0;ii<iNumberOfRuns;ii++){
-    TestCaseInfo *nptc=new TestCaseInfo(pgtc,0,GroupStatus(),BlockStatus());
+    TestCaseInfo *nptc=AddTestCase(0,BlockStatus());
     nptc->ReferStatus(TRUE);
     nptc->Reference(this);
   }
-  u_numruns=iNumberOfRuns;
+  b_pseudogroup=TRUE;
   return;
 }
 

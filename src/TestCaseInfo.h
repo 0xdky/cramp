@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-09-30 15:40:43 dhruva>
+// Time-stamp: <2003-10-02 15:59:04 dhruva>
 //-----------------------------------------------------------------------------
 // File : TestCaseInfo.h
 // Desc : Header file with data structures
@@ -58,7 +58,9 @@ public:
   TestCaseInfo *Scenario(void);
 
   BOOLEAN GroupStatus(void);
-  void GroupStatus(BOOLEAN iIsGroup);
+  // To support group like behaviour for
+  // multi run entities
+  BOOLEAN PseudoGroupStatus(void);
 
   BOOLEAN BlockStatus(void);
   void BlockStatus(BOOLEAN iIsBlocked);
@@ -77,7 +79,8 @@ public:
   SIZE_T NumberOfRuns(void);
   void NumberOfRuns(SIZE_T iNumberOfRuns);
 
-  // Internal methods... Not to be
+  // Internal methods...
+  // Not to be used other than in cramp.cpp
   TestCaseInfo *Reference(void);
   void Reference(TestCaseInfo *ipRefTC);
   void SetDelTimer(HANDLE ihTimer);
@@ -89,6 +92,7 @@ private:
   BOOLEAN b_refer;                  // Should I refer an existing test case
   BOOLEAN b_group;                  // Is this a group
   BOOLEAN b_block;                  // Blocking or non blocking run
+  BOOLEAN b_pseudogroup;            // Test case with multi run
 
   SIZE_T u_uid;                     // Unique ID to build references
   SIZE_T u_numruns;                 // Number of runs
@@ -112,6 +116,7 @@ private:
   HANDLE h_deltimer;                // Timer to kill proc if time limited
 
 private:
+  TestCaseInfo();
   TestCaseInfo(TestCaseInfo *ipParent,
                const char *iUniqueID=0,
                BOOLEAN iGroup=FALSE,
@@ -121,10 +126,8 @@ private:
   inline void Init(void);
   SIZE_T UniqueID(void);
   inline SIZE_T hashstring(const char *s);
+  void GroupStatus(BOOLEAN iIsGroup);
   void ReferStatus(BOOLEAN iIsReference);
   TestCaseInfo *FindTCFromUID(SIZE_T iuid);
-
-  // No objects!
-  TestCaseInfo();
 };
 typedef std::list<TestCaseInfo *> ListOfTestCaseInfo;

@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-09-30 15:38:58 dhruva>
+// Time-stamp: <2003-10-02 16:50:33 dhruva>
 //-----------------------------------------------------------------------------
 // File : cramp.h
 // Desc : cramp header file
@@ -36,6 +36,10 @@
 #define JOB_NAME "CRAMP_JOB"
 
 // Courtesy: Jeffrey Richter
+#ifdef _X86_
+#define DebugBreak() _asm { int 3 }
+#endif
+
 typedef unsigned (__stdcall *PTHREAD_START) (void *);
 #define chBEGINTHREADEX(psa, cbStack, pfnStartAddr,         \
                         pvParam, fdwCreate, pdwThreadId)    \

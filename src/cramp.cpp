@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-01 19:30:51 dhruva>
+// Time-stamp: <2003-10-02 16:22:36 dhruva>
 //-----------------------------------------------------------------------------
 // File  : cramp.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -53,33 +53,12 @@ InitGlobals(void){
 //-----------------------------------------------------------------------------
 TestCaseInfo
 *GetTestCaseInfos(const char *ifile){
-  TestCaseInfo *top=0,*ptc=0,*ptc1=0;
-
-  // Create scenario group
-  top=TestCaseInfo::CreateScenario("SCENARIO",TRUE);
-
-  // Add test case to group
-  ptc=top->AddTestCase("EMACS",FALSE);
-  ptc->TestCaseExec("emacs.exe");
-  ptc=0;
-
-  // Create group
-  ptc=top->AddGroup(0,FALSE);
-
-  // Add test cases to group
-  ptc1=ptc->AddTestCase();
-  ptc1->TestCaseExec("xemacs.exe");
-  ptc1=0;
-
-  // Add test cases to group
-  ptc1=ptc->AddTestCase();
-  ptc1->TestCaseExec("notepad.exe");
-  ptc1=0;
-
-  ptc=top->AddTestCase("EMACS");
-  ptc=0;
-
-  return(top);
+  if(!ifile)
+    return(0);
+  XMLParse xml(ifile);
+  if(!xml.ParseXMLFile())
+    return(0);
+  return(xml.GetScenario());
 }
 
 //-----------------------------------------------------------------------------
@@ -161,7 +140,7 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
     // Count number of groups for non-block run
     ListOfTestCaseInfo::iterator iter=l_tci.begin();
     for(;iter!=l_tci.end();iter++)
-      if((*iter)->GroupStatus())
+      if((*iter)->GroupStatus()||(*iter)->PseudoGroupStatus())
         numgroups++;
     if(numgroups)
       tharr=new HANDLE[numgroups];
@@ -171,14 +150,16 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
   for(SIZE_T tc=0;iter!=l_tci.end();iter++){
     TestCaseInfo *ptc=(*iter);
     TestCaseInfo *porigtc=ptc;
-    if(ptc->ReferStatus())
-      ptc=ptc->Reference();
-    if(!ptc)
-      continue;
+    if(!ptc->PseudoGroupStatus()){
+      while(ptc&&ptc->ReferStatus())
+        ptc=ptc->Reference();
+      if(!ptc)
+        continue;
+    }
 
     // If it is a group... call recursively
     // no exec in groups!!
-    if(ptc->GroupStatus()){
+    if(ptc->GroupStatus()||ptc->PseudoGroupStatus()){
       if(blocked){
         CreateManagedProcesses(ptc);
       }else if(tc<numgroups){
@@ -364,6 +345,9 @@ WINAPI WinMain(HINSTANCE hinstExe,
   int ret=-1;
   InitGlobals();
 
+  if(getenv("DEBUG"))
+    DebugBreak();
+
   // Get the command line stuff
   int argcW=0;
   LPWSTR *argvW=0;
@@ -414,10 +398,7 @@ WINAPI WinMain(HINSTANCE hinstExe,
                             sizeof(joacp));
 
     // Parse the XML file and populate the list
-    XMLParse xml(scenario);
-    if(!xml.ParseXMLFile())
-      break;
-    TestCaseInfo *ptop=xml.GetScenario();
+    TestCaseInfo *ptop=GetTestCaseInfos(scenario);
     if(!ptop)
       break;
 
