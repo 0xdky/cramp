@@ -31,7 +31,4 @@ private :
 
 	void ScanXMLFile( DOMNode * parentchnode, int type );
 	void ScanForAttributes(DOMNode *rootnode, int type );
-
-  void ScanElementForAttribute(DOMNamedNodeMap *pAttlist,int size);
-  char *ReturnSubString(char *mainString);
 };

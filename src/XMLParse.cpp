@@ -191,16 +191,15 @@ void
 XMLParse::ScanXMLFile( DOMNode * parentchnode,
                        int type ){
 
-  if( SCENARIO == type )//SCENARIO
+	//SCENARIO
+  if( SCENARIO == type )
   {
-    //cout << "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&" << endl;
     ScanForAttributes( parentchnode, SCENARIO );
   }
 
   //get all nodes
   DOMNodeList *childlist = parentchnode->getChildNodes();
   int childsize = childlist->getLength();
-  //cout << "Total Child Is :: " << childsize << endl;
   if( 0 == childsize )
     return;
 
@@ -241,59 +240,6 @@ XMLParse::ScanXMLFile( DOMNode * parentchnode,
 }
 
 //-----------------------------------------------------------------------------
-// ReturnSubString
-//-----------------------------------------------------------------------------
-char
-*XMLParse::ReturnSubString(char *mainString){
-  cout << "Entering TestCase" << endl;
-
-  char* subString = "test";
-  unsigned int length = XMLString::stringLen( mainString );
-
-  if( length >= 8 )//exclusively for TestCase string
-  {
-    cout << "Entering subString :: " << length << " :: " << mainString << endl;
-    XMLString::subString( subString, mainString, 0, 8 );
-    if( subString == "TestCase" )
-    {
-      cout << "Leaving TestCase" << endl;
-      return( subString );
-    }
-  }
-
-  return( mainString );
-}
-
-//-----------------------------------------------------------------------------
-// ScanElementForAttribute
-//-----------------------------------------------------------------------------
-void
-XMLParse::ScanElementForAttribute(DOMNamedNodeMap *pAttlist,
-                                  int size){
-  if( 0 == size )
-    return;
-  if( NULL == pAttlist )
-    return;
-
-  cout << "  { ATTRIBUE }  " << endl;
-
-  for( int ss = 0; ss < size; ss++ )
-  {
-    DOMNode  *newAtt = pAttlist->item(ss);
-    char* attributeName = XMLString::transcode( newAtt->getNodeName() );
-    char* attributeValue = XMLString::transcode( newAtt->getNodeValue() );
-
-    cout << "Name :: " << attributeName << endl;
-    cout << "Value :: " << attributeValue << endl;
-
-    XMLString::release(&attributeName);
-    XMLString::release(&attributeValue);
-  }
-
-  return;
-}
-
-//-----------------------------------------------------------------------------
 // ScanForAttributes
 //-----------------------------------------------------------------------------
 void
@@ -306,7 +252,6 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
   int SecSize = 0;
   pSceAttlist  = rootnode->getAttributes();
   SecSize = pSceAttlist->getLength();
-  //cout << "Total Attribute :: " << SecSize << endl;
   if( 0 == SecSize )
     return;
 
@@ -412,6 +357,8 @@ XMLParse::ScanForAttributes(DOMNode *rootnode,
     XMLString::release(&(*from).attrname);
     XMLString::release(&(*from).attrvalue);
   }
+
+  myelement.clear();
 
   return;
 }
