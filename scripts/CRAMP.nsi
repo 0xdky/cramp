@@ -113,25 +113,25 @@ SectionEnd
 
 Section "STAF" SEC03
   SetOverwrite ifnewer
-  SetOutPath "$INSTDIR\STAF\bin"
+  SetOutPath "$INSTDIR\TOOLS\STAF\bin"
   File /r "\Applications\AutoTest\STAF\bin\*"
 
   FileOpen $SBAT "$SMSTARTUP\STAFServer.bat" w
-  FileWrite $SBAT "@call $\"$INSTDIR\STAF\bin\STAFProc.exe$\""
+  FileWrite $SBAT "@call $\"$INSTDIR\TOOLS\STAF\bin\STAFProc.exe$\""
   FileClose $SBAT
 
   WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" \
-                    "STAF_PATH" "$INSTDIR\STAF"
+                    "STAF_PATH" "$INSTDIR\TOOLS\STAF"
 
 SectionEnd
 
 Section "PERL" SEC04
   SetOverwrite ifnewer
-  SetOutPath "$INSTDIR\PERL\bin"
+  SetOutPath "$INSTDIR\TOOLS\PERL\bin"
   File /r "\perl\bin\*"
-  SetOutPath "$INSTDIR\PERL\lib"
+  SetOutPath "$INSTDIR\TOOLS\PERL\lib"
   File /r "\perl\lib\*"
-  SetOutPath "$INSTDIR\PERL\site"
+  SetOutPath "$INSTDIR\TOOLS\PERL\site"
   File /r "\perl\site\*"
 SectionEnd
 
