@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-02-23 16:17:51 dky>
+## Time-stamp: <2004-02-25 10:55:06 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -18,6 +18,7 @@
 ##                  If set, MUST be greater than 5000.
 ## 01-02-2004  Mod  Reduced variables                                       dky
 ## 02-22-2004  Mod  Proper call stack results by re-ordering                dky
+## 02-25-2004  Bug  Implemented call stack using correct algo           sjm/dky
 ##-----------------------------------------------------------------------------
 ## Log file syntax:
 ##  Thread ID|Function address|Depth|Raw Ticks|Time in Ns|Ticks
@@ -133,38 +134,53 @@ sub ThreadCompare{
 
 ##-----------------------------------------------------------------------------
 ## CallStackSort
+##  A recursive method to sort and get proper call stack: Algo be SJM
 ##-----------------------------------------------------------------------------
 sub CallStackSort{
-  my $pd=-1;
-  my @tmplist=();
-  my @callstack=();
+  my $nd;
+  my $cd=-1;
+  my $cc=0;
+  my @sp=();
+  my @retlist=();
+
+  foreach (@_) {
+    @sp=split(/\|/,$_);
+    if (-1 == $cd) {            # First time...
+      $cd=$sp[3];               # Depth field
+      next;
+    }
+    $nd=$sp[3];                 # Depth field
+    if ($nd <= $cd) {
+      push(@retlist,splice(@_,$cc,1));
+      push(@retlist,CallStackSort(@_));
+      last;
+    }
+    $cc++;
+  }
+
+  return(@retlist);
+}
+
+##-----------------------------------------------------------------------------
+## GetCallStack
+##-----------------------------------------------------------------------------
+sub GetCallStack{
   my $topfunc=pop(@_);
   my @sp=split(/\|/,$topfunc);
   my $td=$sp[3];
 
-  foreach (@_) {
+  my @limit=();
+  foreach (reverse(@_)) {
     @sp=split(/\|/,$_);
     if ($sp[3] <= $td) {
       last;
     }
-
-    if (-1 == $pd || $sp[3] < $pd) {
-      push(@tmplist,$_);
-    } elsif ($sp[3] == $pd) {
-      push(@callstack,reverse(@tmplist));
-      push(@callstack,$_);
-      @tmplist=();
-    } else {
-      push(@callstack,reverse(@tmplist));
-      @tmplist=();
-      push(@tmplist,$_);
-    }
-    $pd=$sp[3];
+    push(@limit,$_);
   }
 
-  if ($#tmplist) {
-    push(@callstack,reverse(@tmplist));
-  }
+  # Passing the reversed list
+  my @callstack=();
+  @callstack=reverse(CallStackSort(@limit));
 
   return @callstack;
 }
@@ -337,8 +353,8 @@ sub ProcessArgs{
         if ($key < 0) {
           $key=0;
         }
-        push(@values,GetRawValuesFromIDs($tidlist[0],($key..$key+$max)));
-        @values=CallStackSort(@values);
+        @values=GetCallStack(GetRawValuesFromIDs($tidlist[0],
+                                                 ($key..$key+$max)));
       }
     }
 
