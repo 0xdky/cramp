@@ -35,7 +35,7 @@ Public Sub SetProcessIDCombo()
 
   'if "CRAMP_LOGPATH" exists then get the process id
   If folder = True Then
-    Call SetPIDCombo(gstrCLogPath, True)
+    SetPIDCombo (gstrCLogPath)
   Else
     MsgBox "Folder " + gstrCLogPath + " Does Not Exists"
   End If
@@ -105,6 +105,8 @@ Public Sub GetEnvironmentVariable()
   StoredefaultSetting
   'load frmlvcolhs form
   Load frmLVColHS
+  'set check box status
+  InitLVColHSForm
   frmLVColHS.Visible = False
     
   gIsFileExist = False
@@ -113,40 +115,28 @@ Public Sub GetEnvironmentVariable()
 End Sub
 
 '***********************************************************
-' set thread and address combo box
+' set thread into udt pid
 '***********************************************************
-Public Sub SetThreAndAddrCombo()
+Public Sub GetAllThreads(pidPosition As Long, strPID As String)
   Dim MyArray, MyFileStream, ThisFileText, arrFile
   Dim strLine As String
-  Dim threadArray() As String
-  Dim addrArray() As String
-  Dim strAll As String
   Dim addValue As Boolean
   Dim cmbBool As Boolean
   Dim ss As Long
+  Dim pidHand As udtPID
   
-  ReDim threadArray(0)
-  ReDim addrArray(0)
-  strAll = "ALL"
   ss = 0
   
-  'move query.psf to querynew.psf
-  IsFileExistAndSize gstrCLogPath + "query.psf", gIsFileExist, gFileSize
-  If gIsFileExist <> False And gFileSize <> 0 Then
-    IsFileExistAndSize gstrCLogPath + "querynew.psf", gIsFileExist, gFileSize
-      If gIsFileExist <> False And gFileSize <> 0 Then
-        gobjFSO.DeleteFile gstrCLogPath + "querynew.psf", True
-      End If
-      gobjFSO.MoveFile gstrCLogPath + "query.psf", gstrCLogPath + "querynew.psf"
+  On Error Resume Next
   
-      gIsFileExist = False
-      gFileSize = 0
-  End If
-
+  If pidPosition < 0 Then Exit Sub
+  If strPID = "" Then Exit Sub
+  
+  pidHand = pidArray(pidPosition)
+  ReDim pidHand.thrArray(0)
+  
   'pid QUERY ALL TICK 0
-  frmMainui.queryText.Text = frmMainui.pidCombo.Text + gstrSpace + "QUERY" + gstrSpace _
-                           + strAll + gstrSpace + frmMainui.rtCombo.Text + gstrSpace + _
-                           frmMainui.limitText.Text
+  frmMainui.queryText.Text = strPID & gstrSpace & "QUERY" & gstrSpace & "THREADS"
     
   'run perl script to get all the threads
   RunPerlScriptWithCP
@@ -158,33 +148,18 @@ Public Sub SetThreAndAddrCombo()
     cmbBool = False
     Do Until MyFileStream.AtEndOfStream
       strLine = MyFileStream.ReadLine
-    
-      MyArray = Split(strLine, "|", -1, 1)
-      For ss = 0 To UBound(MyArray)
-        If ss = 0 Then
-          'storing thread
-          strLine = MyArray(ss)
-          addValue = ChkValueInArray(threadArray(), strLine)
-          If addValue = True Then
-             threadArray(UBound(threadArray)) = strLine
-             ReDim Preserve threadArray(UBound(threadArray) + 1)
-             cmbBool = True
-          End If
-        ElseIf ss = 3 Then
-          'storing address
-          strLine = MyArray(ss)
-          addValue = ChkValueInArray(addrArray(), strLine)
-          If addValue = True Then
-             addrArray(UBound(addrArray)) = strLine
-             ReDim Preserve addrArray(UBound(addrArray) + 1)
-             cmbBool = True
-          End If
-        End If
-      Next
+      'check for duplicate entry
+      addValue = ChkValueInArray(pidHand, strLine)
+      If addValue = True Then
+        pidHand.thrArray(UBound(pidHand.thrArray)) = strLine
+        ReDim Preserve pidHand.thrArray(UBound(pidHand.thrArray) + 1)
+        cmbBool = True
+      End If
     Loop
     
     'Close file
-    MyFileStream.Close
+     MyFileStream.Close
+     pidArray(pidPosition) = pidHand
 
     gIsFileExist = False
     gFileSize = 0
@@ -193,32 +168,11 @@ Public Sub SetThreAndAddrCombo()
     gIsFileExist = False
     gFileSize = 0
     cmbBool = False
-    MsgBox "File " + giFileName + " Does Not Exists Or Size Is Zero."
+    MsgBox "File " + giFileName + " does not exists Or size is zero."
   End If
   
-  'set thread array into the thread combobox
-  If cmbBool = True Then
-    strLine = "THREADS"
-    Call SetValueInComboBox(threadArray(), strLine, frmMainui.threadCombo)
-    strLine = "ADDR"
-    Call SetValueInComboBox(addrArray(), strLine, frmMainui.addrCombo)
-  End If
-  
-  ReDim threadArray(0)
-  ReDim addrArray(0)
   ss = 0
-
-  'move querynew.psf to query.psf
-  IsFileExistAndSize gstrCLogPath + "query.psf", gIsFileExist, gFileSize
-  If gIsFileExist <> False And gFileSize <> 0 Then
-    gobjFSO.DeleteFile gstrCLogPath + "query.psf", True
-    IsFileExistAndSize gstrCLogPath + "querynew.psf", gIsFileExist, gFileSize
-    If gIsFileExist <> False And gFileSize <> 0 Then
-      gobjFSO.MoveFile gstrCLogPath + "querynew.psf", gstrCLogPath + "query.psf"
-    End If
-    gIsFileExist = False
-    gFileSize = 0
-  End If
+  
 End Sub
 
 '***********************************************************
@@ -249,6 +203,8 @@ End Sub
 ' initialize second form
 '***********************************************************
 Public Sub InitLVColHSForm()
+  
+  On Error Resume Next
   
   'set check box values in columan hide-show form
   If Not UBound(chbstatusArray) > 0 Then Exit Sub
@@ -321,7 +277,8 @@ Public Sub SetNewColumnPosition()
   aa = 0
   strStored = ""
   strColName = ""
-  'On Error Resume Next
+  
+  On Error Resume Next
   
   If frmMainui.staCombo.Text = "STAT" And _
      frmMainui.queryLV.ColumnHeaders.Count = 6 Then
@@ -372,6 +329,8 @@ Public Sub StoreUserSetting()
 
   ss = 0
   colPosition = 0
+  
+  On Error Resume Next
   
   colHead = frmMainui.queryLV.ColumnHeaders.Count
   If frmMainui.queryLV.ColumnHeaders.Count = 6 Then 'STAT
@@ -433,6 +392,10 @@ Public Sub ShowHideCol()
   ss = 0
   chbVal = 0
   
+  On Error Resume Next
+  
+  If Not UBound(chbstatusArray) > 0 Then Exit Sub
+  
   With frmLVColHS
     For ss = 0 To UBound(chbstatusArray)
       chbVal = chbstatusArray(ss)
@@ -481,6 +444,8 @@ Public Sub ReorderColumnPosition(strCol As String, chbVal As Boolean)
   
   ss = 0
   strVal = ""
+  
+  On Error Resume Next
   
   With frmMainui
     .queryLV.Refresh

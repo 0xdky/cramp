@@ -37,13 +37,21 @@ Public gstrSpace As String
 Public giFileName As String
 Public gstrSlection As String
 Public gstrRawTick As String
+Public gstrPID As String
+Public gstrThread As String
 Public currsettingArray() As String
 Public currsetArrayStat() As String
 Public chbstatusArray() As String
+Public pidArray() As udtPID
 Public gFileSize As Long
 Public gDicCountUpper As Long
 Public gDicCountLower As Long
 Public gIsFileExist As Boolean
+
+Public Type udtPID
+  thrArray() As String
+End Type
+
 
 '****************************************************
 ' Return the node's object type
@@ -666,6 +674,7 @@ End Function
 '***********************************************************
 Public Sub IsFileExistAndSize(giFileName, gIsFileExist, gFileSize)
   Dim FileInfo
+  On Error Resume Next
   If giFileName <> "" Then
     gIsFileExist = gobjFSO.FileExists(giFileName)
       If gIsFileExist <> False Then
@@ -687,7 +696,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show controls
            .threadCombo.Visible = True
            .rtCombo.Visible = True
-           .addrCombo.Visible = False
+           .addressText.Visible = False
            .limitText.Visible = True
            'hide-show lables
            .threadLabel.Visible = True
@@ -703,7 +712,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show controls
            .threadCombo.Visible = False
            .rtCombo.Visible = False
-           .addrCombo.Visible = True
+           .addressText.Visible = True
            .limitText.Visible = True
            'hide-show lables
            .threadLabel.Visible = False
@@ -711,7 +720,7 @@ Public Sub MoveControls(strVal As String)
            .addLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
-           .addrCombo.Move 2520, 480
+           .addressText.Move 2520, 480
            .limitText.Move 3720, 480
            .appendCheck.Move 4670, 480
            'move lables
@@ -721,7 +730,7 @@ Public Sub MoveControls(strVal As String)
            'hide-show controls
            .threadCombo.Visible = False
            .rtCombo.Visible = False
-           .addrCombo.Visible = False
+           .addressText.Visible = False
            .limitText.Visible = False
            'hide-show lables
            .threadLabel.Visible = False
@@ -748,17 +757,41 @@ Select Case strVal
          If frmMainui.appendCheck.Value = 1 Then
             queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
          End If
-    Case "ADDR"
+         'if pid combo box is null than disable query button
+         If frmMainui.pidCombo.Text = "" And _
+            frmMainui.queryCommand.Enabled = True Then
+            frmMainui.queryCommand.Enabled = False
+         ElseIf frmMainui.pidCombo.Text <> "" And _
+            frmMainui.queryCommand.Enabled = False Then
+            frmMainui.queryCommand.Enabled = True
+         End If
+   Case "ADDR"
          queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace _
-                     & strVal & gstrSpace & frmMainui.addrCombo.Text & gstrSpace _
+                     & strVal & gstrSpace & frmMainui.addressText.Text & gstrSpace _
                      & frmMainui.limitText.Text
          If frmMainui.appendCheck.Value = 1 Then
             queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
+         End If
+         'if address text box is null than disable query button
+         If frmMainui.addressText.Text = "" And _
+            frmMainui.queryCommand.Enabled = True Then
+            frmMainui.queryCommand.Enabled = False
+         ElseIf frmMainui.addressText.Text <> "" And _
+            frmMainui.queryCommand.Enabled = False Then
+            frmMainui.queryCommand.Enabled = True
          End If
     Case "STAT"
          queryText = frmMainui.pidCombo.Text & gstrSpace & "QUERY" & gstrSpace & strVal
          If frmMainui.appendCheck.Value = 1 Then
             queryText = queryText & gstrSpace & UCase(frmMainui.appendCheck.Caption)
+         End If
+         'if pid combo box is null than disable query button
+         If frmMainui.pidCombo.Text = "" And _
+            frmMainui.queryCommand.Enabled = True Then
+            frmMainui.queryCommand.Enabled = False
+         ElseIf frmMainui.pidCombo.Text <> "" And _
+            frmMainui.queryCommand.Enabled = False Then
+            frmMainui.queryCommand.Enabled = True
          End If
 End Select
 
@@ -771,12 +804,19 @@ End Sub
 '***********************************************************
 ' checking for the duplicate entry in the array
 '***********************************************************
-Public Function ChkValueInArray(tmpArry() As String, tmpStr As String) As Boolean
+Public Function ChkValueInArray(tmphand As udtPID, tmpStr As String) As Boolean
     Dim iCounter As Integer
     Dim arrValue As String
-
-    For iCounter = 0 To UBound(tmpArry)
-      arrValue = tmpArry(iCounter)
+    
+    iCounter = 0
+    arrValue = ""
+    
+    On Error Resume Next
+    
+    If UBound(tmphand.thrArray) < 0 Then Exit Function
+    
+    For iCounter = 0 To UBound(tmphand.thrArray)
+      arrValue = tmphand.thrArray(iCounter)
       If arrValue = tmpStr Then
         ChkValueInArray = False
         Exit For
@@ -788,14 +828,19 @@ End Function
 '***********************************************************
 ' set array in the respective combo box
 '***********************************************************
-Public Sub SetValueInComboBox(tmpArry() As String, tmpStr As String, thisCombo As ComboBox)
+Public Sub SetValueInComboBox(pid As udtPID, thisCombo As ComboBox)
   Dim aa As Long
   Dim strArray As String
+  Dim tmpStr As String
 
   aa = 0
   thisCombo.Clear
-  For aa = 0 To UBound(tmpArry)
-    strArray = tmpArry(aa)
+  
+  On Error Resume Next
+  If Not UBound(pid.thrArray) > 0 Then Exit Sub
+  
+  For aa = 0 To UBound(pid.thrArray)
+    strArray = pid.thrArray(aa)
     If strArray <> "" Then
       If aa = 0 Then
         thisCombo.Text = strArray
@@ -807,11 +852,10 @@ Public Sub SetValueInComboBox(tmpArry() As String, tmpStr As String, thisCombo A
   Next
 
   'add ALL at the last into the thread combo box
-  If tmpStr = "THREADS" Then
-    tmpStr = "ALL"
-    thisCombo.Text = tmpStr
-    thisCombo.AddItem (tmpStr)
-  End If
+  tmpStr = "ALL"
+  thisCombo.AddItem (tmpStr)
+  gstrThread = thisCombo.Text
+  
   aa = 0
 End Sub
 
@@ -830,6 +874,9 @@ ss = 0
 aa = 0
 kk = 0
 
+On Error Resume Next
+If gobjDic.Count < 0 Then Exit Sub
+
 With frmMainui
   'clean up list view
   .queryLV.ListItems.Clear
@@ -847,15 +894,17 @@ With frmMainui
           strQuery = gobjDic.Item(kk)
           MyArray = Split(strQuery, "|", -1, 1)
 
-          If UBound(MyArray) > .queryLV.ColumnHeaders.Count - 1 Then
-            'insert headers
-            .staCombo.Text = "THREADS"
-            AddHeaders
-            .staCombo.Text = "STAT"
-          End If
+          'If UBound(MyArray) > .queryLV.ColumnHeaders.Count - 1 Then
+          '  'insert headers
+          '  .staCombo.Text = "THREADS"
+          '  AddHeaders
+          '  .staCombo.Text = "STAT"
+          'End If
 
           For ss = 0 To UBound(MyArray)
             strQuery = MyArray(ss)
+            'value of ss should not be more than total columns
+            If ss > .queryLV.ColumnHeaders.Count - 1 Then Exit For
             If ss = 0 Then
               .queryLV.ListItems.Add = strQuery
             Else
@@ -944,36 +993,67 @@ End Sub
 '***********************************************************
 ' action on double click in listview
 '***********************************************************
-Public Sub SetValueFromLV()
-  Dim lvValue As String
+Public Sub SetValueFromLV(strType As String)
+  Dim ss As Long
+  Dim colname As String
 
-  If frmMainui.staCombo.Text = "ADDR" Then
-    'address
-    If Not IsNumeric(frmMainui.queryLV.SelectedItem) Then
-      If frmMainui.queryLV.ColumnHeaders(3) = "Function" Or _
-         frmMainui.queryLV.ColumnHeaders(3) = "Address" Then
-        lvValue = frmMainui.queryLV.SelectedItem.SubItems(2)
-        frmMainui.addrCombo.Text = lvValue
+  ss = 0
+  colname = ""
+  
+  On Error Resume Next
+  
+  If strType = "" Then Exit Sub
+  
+  'initialized second form
+  InitLVColHSForm
+  
+  'check for column width
+  Select Case strType
+    Case "THREADS"
+      If frmLVColHS.threColHSCHB.Value = 0 Then
+        MsgBox "ERROR :: Thread column does not exist"
+        Exit Sub
       End If
-    Else
-      If frmMainui.queryLV.ColumnHeaders(4) = "Address" Then
-        lvValue = frmMainui.queryLV.SelectedItem.SubItems(3)
-        frmMainui.addrCombo.Text = lvValue
+    Case "ADDR"
+      If frmLVColHS.addrColHSCHB.Value = 0 Then
+        MsgBox "ERROR :: Address column does not exist"
+        Exit Sub
       End If
-    End If
-    'set query text
-    SetQueryText (frmMainui.staCombo.Text)
-  ElseIf frmMainui.staCombo.Text = "THREADS" Then
-    'threads
-    If frmMainui.queryLV.ColumnHeaders(1) = "Thread" Then
-      If IsNumeric(frmMainui.queryLV.SelectedItem) Then
-        lvValue = frmMainui.queryLV.SelectedItem
-        frmMainui.threadCombo.Text = lvValue
+  End Select
+    
+  With frmMainui
+  
+    If Not .queryLV.ColumnHeaders.Count > 0 Then Exit Sub
+    
+    For ss = 1 To .queryLV.ColumnHeaders.Count
+      colname = .queryLV.ColumnHeaders.Item(ss).Text
+      If colname = "Thread" And .staCombo.Text = "THREADS" Then
+        If ss = 1 Then
+          If IsNumeric(.queryLV.SelectedItem) Then
+            .threadCombo.Text = .queryLV.SelectedItem
+          End If
+        ElseIf (ss - 1) <> 0 Then
+          If IsNumeric(.queryLV.SelectedItem.SubItems(ss - 1)) Then
+            .threadCombo.Text = .queryLV.SelectedItem.SubItems(ss - 1)
+          End If
+        End If
+        gstrThread = .threadCombo.Text
+        Exit For
+      ElseIf colname = "Address" And .staCombo.Text = "ADDR" Then
+        If ss = 1 Then
+          .addressText.Text = .queryLV.SelectedItem
+        ElseIf (ss - 1) <> 0 Then
+          .addressText.Text = .queryLV.SelectedItem.SubItems(ss - 1)
+        End If
+        Exit For
       End If
-      'set query text
-      SetQueryText (frmMainui.staCombo.Text)
-    End If
-  End If
+    Next
+  
+    SetQueryText (.staCombo.Text)
+  End With
+  
+  ss = 0
+  colname = ""
 End Sub
 
 '***********************************************************
@@ -1036,13 +1116,17 @@ Public Sub CreateDictionary()
   Dim MyFileStream
 
   I = 0
+  
+  On Error Resume Next
+  
+  'clean up dictionary
+  If gobjDic.Count > 0 Then
+    gobjDic.removeAll
+  End If
+  
   IsFileExistAndSize giFileName, gIsFileExist, gFileSize
   If gIsFileExist <> False And gFileSize <> 0 Then
     Set MyFileStream = gobjFSO.OpenTextFile(giFileName, 1, False)
-    'clean up dictionary
-    If gobjDic.Count > 0 Then
-      gobjDic.removeAll
-    End If
     'create dictionary
     Do Until MyFileStream.AtEndOfStream
       strQuery = MyFileStream.ReadLine
@@ -1054,7 +1138,13 @@ Public Sub CreateDictionary()
     'Close file
     MyFileStream.Close
   Else
-    MsgBox "ERROR : File " & giFileName & " Not Found While Creating Dictionary."
+    MsgBox "ERROR : File " & giFileName & " not found Or size will be zero. Reason may be wrong query arguments passed."
+    'clean up ui
+    gDicCountLower = 0
+    frmMainui.miniLabel.Caption = gDicCountLower
+    gDicCountUpper = 0
+    frmMainui.maxLabel.Caption = gDicCountUpper
+    frmMainui.totalLabel.Caption = gobjDic.Count
   End If
   
   I = 0
@@ -1105,11 +1195,11 @@ Public Sub CleanUp()
     .staCombo.Clear
     .threadCombo.Clear
     .rtCombo.Clear
-    .addrCombo.Clear
     'clean up text box
     .queryText.Text = ""
     .limitText.Text = ""
     .listitemText.Text = ""
+    .addressText.Text = ""
     'clean up lable
     .rngLabel.Caption = ""
     .totLabel.Caption = ""
@@ -1124,6 +1214,7 @@ Public Sub CleanUp()
   Erase currsettingArray
   Erase currsetArrayStat
   Erase chbstatusArray
+  Erase pidArray
   
   'unload frmlncolhs
   Unload frmLVColHS

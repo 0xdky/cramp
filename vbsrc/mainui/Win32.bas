@@ -392,14 +392,13 @@ Private Sub SetKeyValue(sKeyName As String, sValueName As String, _
 '***********************************************************
 ' set process id combo box
 '***********************************************************
-Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
+Public Function SetPIDCombo(fld As String) As String
 
    Dim fHandle As Long
    Dim Location As Long
    Dim strLength As Long
    Dim FileName As String
    Dim ProcessID As String
-   Dim pidArray() As String
    Dim tmpStr As String
    Dim bRet As Boolean
    Dim addValue As Boolean
@@ -407,15 +406,14 @@ Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
    Dim findData As WIN32_FIND_DATA
      
    On Error Resume Next
-   If redArray = True Then
-     ReDim Preserve pidArray(0)
-   End If
+   ReDim Preserve pidArray(0)
    
    addValue = False
    cmbBool = False
    fHandle = 0
    Location = 0
    strLength = 0
+   frmMainui.pidCombo.Clear
    'add a trailing / if there isn't one
    SetPath fld
    'find the first file/folder in the root path
@@ -436,8 +434,12 @@ Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
       'get rid of the nulls
       FileName = findData.cFileName
       FileName = StripNulls(FileName)
-      tmpStr = Right$(FileName, 3)
-      If tmpStr = ".db" Then
+      tmpStr = gstrCLogPath & FileName
+      tmpStr = Replace(tmpStr, "\", "/")
+      IsFileExistAndSize tmpStr, gIsFileExist, gFileSize
+      If gIsFileExist <> False And gFileSize <> 0 Then
+       tmpStr = Right$(FileName, 3)
+       If tmpStr = ".db" Then
         strLength = Len(FileName)
         Location = InStr(FileName, "#")
         Location = strLength - Location
@@ -446,19 +448,30 @@ Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
         strLength = Len(ProcessID)
         Location = strLength - Location + 2
         ProcessID = Left(ProcessID, Location)
-        addValue = ChkValueInArray(pidArray(), ProcessID)
-        If addValue = True Then
-          pidArray(UBound(pidArray)) = ProcessID
+        'addValue = ChkValueInArray(pidArray(), ProcessID)
+        If IsNumeric(ProcessID) Then
+          Dim x As udtPID
+          pidArray(UBound(pidArray)) = x
+          If cmbBool = False Then
+            frmMainui.pidCombo.Text = ProcessID
+          End If
+          frmMainui.pidCombo.AddItem (ProcessID)
+          GetAllThreads UBound(pidArray), ProcessID
           ReDim Preserve pidArray(UBound(pidArray) + 1)
           cmbBool = True
         End If
       End If
+     End If
+     gIsFileExist = False
+     gFileSize = 0
    Loop
    bRet = FindClose(fHandle)
    
    If cmbBool = True Then
-     ProcessID = "PID"
-     Call SetValueInComboBox(pidArray(), ProcessID, frmMainui.pidCombo)
+     Dim pidHand As udtPID
+     pidHand = pidArray(0)
+     SetValueInComboBox pidHand, frmMainui.threadCombo
+     gstrPID = frmMainui.pidCombo.Text
      frmMainui.queryCommand.Enabled = True
    Else
      MsgBox "ERROR :: No DataBase Under " + fld + " Folder"
@@ -468,7 +481,8 @@ Public Function SetPIDCombo(fld As String, redArray As Boolean) As String
    fHandle = 0
    Location = 0
    strLength = 0
-
+   cmbBool = False
+   
 End Function
 '***********************************************************
 ' add / at the end of the path if it is not there

@@ -47,14 +47,14 @@ Begin VB.Form frmMainui
          Caption         =   "Profiling"
          Height          =   972
          Left            =   240
-         TabIndex        =   33
+         TabIndex        =   32
          Top             =   240
          Width           =   6852
          Begin VB.CommandButton stopCommand 
             Caption         =   "Stop"
             Height          =   288
             Left            =   4440
-            TabIndex        =   40
+            TabIndex        =   39
             Top             =   480
             Width           =   972
          End
@@ -62,7 +62,7 @@ Begin VB.Form frmMainui
             Caption         =   "Flush"
             Height          =   288
             Left            =   5640
-            TabIndex        =   39
+            TabIndex        =   38
             Top             =   480
             Width           =   972
          End
@@ -70,21 +70,21 @@ Begin VB.Form frmMainui
             Caption         =   "Start"
             Height          =   288
             Left            =   3240
-            TabIndex        =   38
+            TabIndex        =   37
             Top             =   480
             Width           =   972
          End
          Begin VB.TextBox pidText 
             Height          =   288
             Left            =   2040
-            TabIndex        =   36
+            TabIndex        =   35
             Top             =   480
             Width           =   972
          End
          Begin VB.TextBox compnameText 
             Height          =   288
             Left            =   120
-            TabIndex        =   34
+            TabIndex        =   33
             Top             =   480
             Width           =   1692
          End
@@ -92,7 +92,7 @@ Begin VB.Form frmMainui
             Caption         =   "Pid"
             Height          =   252
             Left            =   2040
-            TabIndex        =   37
+            TabIndex        =   36
             Top             =   240
             Width           =   972
          End
@@ -100,7 +100,7 @@ Begin VB.Form frmMainui
             Caption         =   "Profile Host"
             Height          =   252
             Left            =   120
-            TabIndex        =   35
+            TabIndex        =   34
             Top             =   240
             Width           =   1692
          End
@@ -109,40 +109,41 @@ Begin VB.Form frmMainui
          Caption         =   "Result"
          Height          =   3972
          Left            =   240
-         TabIndex        =   30
+         TabIndex        =   29
          Top             =   3120
          Width           =   6852
          Begin VB.CommandButton preCommand 
             Caption         =   "Previous"
             Height          =   288
             Left            =   1200
-            TabIndex        =   46
+            TabIndex        =   45
             Top             =   240
             Width           =   972
          End
          Begin VB.CommandButton nextCommand 
             Caption         =   "Next"
             Height          =   288
-            Left            =   3840
-            TabIndex        =   45
+            Left            =   3751
+            TabIndex        =   44
             Top             =   240
             Width           =   972
          End
          Begin VB.TextBox listitemText 
             Height          =   288
             Left            =   5760
-            TabIndex        =   44
+            TabIndex        =   43
             Top             =   240
             Width           =   951
          End
          Begin MSComctlLib.ListView queryLV 
             Height          =   3132
             Left            =   120
-            TabIndex        =   31
+            TabIndex        =   30
             Top             =   720
             Width           =   6612
             _ExtentX        =   11663
             _ExtentY        =   5525
+            LabelEdit       =   1
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
             AllowReorder    =   -1  'True
@@ -158,7 +159,7 @@ Begin VB.Form frmMainui
             AutoSize        =   -1  'True
             Height          =   192
             Left            =   3050
-            TabIndex        =   50
+            TabIndex        =   49
             Top             =   480
             Width           =   36
          End
@@ -168,7 +169,7 @@ Begin VB.Form frmMainui
             Caption         =   "-"
             Height          =   192
             Left            =   2916
-            TabIndex        =   49
+            TabIndex        =   48
             Top             =   480
             Width           =   60
          End
@@ -177,7 +178,7 @@ Begin VB.Form frmMainui
             AutoSize        =   -1  'True
             Height          =   192
             Left            =   2800
-            TabIndex        =   48
+            TabIndex        =   47
             Top             =   480
             Width           =   51
          End
@@ -185,7 +186,7 @@ Begin VB.Form frmMainui
             Alignment       =   2  'Center
             Height          =   252
             Left            =   120
-            TabIndex        =   47
+            TabIndex        =   46
             Top             =   480
             Width           =   852
          End
@@ -193,7 +194,7 @@ Begin VB.Form frmMainui
             Caption         =   "Item range : "
             Height          =   252
             Left            =   4920
-            TabIndex        =   43
+            TabIndex        =   42
             Top             =   240
             Width           =   852
          End
@@ -201,7 +202,7 @@ Begin VB.Form frmMainui
             Caption         =   "Total items:"
             Height          =   204
             Left            =   120
-            TabIndex        =   42
+            TabIndex        =   41
             Top             =   240
             Width           =   852
          End
@@ -209,7 +210,7 @@ Begin VB.Form frmMainui
             Caption         =   "Visible items:"
             Height          =   204
             Left            =   2520
-            TabIndex        =   41
+            TabIndex        =   40
             Top             =   240
             Width           =   972
          End
@@ -218,14 +219,14 @@ Begin VB.Form frmMainui
          Caption         =   "Query"
          Height          =   700
          Left            =   240
-         TabIndex        =   27
+         TabIndex        =   26
          Top             =   2400
          Width           =   6852
          Begin VB.CommandButton runCommand 
-            Caption         =   "Run"
+            Caption         =   "Init"
             Height          =   288
             Left            =   5640
-            TabIndex        =   32
+            TabIndex        =   31
             Top             =   240
             Width           =   972
          End
@@ -234,7 +235,7 @@ Begin VB.Form frmMainui
             Enabled         =   0   'False
             Height          =   288
             Left            =   4200
-            TabIndex        =   29
+            TabIndex        =   28
             Top             =   240
             Width           =   972
          End
@@ -242,7 +243,7 @@ Begin VB.Form frmMainui
             Enabled         =   0   'False
             Height          =   288
             Left            =   120
-            TabIndex        =   28
+            TabIndex        =   27
             Top             =   240
             Width           =   3732
          End
@@ -254,28 +255,29 @@ Begin VB.Form frmMainui
          TabIndex        =   13
          Top             =   1320
          Width           =   6852
+         Begin VB.TextBox addressText 
+            Enabled         =   0   'False
+            Height          =   288
+            Left            =   4680
+            TabIndex        =   50
+            Top             =   480
+            Width           =   1092
+         End
          Begin VB.CheckBox appendCheck 
             Caption         =   "Append"
             Height          =   312
             Left            =   5880
-            TabIndex        =   21
+            TabIndex        =   20
             Top             =   840
             Width           =   852
          End
          Begin VB.TextBox limitText 
             Height          =   288
             Left            =   5880
-            TabIndex        =   19
-            Text            =   "0"
+            TabIndex        =   18
+            Text            =   "10"
             Top             =   480
             Width           =   852
-         End
-         Begin VB.ComboBox addrCombo 
-            Height          =   288
-            Left            =   4680
-            TabIndex        =   18
-            Top             =   480
-            Width           =   1092
          End
          Begin VB.ComboBox rtCombo 
             Height          =   288
@@ -311,7 +313,7 @@ Begin VB.Form frmMainui
             Caption         =   "Limit"
             Height          =   252
             Left            =   5880
-            TabIndex        =   26
+            TabIndex        =   25
             Top             =   240
             Width           =   852
          End
@@ -319,7 +321,7 @@ Begin VB.Form frmMainui
             Caption         =   "Address"
             Height          =   252
             Left            =   4680
-            TabIndex        =   25
+            TabIndex        =   24
             Top             =   240
             Width           =   1092
          End
@@ -327,7 +329,7 @@ Begin VB.Form frmMainui
             Caption         =   "Raw/Tick"
             Height          =   252
             Left            =   3600
-            TabIndex        =   24
+            TabIndex        =   23
             Top             =   240
             Width           =   972
          End
@@ -335,7 +337,7 @@ Begin VB.Form frmMainui
             Caption         =   "Thread"
             Height          =   252
             Left            =   2520
-            TabIndex        =   23
+            TabIndex        =   22
             Top             =   240
             Width           =   972
          End
@@ -343,7 +345,7 @@ Begin VB.Form frmMainui
             Caption         =   "Selection"
             Height          =   252
             Left            =   1200
-            TabIndex        =   22
+            TabIndex        =   21
             Top             =   240
             Width           =   1212
          End
@@ -351,7 +353,7 @@ Begin VB.Form frmMainui
             Caption         =   "Pid"
             Height          =   252
             Left            =   120
-            TabIndex        =   20
+            TabIndex        =   19
             Top             =   240
             Width           =   972
          End
@@ -1096,13 +1098,6 @@ End Sub
 '***********************************************************
 
 '***********************************************************
-' set address combo box
-'***********************************************************
-Private Sub addrCombo_Click()
-  'set query text
-  SetQueryText (staCombo.Text)
-End Sub
-'***********************************************************
 ' append check box control
 '***********************************************************
 Private Sub appendCheck_Click()
@@ -1115,7 +1110,7 @@ End Sub
 '***********************************************************
 Private Sub limitText_LostFocus()
   If Not IsNumeric(limitText.Text) Then
-    limitText.Text = 0
+    limitText.Text = 10
   End If
   'set query text
   SetQueryText (staCombo.Text)
@@ -1125,26 +1120,33 @@ End Sub
 ' set process id combo box
 '***********************************************************
 Private Sub pidCombo_Click()
+  Dim pidHand As udtPID
+  
+  If UBound(pidArray) < 0 Then Exit Sub
+  If pidCombo.ListIndex > UBound(pidArray) Then Exit Sub
+  
   Screen.MousePointer = vbHourglass
-  'set thread and address combo
-  SetThreAndAddrCombo
+  pidHand = pidArray(pidCombo.ListIndex)
+  
+  'set thread combo box
+  SetValueInComboBox pidHand, Me.threadCombo
   'set query text
   SetQueryText (staCombo.Text)
-  'run perl script
-  RunPerlScriptWithCP
-  'store query.psf file into the dictionary
-  CreateDictionary
-  gDicCountLower = 0
-  gDicCountUpper = listitemText.Text
-  'set list view
-  SetValueInListView
-  HideShowNextPre
-  'set default setting
-  ShowHideCol
-  manuCurrSetting.Checked = False
+  gstrPID = pidCombo.Text
   Screen.MousePointer = vbDefault
 End Sub
 
+'***********************************************************
+' set the correct value in pid combo box
+'***********************************************************
+Private Sub pidCombo_LostFocus()
+  
+  If Not pidCombo.ListCount > 0 Then GoTo pidError
+  
+pidError:
+  'no pid in the pid combo box
+  pidCombo.Text = gstrPID
+End Sub
 '***********************************************************
 ' query command control
 '***********************************************************
@@ -1192,33 +1194,40 @@ End Sub
 Private Sub threadCombo_Click()
   'set query text
   SetQueryText (frmMainui.staCombo.Text)
+  gstrThread = threadCombo.Text
 End Sub
 
+Private Sub threadCombo_LostFocus()
+  
+If Not threadCombo.ListCount > 0 Then GoTo threadError
+  
+threadError:
+  'no thread id in the thread combo box
+  threadCombo.Text = gstrThread
+
+End Sub
 '***********************************************************
 ' run command control
 '***********************************************************
 Private Sub runCommand_Click()
   Screen.MousePointer = vbHourglass
-  'set orocess id combobox
+  'set process id combobox
   SetProcessIDCombo
-  If queryCommand.Enabled = True Then
-    'set threads into thread combobox and address in addr combobox
-    SetThreAndAddrCombo
-    'set query text
-    SetQueryText (staCombo.Text)
-    'run perl script
-    RunPerlScriptWithCP
-    'store query.psf file into the dictionary
-    CreateDictionary
-    gDicCountLower = 0
-    gDicCountUpper = listitemText.Text
-    'set list view
-    SetValueInListView
-    HideShowNextPre
-    'show hide col
-    ShowHideCol
-    manuCurrSetting.Checked = False
+  'set query text
+  SetQueryText (staCombo.Text)
+  'clean up ui
+  If queryLV.ColumnHeaders.Count > 0 Then
+    queryLV.ColumnHeaders.Clear
   End If
+  queryLV.ListItems.Clear
+  gDicCountLower = 0
+  frmMainui.miniLabel.Caption = gDicCountLower
+  gDicCountUpper = 0
+  frmMainui.maxLabel.Caption = gDicCountUpper
+  If gobjDic.Count > 0 Then
+    gobjDic.removeAll
+  End If
+  frmMainui.totalLabel.Caption = gobjDic.Count
   Screen.MousePointer = vbDefault
 End Sub
 
@@ -1309,7 +1318,7 @@ End Sub
 '***********************************************************
 Private Sub queryLV_DblClick()
   If queryLV.ColumnHeaders.Count <> 0 Then
-    SetValueFromLV
+    SetValueFromLV (staCombo.Text)
   End If
 End Sub
 '***********************************************************
@@ -1365,7 +1374,7 @@ End Sub
 '***********************************************************
 ' pop up menu when right click in the listview
 '***********************************************************
-Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+Private Sub queryLV_MouseDown(Button As Integer, Shift As Integer, x As Single, Y As Single)
   If queryLV.ColumnHeaders.Count > 0 Then
     If Button = vbRightButton Then
       PopupMenu mnuLVRigCL
