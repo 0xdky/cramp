@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 09:52:22 dhruva>
+// Time-stamp: <2003-10-22 12:10:43 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestProf.cpp
 // Desc  : Test case for the profiler
@@ -8,10 +8,8 @@
 // 09-22-2003  Cre                                                          dky
 //-----------------------------------------------------------------------------
 #include <windows.h>
-#include <iostream>
+#include <iostream.h>
 #include "libCRAMP.h"
-
-using namespace std;
 
 void child2(bool doThrow)
 {

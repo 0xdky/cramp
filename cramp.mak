@@ -1,5 +1,5 @@
 #-*-mode:makefile;indent-tabs-mode:nil-*-
-## Time-stamp: <2003-10-21 15:29:55 dhruva>
+## Time-stamp: <2003-10-22 12:19:31 dhruva>
 ##-----------------------------------------------------------------------------
 ## File : cramp.mak
 ## Desc : Microsoft make file
@@ -10,13 +10,15 @@
 ##-----------------------------------------------------------------------------
 VERSION="0.1.1"
 
-# Modify to point to XML base folder
-XMLBASE=F:/Applications/xerces
-XMLBASE1=E:/Applications/xerces
+# Specify the drive as an environment variable
+BASEDRIVE=$(BASEDRIVE)
 
+# Modify to point to XML base folder
+XMLBASE=$(BASEDRIVE):/Applications/xerces
 # Berkeley Database
-BDBBASE=F:/Applications/bdb
-BDBBASE1=E:/Applications/bdb
+BDBBASE=$(BASEDRIVE):/Applications/bdb
+# SGI's STL
+STLBASE=$(BASEDRIVE):/Applications/stl
 
 # DPE Cominc folder for DPE server header files
 DPE_COMINC=../../DPE/Cominc
@@ -64,13 +66,11 @@ CFLAGS=$(CFLAGS) /V$(VERSION)
 LDFLAGS=$(LDFLAGS) /VERSION:$(VERSION)
 
 # For engine
-E_CFLAGS=$(CFLAGS) $(NOLOGO) /I$(XMLBASE)/include /I$(XMLBASE1)/include
-E_CFLAGS=$(E_CFLAGS) /I$(BDBBASE)/include /I$(BDBBASE1)/include
-E_CFLAGS=$(E_CFLAGS) /I$(BDBBASE)/include/dbinc /I$(BDBBASE1)/include/dbinc
+E_CFLAGS=$(CFLAGS) $(NOLOGO) /I$(XMLBASE)/include /I$(BDBBASE)/include
+E_CFLAGS=$(E_CFLAGS) /I$(STLBASE) /I$(BDBBASE)/include/dbinc
 E_CCFLAGS=$(E_CFLAGS) $(CPP_DEBUG) $(MT_DEBUG) /GX
 E_LDFLAGS=$(LDFLAGS) $(NOLOGO) $(LINK_DEBUG)
-E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(XMLBASE1)/lib
-E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(BDBBASE)/lib /LIBPATH:$(BDBBASE1)/lib
+E_LDFLAGS=$(E_LDFLAGS) /LIBPATH:$(XMLBASE)/lib /LIBPATH:$(BDBBASE)/lib
 
 # Add new files here
 COBJS=$(OBJDIR)/main.obj $(OBJDIR)/engine.obj $(OBJDIR)/TestCaseInfo.obj \
