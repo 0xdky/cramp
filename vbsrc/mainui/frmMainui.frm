@@ -4,12 +4,12 @@ Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    BorderStyle     =   1  'Fixed Single
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8130
-   ClientLeft      =   5325
+   ClientHeight    =   8136
+   ClientLeft      =   5328
    ClientTop       =   3060
    ClientWidth     =   8460
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8130
+   ScaleHeight     =   8136
    ScaleWidth      =   8460
    Begin VB.Frame fraMainUI 
       Height          =   6900
@@ -86,8 +86,8 @@ Begin VB.Form frmMainui
             TabIndex        =   31
             Top             =   240
             Width           =   6612
-            _ExtentX        =   11668
-            _ExtentY        =   5741
+            _ExtentX        =   11663
+            _ExtentY        =   5736
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
             FullRowSelect   =   -1  'True
@@ -330,8 +330,8 @@ Begin VB.Form frmMainui
          TabIndex        =   4
          Top             =   4320
          Width           =   5500
-         _ExtentX        =   9710
-         _ExtentY        =   4048
+         _ExtentX        =   9716
+         _ExtentY        =   4043
          LabelWrap       =   -1  'True
          HideSelection   =   0   'False
          FullRowSelect   =   -1  'True
@@ -349,8 +349,8 @@ Begin VB.Form frmMainui
          TabIndex        =   3
          Top             =   480
          Width           =   5496
-         _ExtentX        =   9710
-         _ExtentY        =   6165
+         _ExtentX        =   9716
+         _ExtentY        =   6160
          _Version        =   393217
          HideSelection   =   0   'False
          Style           =   7
@@ -363,8 +363,8 @@ Begin VB.Form frmMainui
       TabIndex        =   0
       Top             =   240
       Width           =   8175
-      _ExtentX        =   14420
-      _ExtentY        =   13785
+      _ExtentX        =   14415
+      _ExtentY        =   13780
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
          NumTabs         =   2
@@ -1096,8 +1096,10 @@ Private Sub flushproCommand_Click()
 End Sub
 
 Private Sub queryLV_Click()
-  Dim lvValue As String
-  SetValueFromLV
+  
+  If queryLV.ColumnHeaders.Count <> 0 Then
+    SetValueFromLV
+  End If
 End Sub
 
 
