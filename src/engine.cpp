@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 16:16:50 dhruva>
+// Time-stamp: <2003-10-08 16:57:33 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -30,7 +30,6 @@ PROC_INFO *GetHandlesToActiveProcesses(HANDLE h_Job);
 //--------------------------- FUNCTION PROTOTYPES -----------------------------
 
 //--------------------------- GLOBAL VARIABLES --------------------------------
-FILE *g_LogFile;                   // Handle to log file
 HANDLE g_hIOCP;                    // Completion port that receives Job notif
 TestCaseInfo *g_pScenario;         // Pointer to Scenario
 //--------------------------- GLOBAL VARIABLES --------------------------------
@@ -43,7 +42,6 @@ TestCaseInfo *g_pScenario;         // Pointer to Scenario
 //-----------------------------------------------------------------------------
 void
 InitGlobals(void){
-  g_LogFile=0;
   g_hIOCP=0;
   g_pScenario=0;
   return;
@@ -236,7 +234,6 @@ CreateManagedProcesses(PVOID ipTestCaseInfo){
     tharr=0;
     ptharr=0;
   }
-  fflush(g_LogFile);
   return(dwret);
 }
 
@@ -289,17 +286,18 @@ ActiveProcessMemoryDetails(TestCaseInfo *ipScenario){
       if(STILL_ACTIVE!=pstat)
         continue;
       do{
-        if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc))){
-          fprintf(g_LogFile,"%d:Memory usage fail:IMI\n",pin.dwProcessId);
+        if(!GetProcessMemoryInfo(pin.hProcess,&pmc,sizeof(pmc)))
           break;;
-        }
         // Actual RAM pmc.WorkingSetSize;
-        fprintf(g_LogFile,"%d:Memory usage:%d\n",pin.dwProcessId,
+        char msg[256];
+        sprintf(msg,"%s|%d|Memory usage|%d",
+                (char *)ptc->TestCaseExec().c_str(),
+                pin.dwProcessId,
                 pmc.WorkingSetSize);
+        ptc->AddLog(msg);
       }while(0);
     }
     ipScenario->ReleaseListOfGC();
-    fflush(g_LogFile);
     ret=TRUE;
   }
   catch(CRAMPException excep){
@@ -333,17 +331,18 @@ JobNotifyTH(PVOID){
     if(CompKey==COMPKEY_JOBOBJECT){
       switch(dwBytesXferred){
         case JOB_OBJECT_MSG_NEW_PROCESS:
-          fprintf(g_LogFile,"%d:Process added\n",(SIZE_T)po);
+          // fprintf(g_LogFile,"%d:Process added\n",(SIZE_T)po);
           break;
         case JOB_OBJECT_MSG_EXIT_PROCESS:
-          fprintf(g_LogFile,"%d:Process terminated\n",(SIZE_T)po);
+          // fprintf(g_LogFile,"%d:Process terminated\n",(SIZE_T)po);
           break;
         case JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS:
-          fprintf(g_LogFile,"%d:Process abnormally terminated\n",(SIZE_T)po);
+          // fprintf(g_LogFile,"%d:Process abnormally terminated\n",
+          //         (SIZE_T)po);
           break;
         case JOB_OBJECT_MSG_END_OF_JOB_TIME:
         case JOB_OBJECT_TERMINATE_AT_END_OF_JOB:
-          fprintf(g_LogFile,"%d:End of Job\n",(SIZE_T)po);
+          // fprintf(g_LogFile,"%d:End of Job\n",(SIZE_T)po);
           break;
         case JOB_OBJECT_MSG_ACTIVE_PROCESS_LIMIT:
           break;
@@ -354,13 +353,11 @@ JobNotifyTH(PVOID){
         case JOB_OBJECT_MSG_JOB_MEMORY_LIMIT:
           break;
         default:
-          fprintf(g_LogFile,"%d:Unknown event in Job:%d\n",
-                  (SIZE_T)po,
-                  dwBytesXferred);
+          // fprintf(g_LogFile,"%d:Unknown event in Job:%d\n",
+          //         (SIZE_T)po,dwBytesXferred);
           break;
       }
-      fflush(g_LogFile);
-      // CompKey=1;
+      CompKey=1;
     }
   }
   return(0);
@@ -391,14 +388,10 @@ WINAPI WinMain(HINSTANCE hinstExe,
   }
 
   // Currently supports only 1 arg
+  char msg[256];
   char scenario[256];
   WideCharToMultiByte(CP_ACP,0,argvW[1],-1,
                       scenario,256,0,0);
-  // Open log file at top
-  g_LogFile=fopen("c:/tmp/cramp.log","w");
-  if(!g_LogFile)
-    return(ret);
-  fprintf(g_LogFile,"Starting scenario:%s\n",scenario);
 
   HANDLE h_job=0;
   HANDLE h_memtimer=0;
@@ -439,9 +432,12 @@ WINAPI WinMain(HINSTANCE hinstExe,
     h_arr[2]=chBEGINTHREADEX(NULL,0,MemoryPollTH,(PVOID)g_pScenario,0,NULL);
     DEBUGCHK(h_arr[2]);
 
+    sprintf(msg,"Starting scenario:%s",scenario);
+    g_pScenario->AddLog(msg);
     if(!CreateManagedProcesses(g_pScenario))
-      fprintf(g_LogFile,"Error in run\n");
-    fflush(g_LogFile);
+      g_pScenario->AddLog("Error running Scenario");
+    else
+      g_pScenario->AddLog("Successfully ran Scenario");
 
     // Post msg to terminate job monitoring thread and wait for termination
     PostQueuedCompletionStatus(g_hIOCP,0,COMPKEY_TERMINATE,NULL);
@@ -464,12 +460,18 @@ WINAPI WinMain(HINSTANCE hinstExe,
   if(h_job)
     CloseHandle(h_job);
 
-  if(!g_pScenario)
+  if(g_pScenario){
+    do{
+      ofstream logfile("C:\\tmp\\cramp.log",ios::out,filebuf::sh_none);
+      if(!logfile.is_open())
+        break;
+      g_pScenario->DumpLog(logfile);
+      logfile.close();
+    }while(0);
     TestCaseInfo::DeleteScenario(g_pScenario);
-  g_pScenario=0;
+  }
 
-  fprintf(g_LogFile,"Closing scenario:%s\n",scenario);
-  fclose(g_LogFile);
+  g_pScenario=0;
   GlobalFree(argvW);
 
   InitGlobals();

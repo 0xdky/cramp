@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-08 16:21:33 dhruva>
+// Time-stamp: <2003-10-08 16:32:43 dhruva>
 //-----------------------------------------------------------------------------
 // File  : TestCaseInfo.cpp
 // Desc  : Data structures for CRAMP
@@ -591,9 +591,14 @@ BOOLEAN
 TestCaseInfo::DumpLog(ofstream &ifout){
   if(!ifout.is_open())
     return(FALSE);
-  std::list<std::string>::iterator iter=l_log.begin();
-  for(;iter!=l_log.end();iter++){
-    ifout << (*iter).c_str() << endl;
-  }
+
+  std::list<std::string>::iterator liter=l_log.begin();
+  for(;liter!=l_log.end();liter++)
+    ifout << (*liter).c_str() << endl;
+
+  ListOfTestCaseInfo::iterator iter=l_tci.begin();
+  for(;iter!=l_tci.end();iter++)
+    (*iter)->DumpLog(ifout);
+
   return(TRUE);
 }
