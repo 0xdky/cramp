@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-17 18:08:04 dhruva>
+// Time-stamp: <2003-10-20 15:06:02 dhruva>
 //-----------------------------------------------------------------------------
 // File: CallMon.cpp
 // Desc: CallMon hook implementation (CallMon.cpp)
@@ -33,6 +33,15 @@ static const unsigned OFFSET_CALL_BYTES=5;
 // To toggle profiling
 extern long g_l_profile;
 extern CRITICAL_SECTION g_cs_prof;
+
+// To minimize calls to system methods
+typedef struct{
+  SIZE_T _funcAddr;
+  SIZE_T _calls;
+  std::string _funcname;
+  std::string _modname;
+}FuncInfo;
+std::list<FuncInfo> g_listOfFI;
 
 // Start of MSVC-specific code
 
@@ -345,6 +354,22 @@ void CallMonitor::getFuncInfo(ADDR addr,
                               string &module,
                               string &funcName)
 {
+  // Minimize expensive calls
+  do{
+    if(!g_listOfFI.size())
+      break;
+    std::list<FuncInfo>::iterator iter=g_listOfFI.begin();
+    for(;iter!=g_listOfFI.end();iter++){
+      FuncInfo &fi=(*iter);
+      if(fi._funcAddr==addr){
+        fi._calls++;
+        module=fi._modname;
+        funcName=fi._funcname;
+        return;
+      }
+    }
+  }while(0);
+
   SymInitialize(GetCurrentProcess(),NULL,FALSE);
   TCHAR moduleName[MAX_PATH];
   TCHAR modShortNameBuf[MAX_PATH];
@@ -404,5 +429,15 @@ void CallMonitor::getFuncInfo(ADDR addr,
   SymCleanup(h_proc);
   module = modShortNameBuf;
   funcName = undName;
+
+  // Cache the information
+  FuncInfo fin;
+  fin._funcAddr=addr;
+  fin._calls=1;
+  fin._modname=module;
+  fin._funcname=undName;
+  g_listOfFI.push_back(fin);
+
+  return;
 }
 //End of file
