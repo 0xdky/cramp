@@ -72,7 +72,6 @@ Public Sub GetEnvironmentVariable()
   
   'start
   starstopBool = True
-  compExist = False
 End Sub
 
 '***********************************************************

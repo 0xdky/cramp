@@ -39,7 +39,6 @@ Public gstrRawTick As String
 Public gFileSize As Long
 Public gIsFileExist As Boolean
 Public starstopBool As Boolean
-Public compExist As Boolean
 
 '****************************************************
 ' Return the node's object type
@@ -695,10 +694,10 @@ Public Sub MoveControls(strVal As String)
            .addLabel.Visible = False
            .limitLabel.Visible = True
            'move controls
-           .limitText.Move 4680, 600
-           .appendCheck.Move 5640, 600
+           .limitText.Move 4680, 480
+           .appendCheck.Move 5640, 480
            'move lables
-           .limitLabel.Move 4680, 360
+           .limitLabel.Move 4680, 240
       Case "ADDR"
            'hide-show controls
            .threadCombo.Visible = False
@@ -711,12 +710,12 @@ Public Sub MoveControls(strVal As String)
            .addLabel.Visible = True
            .limitLabel.Visible = True
            'move controls
-           .addrCombo.Move 2520, 600
-           .limitText.Move 3720, 600
-           .appendCheck.Move 4670, 600
+           .addrCombo.Move 2520, 480
+           .limitText.Move 3720, 480
+           .appendCheck.Move 4670, 480
            'move lables
-           .addLabel.Move 2520, 360
-           .limitLabel.Move 3720, 360
+           .addLabel.Move 2520, 240
+           .limitLabel.Move 3720, 240
       Case "STAT"
            'hide-show controls
            .threadCombo.Visible = False
@@ -729,7 +728,7 @@ Public Sub MoveControls(strVal As String)
            .addLabel.Visible = False
            .limitLabel.Visible = False
            'move controls
-           .appendCheck.Move 2510, 600
+           .appendCheck.Move 2510, 480
     End Select
   End With
 End Sub
@@ -911,66 +910,6 @@ With frmMainui
   End If
 End With
 End Sub
-
-Public Function CkeckComputer() As Integer
-  Dim hInst As Long
-  Dim strPing As String
-  Dim Command As String
-  Dim TaskID As Long
-  Dim pInfo As PROCESS_INFORMATION
-  Dim sInfo As STARTUPINFO
-  Dim sNull As String
-  Dim lSuccess As Long
-  Dim lRetValue As Long
-  Dim retVal As Boolean
-  Dim Response
-  
-  Const SYNCHRONIZE = 1048576
-  Const NORMAL_PRIORITY_CLASS = &H20&
-  Const INFINITE = -1
-
-  If compExist = True Then
-    CkeckComputer = 0
-    Exit Function
-  End If
-  
-  If frmMainui.compnameText.Text <> "" Then
-    Command = "ping.exe " & frmMainui.compnameText.Text
-    MsgBox Command
-  Else
-    MsgBox "Specify Computer Name"
-    CkeckComputer = 1
-    compExist = False
-    Exit Function
-  End If
-    
-  sInfo.cb = Len(sInfo)
-  lSuccess = CreateProcess(sNull, _
-                            Command, _
-                            ByVal 0&, _
-                            ByVal 0&, _
-                            1&, _
-                            NORMAL_PRIORITY_CLASS, _
-                            ByVal 0&, _
-                            sNull, _
-                            sInfo, _
-                            pInfo)
-    
-  lRetValue = WaitForSingleObject(pInfo.hProcess, INFINITE)
-  retVal = GetExitCodeProcess(pInfo.hProcess, lRetValue&)
-        
-  If lRetValue <> 0 Then
-    Response = MsgBox("ERROR :: Compter " & frmMainui.compnameText.Text & " not exist")
-    compExist = False
-  Else
-    compExist = True
-  End If
-
-  CkeckComputer = lRetValue
-  lRetValue = CloseHandle(pInfo.hThread)
-  lRetValue = CloseHandle(pInfo.hProcess)
-End Function
-
 Public Sub DoProfiling(arg As String)
   Dim hInst As Long
   Dim strProCon As String
@@ -987,7 +926,6 @@ Public Sub DoProfiling(arg As String)
        And frmMainui.pidText.Text <> "" Then
       strProCon = strProCon & gstrSpace & frmMainui.compnameText.Text & ".ds" & _
                   gstrSpace & frmMainui.pidText.Text + gstrSpace + arg
-      MsgBox strProCon
       hInst = Shell(strProCon, vbNormalFocus)
     End If
   End If
@@ -1001,16 +939,23 @@ Public Sub SetValueFromLV()
   
   If frmMainui.staCombo.Text = "ADDR" Then
     'address
-    lvValue = frmMainui.queryLV.SelectedItem.SubItems(3)
-    frmMainui.addrCombo.Text = lvValue
+    If frmMainui.queryLV.ColumnHeaders(4) = "Func - Addr" Then
+      lvValue = frmMainui.queryLV.SelectedItem.SubItems(3)
+      frmMainui.addrCombo.Text = lvValue
+    ElseIf frmMainui.queryLV.ColumnHeaders(3) = "Func - Addr" Then
+      lvValue = frmMainui.queryLV.SelectedItem.SubItems(2)
+      frmMainui.addrCombo.Text = lvValue
+    End If
     'set query text
     SetQueryText (frmMainui.staCombo.Text)
   ElseIf frmMainui.staCombo.Text = "THREADS" Then
     'threads
-    lvValue = frmMainui.queryLV.SelectedItem
-    frmMainui.threadCombo.Text = lvValue
-    'set query text
-    SetQueryText (frmMainui.staCombo.Text)
+    If frmMainui.queryLV.ColumnHeaders(1) = "Thread" Then
+      lvValue = frmMainui.queryLV.SelectedItem
+      frmMainui.threadCombo.Text = lvValue
+      'set query text
+      SetQueryText (frmMainui.staCombo.Text)
+    End If
   End If
 End Sub
 

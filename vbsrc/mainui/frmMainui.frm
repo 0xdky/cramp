@@ -28,29 +28,29 @@ Begin VB.Form frmMainui
          Width           =   6852
          Begin VB.CommandButton flushproCommand 
             Caption         =   "Flush"
-            Height          =   372
-            Left            =   4800
+            Height          =   288
+            Left            =   5640
             TabIndex        =   39
             Top             =   480
-            Width           =   1092
+            Width           =   972
          End
          Begin VB.CommandButton startstopCommand 
             Caption         =   "Start"
-            Height          =   372
-            Left            =   3480
+            Height          =   288
+            Left            =   3960
             TabIndex        =   38
             Top             =   480
-            Width           =   1092
+            Width           =   972
          End
          Begin VB.TextBox pidText 
-            Height          =   372
-            Left            =   1800
+            Height          =   288
+            Left            =   2280
             TabIndex        =   36
             Top             =   480
-            Width           =   1452
+            Width           =   972
          End
          Begin VB.TextBox compnameText 
-            Height          =   372
+            Height          =   288
             Left            =   120
             TabIndex        =   34
             Top             =   480
@@ -59,7 +59,7 @@ Begin VB.Form frmMainui
          Begin VB.Label procidLabel 
             Caption         =   "Pid"
             Height          =   252
-            Left            =   1800
+            Left            =   2280
             TabIndex        =   37
             Top             =   240
             Width           =   1452
@@ -75,21 +75,22 @@ Begin VB.Form frmMainui
       End
       Begin VB.Frame Frame3 
          Caption         =   "Result"
-         Height          =   3492
+         Height          =   3612
          Left            =   240
          TabIndex        =   30
-         Top             =   3360
+         Top             =   3120
          Width           =   6852
          Begin MSComctlLib.ListView queryLV 
-            Height          =   3492
+            Height          =   3252
             Left            =   120
             TabIndex        =   31
             Top             =   240
             Width           =   6612
             _ExtentX        =   11663
-            _ExtentY        =   6160
+            _ExtentY        =   5736
             LabelWrap       =   -1  'True
             HideSelection   =   -1  'True
+            FullRowSelect   =   -1  'True
             _Version        =   393217
             ForeColor       =   -2147483640
             BackColor       =   -2147483643
@@ -100,31 +101,31 @@ Begin VB.Form frmMainui
       End
       Begin VB.Frame Frame2 
          Caption         =   "Query"
-         Height          =   732
+         Height          =   700
          Left            =   240
          TabIndex        =   27
-         Top             =   2640
+         Top             =   2400
          Width           =   6852
          Begin VB.CommandButton runCommand 
             Caption         =   "Run"
-            Height          =   372
-            Left            =   5280
+            Height          =   288
+            Left            =   5640
             TabIndex        =   32
             Top             =   240
-            Width           =   1092
+            Width           =   972
          End
          Begin VB.CommandButton queryCommand 
             Caption         =   "Query"
             Enabled         =   0   'False
-            Height          =   372
-            Left            =   3960
+            Height          =   288
+            Left            =   4200
             TabIndex        =   29
             Top             =   240
-            Width           =   852
+            Width           =   972
          End
          Begin VB.TextBox queryText 
             Enabled         =   0   'False
-            Height          =   372
+            Height          =   288
             Left            =   120
             TabIndex        =   28
             Top             =   240
@@ -133,7 +134,7 @@ Begin VB.Form frmMainui
       End
       Begin VB.Frame Frame1 
          Caption         =   "Query Option"
-         Height          =   1212
+         Height          =   972
          Left            =   240
          TabIndex        =   13
          Top             =   1320
@@ -141,9 +142,9 @@ Begin VB.Form frmMainui
          Begin VB.CheckBox appendCheck 
             Caption         =   "Append"
             Height          =   312
-            Left            =   4680
+            Left            =   5880
             TabIndex        =   21
-            Top             =   960
+            Top             =   840
             Width           =   852
          End
          Begin VB.TextBox limitText 
@@ -151,14 +152,14 @@ Begin VB.Form frmMainui
             Left            =   5880
             TabIndex        =   19
             Text            =   "0"
-            Top             =   600
+            Top             =   480
             Width           =   852
          End
          Begin VB.ComboBox addrCombo 
             Height          =   288
             Left            =   4680
             TabIndex        =   18
-            Top             =   600
+            Top             =   480
             Width           =   1092
          End
          Begin VB.ComboBox rtCombo 
@@ -166,14 +167,14 @@ Begin VB.Form frmMainui
             Left            =   3600
             TabIndex        =   17
             Text            =   "TICK"
-            Top             =   600
+            Top             =   480
             Width           =   972
          End
          Begin VB.ComboBox threadCombo 
             Height          =   288
             Left            =   2520
             TabIndex        =   16
-            Top             =   600
+            Top             =   480
             Width           =   972
          End
          Begin VB.ComboBox staCombo 
@@ -181,14 +182,14 @@ Begin VB.Form frmMainui
             Left            =   1200
             TabIndex        =   15
             Text            =   "THREADS"
-            Top             =   600
+            Top             =   480
             Width           =   1212
          End
          Begin VB.ComboBox pidCombo 
             Height          =   288
             Left            =   120
             TabIndex        =   14
-            Top             =   600
+            Top             =   480
             Width           =   972
          End
          Begin VB.Label limitLabel 
@@ -196,7 +197,7 @@ Begin VB.Form frmMainui
             Height          =   252
             Left            =   5880
             TabIndex        =   26
-            Top             =   360
+            Top             =   240
             Width           =   852
          End
          Begin VB.Label addLabel 
@@ -204,7 +205,7 @@ Begin VB.Form frmMainui
             Height          =   252
             Left            =   4680
             TabIndex        =   25
-            Top             =   360
+            Top             =   240
             Width           =   1092
          End
          Begin VB.Label rtLabel 
@@ -212,7 +213,7 @@ Begin VB.Form frmMainui
             Height          =   252
             Left            =   3600
             TabIndex        =   24
-            Top             =   360
+            Top             =   240
             Width           =   972
          End
          Begin VB.Label threadLabel 
@@ -220,7 +221,7 @@ Begin VB.Form frmMainui
             Height          =   252
             Left            =   2520
             TabIndex        =   23
-            Top             =   360
+            Top             =   240
             Width           =   972
          End
          Begin VB.Label selLabel 
@@ -228,7 +229,7 @@ Begin VB.Form frmMainui
             Height          =   252
             Left            =   1200
             TabIndex        =   22
-            Top             =   360
+            Top             =   240
             Width           =   1212
          End
          Begin VB.Label pidLabel 
@@ -236,7 +237,7 @@ Begin VB.Form frmMainui
             Height          =   252
             Left            =   120
             TabIndex        =   20
-            Top             =   360
+            Top             =   240
             Width           =   972
          End
       End
@@ -246,7 +247,7 @@ Begin VB.Form frmMainui
       Index           =   0
       Left            =   480
       TabIndex        =   1
-      Top             =   7320
+      Top             =   7800
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
@@ -1045,7 +1046,6 @@ End Sub
 ' start-stop
 '***********************************************************
 Private Sub startstopCommand_Click()
-  Dim val As Integer
   
   If compnameText.Text = "" Then
     MsgBox "ERROR :: Null computer name"
@@ -1058,14 +1058,10 @@ Private Sub startstopCommand_Click()
   End If
   
   If starstopBool = True Then
-    'check computer name
-    val = CkeckComputer
-    If val = 0 Then
-      startstopCommand.Caption = "Stop"
-      starstopBool = False
-      'start profiling
-      DoProfiling ("START")
-    End If
+    startstopCommand.Caption = "Stop"
+    starstopBool = False
+    'start profiling
+    DoProfiling ("START")
   Else
     'stop profiling
     DoProfiling ("STOP")
@@ -1075,6 +1071,17 @@ Private Sub startstopCommand_Click()
 End Sub
 
 Private Sub flushproCommand_Click()
+  
+  If compnameText.Text = "" Then
+    MsgBox "ERROR :: Null computer name"
+    Exit Sub
+  End If
+  
+  If pidText.Text = "" Then
+    MsgBox "ERROR :: Null pid value"
+    Exit Sub
+  End If
+  
   'flush profiling
   DoProfiling ("FLUSH")
 End Sub
