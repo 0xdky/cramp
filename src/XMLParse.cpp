@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-01 19:08:05 dhruva>
+// Time-stamp: <2003-11-04 18:07:58 dhruva>
 //-----------------------------------------------------------------------------
 // File : XMLParse.cpp
 // Desc : Class implementation for scenario file parsing
@@ -72,6 +72,7 @@ typedef struct{
 ElemAttr g_ElemAttrMap[]={
   SCENARIO, "ID"                  ,   ID                  ,
   SCENARIO, "NAME"                ,   NAME                ,
+  SCENARIO, "BLOCK"               ,   BLOCK               ,
   SCENARIO, "RELEASE"             ,   RELEASE             ,
   SCENARIO, "MAXRUNTIME"          ,   MAXRUNTIME          ,
   SCENARIO, "PROFILING"           ,   PROFILING           ,
