@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-11-03 15:49:43 dhruva>
+// Time-stamp: <2003-11-03 15:53:50 dhruva>
 //-----------------------------------------------------------------------------
 // File  : engine.cpp
 // Misc  : C[ramp] R[uns] A[nd] M[onitors] P[rocesses]
@@ -307,8 +307,12 @@ CreateManagedProcesses(LPVOID ipTestCaseInfo){
         porigtc->AddLog("MESSAGE|ERROR|PROC|Exceeded time limit");
         TerminateProcess(pi.hProcess,dwret);
         dwret=1;
-      }else{
-        sprintf(msg,"MESSAGE|ERROR|PROC|Wait failed %ld:%ld",maxwait,dwret);
+      }else if(WAIT_ABANDONED==dwret){
+        sprintf(msg,"MESSAGE|ERROR|PROC|Wait abandoned:%ld",dwret);
+        porigtc->AddLog(msg);
+        dwret=0;
+      }else if(WAIT_FAILED==dwret){
+        sprintf(msg,"MESSAGE|ERROR|PROC|Wait failed:%ld",GetLastError());
         porigtc->AddLog(msg);
         dwret=0;
       }
