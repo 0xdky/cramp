@@ -453,7 +453,7 @@ Public Function SetPIDCombo(fld As String) As String
         ProcessID = Right(FileName, Location)
         Location = InStr(ProcessID, ".")
         strLength = Len(ProcessID)
-        Location = strLength - Location + 2
+        Location = strLength - 3        '3 for .db
         ProcessID = Left(ProcessID, Location)
         'addValue = ChkValueInArray(pidArray(), ProcessID)
         If IsNumeric(ProcessID) Then
