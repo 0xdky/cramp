@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2004-01-12 09:53:15 dky>
+## Time-stamp: <2004-01-13 11:37:12 dky>
 ##-----------------------------------------------------------------------------
 ## File  : profileDQ.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -817,6 +817,7 @@ sub GetTickSortedValues{
 
 ##-----------------------------------------------------------------------------
 ## AddFunctionInformation
+##  Multiple calls to this function is supported.
 ##-----------------------------------------------------------------------------
 sub AddFunctionInformation{
   open(LOGFIN,$f_logfin) || die("Cannot open \"$f_logfin\" for read");
@@ -827,7 +828,7 @@ sub AddFunctionInformation{
   $db=new BerkeleyDB::Hash
     -Filename    => $f_logdb,
       -Subname     => "FUNC_INFO",
-        -Flags       => DB_CREATE
+        -Flags       => DB_EXCL|DB_CREATE
           || die("Error: $BerkeleyDB::Error");
   if (!defined($db)) {
     return 1;
