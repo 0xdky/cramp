@@ -853,11 +853,13 @@ End Sub
 '
 '***********************************************************
 Private Sub cmdRunList_Click()
-    Dim Command As String
+    Dim Command As String, strPerlPath As String, strNoConsole As String
     'Better save the list again
     SaveScList gCurScListFileName
-    
-    Command = gperlPath & gstrSpace & gCRAMPPath & "\bin\crampstaf.pl" & gstrSpace & gCurScListFileName
+    strNoConsole = gCRAMPPath + "/bin/noconsole"
+    strPerlPath = gCRAMPPath + "/TOOLS/PERL/bin/perl.exe"
+    Command = strNoConsole & gstrSpace & strPerlPath & gstrSpace & gCRAMPPath & _
+                "\bin\crampstaf.pl" & gstrSpace & gCurScListFileName
     
     RunScenario Command
     
