@@ -3,32 +3,77 @@ Object = "{831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.0#0"; "MSCOMCTL.OCX"
 Object = "{F9043C88-F6F2-101A-A3C9-08002B2F49FB}#1.2#0"; "COMDLG32.OCX"
 Begin VB.Form frmMainui 
    Caption         =   "CRAMP - Scenario"
-   ClientHeight    =   8445
+   ClientHeight    =   8505
    ClientLeft      =   5340
    ClientTop       =   3075
-   ClientWidth     =   9285
+   ClientWidth     =   9075
    Icon            =   "frmMainui.frx":0000
    LinkTopic       =   "Form1"
-   ScaleHeight     =   8445
-   ScaleWidth      =   9285
+   ScaleHeight     =   8505
+   ScaleWidth      =   9075
+   Begin VB.Frame fraMainUI 
+      Height          =   6900
+      Index           =   3
+      Left            =   0
+      TabIndex        =   63
+      Top             =   960
+      Visible         =   0   'False
+      Width           =   7695
+      Begin VB.Frame frmSettings 
+         Caption         =   "CRAMP Variables"
+         Height          =   2750
+         Left            =   600
+         TabIndex        =   64
+         Top             =   480
+         Width           =   6700
+         Begin VB.CommandButton cmdEdit 
+            Caption         =   "&Edit"
+            Height          =   375
+            Left            =   2760
+            TabIndex        =   65
+            Top             =   2160
+            Width           =   1095
+         End
+         Begin MSComctlLib.ListView lvwVariables 
+            Height          =   1695
+            Left            =   360
+            TabIndex        =   4
+            Top             =   360
+            Width           =   5925
+            _ExtentX        =   10451
+            _ExtentY        =   2990
+            Sorted          =   -1  'True
+            LabelWrap       =   -1  'True
+            HideSelection   =   0   'False
+            FullRowSelect   =   -1  'True
+            _Version        =   393217
+            ForeColor       =   -2147483640
+            BackColor       =   -2147483643
+            BorderStyle     =   1
+            Appearance      =   1
+            NumItems        =   0
+         End
+      End
+   End
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   2
-      Left            =   0
-      TabIndex        =   56
-      Top             =   -6120
+      Left            =   6240
+      TabIndex        =   57
+      Top             =   8640
+      Visible         =   0   'False
       Width           =   7695
       Begin VB.Frame frmList 
          Height          =   4215
          Left            =   360
-         TabIndex        =   57
+         TabIndex        =   58
          Top             =   480
          Width           =   7095
          Begin VB.CommandButton cmdRunList 
             Caption         =   "Run"
             Height          =   495
             Left            =   5520
-            TabIndex        =   61
+            TabIndex        =   62
             Top             =   2160
             Width           =   1095
          End
@@ -36,7 +81,7 @@ Begin VB.Form frmMainui
             Caption         =   "Remove"
             Height          =   495
             Left            =   5520
-            TabIndex        =   60
+            TabIndex        =   61
             Top             =   1320
             Width           =   1095
          End
@@ -44,14 +89,14 @@ Begin VB.Form frmMainui
             Caption         =   "Add"
             Height          =   495
             Left            =   5520
-            TabIndex        =   59
+            TabIndex        =   60
             Top             =   480
             Width           =   1095
          End
          Begin VB.ListBox lstScenarios 
             Height          =   3570
             Left            =   360
-            TabIndex        =   58
+            TabIndex        =   59
             Top             =   360
             Width           =   4695
          End
@@ -67,9 +112,9 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   7308
       Index           =   1
-      Left            =   6240
+      Left            =   8400
       TabIndex        =   2
-      Top             =   -6960
+      Top             =   9120
       Visible         =   0   'False
       Width           =   7450
       Begin MSComctlLib.ImageList SortIconImageList 
@@ -98,14 +143,14 @@ Begin VB.Form frmMainui
          Caption         =   "Profiling"
          Height          =   972
          Left            =   120
-         TabIndex        =   32
+         TabIndex        =   33
          Top             =   240
          Width           =   7215
          Begin VB.CommandButton stopCommand 
             Caption         =   "Stop"
             Height          =   288
             Left            =   4440
-            TabIndex        =   39
+            TabIndex        =   40
             Top             =   480
             Width           =   972
          End
@@ -113,7 +158,7 @@ Begin VB.Form frmMainui
             Caption         =   "Flush"
             Height          =   288
             Left            =   5640
-            TabIndex        =   38
+            TabIndex        =   39
             Top             =   480
             Width           =   972
          End
@@ -121,21 +166,21 @@ Begin VB.Form frmMainui
             Caption         =   "Start"
             Height          =   288
             Left            =   3240
-            TabIndex        =   37
+            TabIndex        =   38
             Top             =   480
             Width           =   972
          End
          Begin VB.TextBox pidText 
             Height          =   288
             Left            =   2040
-            TabIndex        =   35
+            TabIndex        =   36
             Top             =   480
             Width           =   972
          End
          Begin VB.TextBox compnameText 
             Height          =   288
             Left            =   120
-            TabIndex        =   33
+            TabIndex        =   34
             Top             =   480
             Width           =   1692
          End
@@ -143,7 +188,7 @@ Begin VB.Form frmMainui
             Caption         =   "Pid"
             Height          =   252
             Left            =   2040
-            TabIndex        =   36
+            TabIndex        =   37
             Top             =   240
             Width           =   972
          End
@@ -151,7 +196,7 @@ Begin VB.Form frmMainui
             Caption         =   "Profile Host"
             Height          =   252
             Left            =   120
-            TabIndex        =   34
+            TabIndex        =   35
             Top             =   240
             Width           =   1692
          End
@@ -160,14 +205,14 @@ Begin VB.Form frmMainui
          Caption         =   "Result"
          Height          =   3972
          Left            =   120
-         TabIndex        =   29
+         TabIndex        =   30
          Top             =   3120
          Width           =   7215
          Begin VB.CommandButton preCommand 
             Caption         =   "Previous"
             Height          =   288
             Left            =   1200
-            TabIndex        =   45
+            TabIndex        =   46
             Top             =   240
             Width           =   972
          End
@@ -175,21 +220,21 @@ Begin VB.Form frmMainui
             Caption         =   "Next"
             Height          =   288
             Left            =   3751
-            TabIndex        =   44
+            TabIndex        =   45
             Top             =   240
             Width           =   972
          End
          Begin VB.TextBox listitemText 
             Height          =   288
             Left            =   5760
-            TabIndex        =   43
+            TabIndex        =   44
             Top             =   240
             Width           =   951
          End
          Begin MSComctlLib.ListView queryLV 
             Height          =   3135
             Left            =   120
-            TabIndex        =   30
+            TabIndex        =   31
             Top             =   720
             Width           =   6975
             _ExtentX        =   12303
@@ -210,7 +255,7 @@ Begin VB.Form frmMainui
             AutoSize        =   -1  'True
             Height          =   192
             Left            =   3050
-            TabIndex        =   49
+            TabIndex        =   50
             Top             =   480
             Width           =   36
          End
@@ -220,7 +265,7 @@ Begin VB.Form frmMainui
             Caption         =   "-"
             Height          =   192
             Left            =   2916
-            TabIndex        =   48
+            TabIndex        =   49
             Top             =   480
             Width           =   60
          End
@@ -229,7 +274,7 @@ Begin VB.Form frmMainui
             AutoSize        =   -1  'True
             Height          =   192
             Left            =   2800
-            TabIndex        =   47
+            TabIndex        =   48
             Top             =   480
             Width           =   51
          End
@@ -237,7 +282,7 @@ Begin VB.Form frmMainui
             Alignment       =   2  'Center
             Height          =   252
             Left            =   120
-            TabIndex        =   46
+            TabIndex        =   47
             Top             =   480
             Width           =   852
          End
@@ -245,7 +290,7 @@ Begin VB.Form frmMainui
             Caption         =   "Item range : "
             Height          =   252
             Left            =   4920
-            TabIndex        =   42
+            TabIndex        =   43
             Top             =   240
             Width           =   852
          End
@@ -253,7 +298,7 @@ Begin VB.Form frmMainui
             Caption         =   "Total items:"
             Height          =   204
             Left            =   120
-            TabIndex        =   41
+            TabIndex        =   42
             Top             =   240
             Width           =   852
          End
@@ -261,7 +306,7 @@ Begin VB.Form frmMainui
             Caption         =   "Visible items:"
             Height          =   204
             Left            =   2520
-            TabIndex        =   40
+            TabIndex        =   41
             Top             =   240
             Width           =   972
          End
@@ -270,14 +315,14 @@ Begin VB.Form frmMainui
          Caption         =   "Query"
          Height          =   700
          Left            =   120
-         TabIndex        =   26
+         TabIndex        =   27
          Top             =   2400
          Width           =   7215
          Begin VB.CommandButton backCommand 
             Caption         =   "Back"
             Height          =   288
             Left            =   6120
-            TabIndex        =   55
+            TabIndex        =   56
             Top             =   240
             Width           =   972
          End
@@ -285,7 +330,7 @@ Begin VB.Form frmMainui
             Caption         =   "Init"
             Height          =   288
             Left            =   5040
-            TabIndex        =   31
+            TabIndex        =   32
             Top             =   240
             Width           =   972
          End
@@ -294,7 +339,7 @@ Begin VB.Form frmMainui
             Enabled         =   0   'False
             Height          =   288
             Left            =   3960
-            TabIndex        =   28
+            TabIndex        =   29
             Top             =   240
             Width           =   972
          End
@@ -302,7 +347,7 @@ Begin VB.Form frmMainui
             Enabled         =   0   'False
             Height          =   288
             Left            =   120
-            TabIndex        =   27
+            TabIndex        =   28
             Top             =   240
             Width           =   3732
          End
@@ -311,14 +356,14 @@ Begin VB.Form frmMainui
          Caption         =   "Query Option"
          Height          =   972
          Left            =   120
-         TabIndex        =   13
+         TabIndex        =   14
          Top             =   1320
          Width           =   7215
          Begin VB.ComboBox tableCombo 
             Height          =   315
             Left            =   2520
             Style           =   2  'Dropdown List
-            TabIndex        =   53
+            TabIndex        =   54
             Top             =   840
             Width           =   972
          End
@@ -326,7 +371,7 @@ Begin VB.Form frmMainui
             Height          =   315
             Left            =   120
             Style           =   2  'Dropdown List
-            TabIndex        =   51
+            TabIndex        =   52
             Top             =   840
             Width           =   972
          End
@@ -334,7 +379,7 @@ Begin VB.Form frmMainui
             Enabled         =   0   'False
             Height          =   288
             Left            =   4680
-            TabIndex        =   50
+            TabIndex        =   51
             Top             =   480
             Width           =   1092
          End
@@ -342,14 +387,14 @@ Begin VB.Form frmMainui
             Caption         =   "Append"
             Height          =   312
             Left            =   6840
-            TabIndex        =   20
+            TabIndex        =   21
             Top             =   480
             Width           =   852
          End
          Begin VB.TextBox limitText 
             Height          =   288
             Left            =   5880
-            TabIndex        =   18
+            TabIndex        =   19
             Text            =   "10"
             Top             =   480
             Width           =   852
@@ -358,7 +403,7 @@ Begin VB.Form frmMainui
             Height          =   288
             Left            =   3600
             Style           =   2  'Dropdown List
-            TabIndex        =   17
+            TabIndex        =   18
             Top             =   480
             Width           =   972
          End
@@ -366,7 +411,7 @@ Begin VB.Form frmMainui
             Height          =   288
             Left            =   2520
             Style           =   2  'Dropdown List
-            TabIndex        =   16
+            TabIndex        =   17
             Top             =   480
             Width           =   972
          End
@@ -374,7 +419,7 @@ Begin VB.Form frmMainui
             Height          =   288
             Left            =   1200
             Style           =   2  'Dropdown List
-            TabIndex        =   15
+            TabIndex        =   16
             Top             =   480
             Width           =   1212
          End
@@ -382,7 +427,7 @@ Begin VB.Form frmMainui
             Height          =   288
             Left            =   120
             Style           =   2  'Dropdown List
-            TabIndex        =   14
+            TabIndex        =   15
             Top             =   480
             Width           =   972
          End
@@ -390,7 +435,7 @@ Begin VB.Form frmMainui
             Caption         =   "Table"
             Height          =   255
             Left            =   3600
-            TabIndex        =   54
+            TabIndex        =   55
             Top             =   840
             Width           =   975
          End
@@ -398,7 +443,7 @@ Begin VB.Form frmMainui
             Caption         =   "Action"
             Height          =   255
             Left            =   1200
-            TabIndex        =   52
+            TabIndex        =   53
             Top             =   840
             Width           =   975
          End
@@ -406,7 +451,7 @@ Begin VB.Form frmMainui
             Caption         =   "Limit"
             Height          =   252
             Left            =   5880
-            TabIndex        =   25
+            TabIndex        =   26
             Top             =   240
             Width           =   852
          End
@@ -414,7 +459,7 @@ Begin VB.Form frmMainui
             Caption         =   "Address"
             Height          =   252
             Left            =   4680
-            TabIndex        =   24
+            TabIndex        =   25
             Top             =   240
             Width           =   1092
          End
@@ -422,7 +467,7 @@ Begin VB.Form frmMainui
             Caption         =   "Type"
             Height          =   252
             Left            =   3600
-            TabIndex        =   23
+            TabIndex        =   24
             Top             =   240
             Width           =   972
          End
@@ -430,7 +475,7 @@ Begin VB.Form frmMainui
             Caption         =   "Thread"
             Height          =   252
             Left            =   2520
-            TabIndex        =   22
+            TabIndex        =   23
             Top             =   240
             Width           =   972
          End
@@ -438,7 +483,7 @@ Begin VB.Form frmMainui
             Caption         =   "Selection"
             Height          =   252
             Left            =   1200
-            TabIndex        =   21
+            TabIndex        =   22
             Top             =   240
             Width           =   1212
          End
@@ -446,7 +491,7 @@ Begin VB.Form frmMainui
             Caption         =   "Pid"
             Height          =   252
             Left            =   120
-            TabIndex        =   19
+            TabIndex        =   20
             Top             =   240
             Width           =   972
          End
@@ -455,14 +500,14 @@ Begin VB.Form frmMainui
    Begin VB.Frame fraMainUI 
       Height          =   6900
       Index           =   0
-      Left            =   840
+      Left            =   8040
       TabIndex        =   1
-      Top             =   480
+      Top             =   -120
       Width           =   7450
       Begin VB.ComboBox cboIdRef 
          Height          =   315
          Left            =   6000
-         TabIndex        =   12
+         TabIndex        =   13
          Top             =   4920
          Width           =   1215
       End
@@ -470,7 +515,7 @@ Begin VB.Form frmMainui
          Caption         =   "..."
          Height          =   255
          Left            =   6120
-         TabIndex        =   11
+         TabIndex        =   12
          Top             =   6360
          Visible         =   0   'False
          Width           =   255
@@ -479,7 +524,7 @@ Begin VB.Form frmMainui
          Appearance      =   0  'Flat
          Height          =   285
          Left            =   6000
-         TabIndex        =   10
+         TabIndex        =   11
          Top             =   5880
          Visible         =   0   'False
          Width           =   1215
@@ -489,7 +534,7 @@ Begin VB.Form frmMainui
          ItemData        =   "frmMainui.frx":0E6E
          Left            =   6000
          List            =   "frmMainui.frx":0E78
-         TabIndex        =   9
+         TabIndex        =   10
          Text            =   "TRUE"
          Top             =   5400
          Visible         =   0   'False
@@ -499,7 +544,7 @@ Begin VB.Form frmMainui
          Caption         =   "&Run"
          Height          =   495
          Left            =   6000
-         TabIndex        =   8
+         TabIndex        =   9
          Top             =   2520
          Width           =   1215
       End
@@ -507,7 +552,7 @@ Begin VB.Form frmMainui
          Caption         =   "&Delete"
          Height          =   495
          Left            =   6000
-         TabIndex        =   7
+         TabIndex        =   8
          Top             =   1800
          Width           =   1215
       End
@@ -515,7 +560,7 @@ Begin VB.Form frmMainui
          Caption         =   "Add &Testcase"
          Height          =   495
          Left            =   6000
-         TabIndex        =   6
+         TabIndex        =   7
          Top             =   1080
          Width           =   1215
       End
@@ -523,7 +568,7 @@ Begin VB.Form frmMainui
          Caption         =   "Add &Group"
          Height          =   495
          Left            =   6000
-         TabIndex        =   5
+         TabIndex        =   6
          Top             =   360
          Width           =   1215
       End
@@ -537,7 +582,7 @@ Begin VB.Form frmMainui
       Begin MSComctlLib.ListView lvwAttributes 
          Height          =   2300
          Left            =   240
-         TabIndex        =   4
+         TabIndex        =   5
          Top             =   4320
          Width           =   5500
          _ExtentX        =   9710
@@ -580,13 +625,20 @@ Begin VB.Form frmMainui
       _ExtentY        =   14208
       _Version        =   393216
       BeginProperty Tabs {1EFB6598-857C-11D1-B16A-00C0F0283628} 
-         NumTabs         =   2
+         NumTabs         =   3
          BeginProperty Tab1 {1EFB659A-857C-11D1-B16A-00C0F0283628} 
             Caption         =   "Engine"
+            Key             =   "tspEngine"
             ImageVarType    =   2
          EndProperty
          BeginProperty Tab2 {1EFB659A-857C-11D1-B16A-00C0F0283628} 
             Caption         =   "Profiler"
+            Key             =   "tspProfiler"
+            ImageVarType    =   2
+         EndProperty
+         BeginProperty Tab3 {1EFB659A-857C-11D1-B16A-00C0F0283628} 
+            Caption         =   "Settings"
+            Key             =   "tspSettings"
             ImageVarType    =   2
          EndProperty
       EndProperty
@@ -818,6 +870,19 @@ Private Sub cmdDelete_Click()
         
     gSaveFlag = True
         
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Private Sub cmdEdit_Click()
+    frmVarEdit.Visible = True
+    frmVarEdit.Move frmMainui.Left + cmdEdit.Left, _
+                    frmMainui.Top + cmdEdit.Top
+    frmVarEdit.txtVarName.Text = frmMainui.lvwVariables.SelectedItem
+    frmVarEdit.txtVarValue.SelText = frmMainui.lvwVariables.SelectedItem.SubItems(1)
+    frmVarEdit.txtVarValue.SetFocus
+    
 End Sub
 
 '***********************************************************
@@ -1381,11 +1446,28 @@ Private Sub tspMainUI_Click()
         fraMainUI(ii).Visible = False
     Next ii
     
-    fraMainUI(tspMainUI.SelectedItem.index - 1).Visible = True
-    fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
-    mnuSave.Enabled = False
-    gSaveFlag = False
-    RenameFormWindow
+    Select Case LCase(tspMainUI.SelectedItem.key)
+        Case LCase("tspEngine"):
+            fraMainUI(0).Visible = True
+            fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
+            mnuSave.Enabled = False
+            gSaveFlag = False
+            RenameFormWindow
+        Case LCase("tspProfiler"):
+            fraMainUI(1).Visible = True
+            fraMainUI(tspMainUI.SelectedItem.index - 1).Move 600, 840
+            mnuSave.Enabled = False
+            gSaveFlag = False
+            RenameFormWindow
+        Case LCase("tspSettings"):
+            fraMainUI(3).Visible = True
+            fraMainUI(3).Move 600, 840
+            ShowSettingsPage
+            RenameFormWindow
+            'mnuSave.Visible = False
+            'mnuSaveAs.Visible = False
+    End Select
+        
 End Sub
 
 '***********************************************************
@@ -1884,6 +1966,7 @@ Private Sub Form_Resize()
   fraMainUI(0).Move 600, 840
   fraMainUI(1).Move 600, 840
   fraMainUI(2).Move 600, 840
+  fraMainUI(3).Move 600, 840
   On Error Resume Next
   
   Dim l, t, w, h
@@ -1906,6 +1989,9 @@ Private Sub Form_Resize()
         
     fraMainUI(2).Width = fraMainUI(0).Width
     fraMainUI(2).Height = fraMainUI(0).Height
+    fraMainUI(3).Width = fraMainUI(0).Width
+    fraMainUI(3).Height = fraMainUI(0).Height
+    
     With Me
       'move the tree listview
       l = .tvwNodes.Left
@@ -1935,7 +2021,7 @@ Private Sub Form_Resize()
       
       'set column header width
       If .lvwAttributes.ColumnHeaders.Count >= 2 Then
-        .lvwAttributes.ColumnHeaders(2).Width = .lvwAttributes.Width - .lvwAttributes.ColumnHeaders(1).Width
+        .lvwAttributes.ColumnHeaders(2).Width = .lvwAttributes.Width - .lvwAttributes.ColumnHeaders(1).Width - 100
       End If
       
       'hide controls

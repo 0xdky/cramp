@@ -18,6 +18,7 @@ Module=modFileHandling; modFileHandling.bas
 Module=modInitialization; modInitialization.bas
 Form=frmLVColHS.frm
 Module=modGeneral; modGeneral.bas
+Form=frmVarEdit.frm
 IconForm="frmMainui"
 Startup="frmMainui"
 HelpFile=""

@@ -10,6 +10,10 @@ Public Enum ScType
     stList = 2
 End Enum
 
+
+
+
+
 '***********************************************************
 ' Returns the Scenario Type
 '***********************************************************
@@ -275,5 +279,98 @@ Public Sub MoveUpListItem()
     frmMainui.lstScenarios.Selected(intCurIdx - 1) = True
     frmMainui.lstScenarios.Refresh
     gSaveFlag = True
+    
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Public Sub InitialiseVarListView()
+    Dim colX As ColumnHeader ' Declare variable.
+    
+    frmMainui.lvwVariables.ListItems.Clear
+    
+    frmMainui.lvwVariables.ColumnHeaders.Clear
+
+    frmMainui.lvwVariables.ColumnHeaders.Add , , _
+                        "Variable", frmMainui.lvwVariables.Width / 3
+    frmMainui.lvwVariables.ColumnHeaders.Add , , _
+                        "Value", 2 * frmMainui.lvwVariables.Width / 3 - 100
+
+    frmMainui.lvwVariables.View = lvwReport
+
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Public Sub ShowSettingsPage()
+    
+    InitialiseVarListView
+    FillVarListView
+    
+End Sub
+
+'***********************************************************
+'
+'***********************************************************
+Public Sub FillVarListView()
+    'CRAMP Variables
+    Dim sCRAMP_LOGPATH As String
+    Dim sCRAMP_PATH As String
+    Dim sCRAMP_PROFILE_CALLDEPTH As String
+    Dim sCRAMP_PROFILE_LOGSIZE As String
+    Dim sCRAMP_PROFILE_MAXCALLLIMIT As String
+    Dim sCRAMP_PROFILE_INCLUSION As String
+    
+On Local Error GoTo FillVarError
+
+    'Get the environment variables
+    sCRAMP_LOGPATH = Environ("CRAMP_LOGPATH")
+    sCRAMP_PATH = Environ("CRAMP_PATH")
+    sCRAMP_PROFILE_CALLDEPTH = Environ("CRAMP_PROFILE_CALLDEPTH")
+    sCRAMP_PROFILE_LOGSIZE = Environ("CRAMP_PROFILE_LOGSIZE")
+    sCRAMP_PROFILE_MAXCALLLIMIT = Environ("CRAMP_PROFILE_MAXCALLLIMIT")
+    sCRAMP_PROFILE_INCLUSION = Environ("CRAMP_PROFILE_INCLUSION")
+    
+    Dim itmX As ListItem
+    frmMainui.lvwVariables.ListItems.Clear
+    
+    'Fill the listview
+    If sCRAMP_LOGPATH <> "" Then
+        Set itmX = frmMainui.lvwVariables.ListItems.Add(, , "CRAMP_LOGPATH")
+        itmX.SubItems(1) = sCRAMP_LOGPATH
+    End If
+    
+    If sCRAMP_PATH <> "" Then
+        Set itmX = frmMainui.lvwVariables.ListItems.Add(, , "CRAMP_PATH")
+        itmX.SubItems(1) = sCRAMP_PATH
+    End If
+    
+    If sCRAMP_PROFILE_CALLDEPTH <> "" Then
+        Set itmX = frmMainui.lvwVariables.ListItems.Add(, , "CRAMP_PROFILE_CALLDEPTH")
+        itmX.SubItems(1) = sCRAMP_PROFILE_CALLDEPTH
+    End If
+    
+    If sCRAMP_PROFILE_LOGSIZE <> "" Then
+        Set itmX = frmMainui.lvwVariables.ListItems.Add(, , "CRAMP_PROFILE_LOGSIZE")
+        itmX.SubItems(1) = sCRAMP_PROFILE_LOGSIZE
+    End If
+    
+    If sCRAMP_PROFILE_MAXCALLLIMIT <> "" Then
+        Set itmX = frmMainui.lvwVariables.ListItems.Add(, , "CRAMP_PROFILE_MAXCALLLIMIT")
+        itmX.SubItems(1) = sCRAMP_PROFILE_MAXCALLLIMIT
+    End If
+    
+    If sCRAMP_PROFILE_INCLUSION <> "" Then
+        Set itmX = frmMainui.lvwVariables.ListItems.Add(, , "CRAMP_PROFILE_INCLUSION")
+        itmX.SubItems(1) = sCRAMP_PROFILE_INCLUSION
+    End If
+    
+    frmMainui.lvwVariables.SetFocus
+    
+FillVarError:
+    
+    Resume Next
     
 End Sub

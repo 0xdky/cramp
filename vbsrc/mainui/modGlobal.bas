@@ -451,21 +451,27 @@ Public Sub RenameFormWindow()
     Dim stFrameType As ScType
     stFrameType = GetScType
     
-    If stFrameType = stFile Then
-        If frmMainui.tspMainUI.SelectedItem.index = 2 Then
+    Select Case LCase(frmMainui.tspMainUI.SelectedItem.key)
+        Case LCase("tspEngine"):
+            If stFrameType = stFile Then
+                frmMainui.Caption = gCurScenarioName & " - CRAMP [" & _
+                LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
+                "]"
+            Else
+                frmMainui.Caption = gCurScListName & " - CRAMP [" & _
+                LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
+                "]"
+            End If
+        Case LCase("tspProfiler"):
             frmMainui.Caption = "CRAMP [" & _
             LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
             "]"
-        Else
-            frmMainui.Caption = gCurScenarioName & " - CRAMP [" & _
+        Case LCase("tspSettings"):
+            frmMainui.Caption = "CRAMP [" & _
             LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
             "]"
-        End If
-    Else
-        frmMainui.Caption = gCurScListName & " - CRAMP [" & _
-            LCase(frmMainui.tspMainUI.SelectedItem.Caption) & _
-            "]"
-    End If
+    End Select
+    
 End Sub
 
 '***********************************************************
