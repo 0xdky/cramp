@@ -1,5 +1,5 @@
 #!perl
-## Time-stamp: <2003-10-27 13:47:50 dhruva>
+## Time-stamp: <2003-10-27 14:36:23 dhruva>
 ##-----------------------------------------------------------------------------
 ## File  : profileDB.pl
 ## Desc  : PERL script to dump contents of a DB hash and query
@@ -42,6 +42,9 @@ sub WriteResults{
         || die("Cannot open \"$f_queryout\" for write");
     foreach(@_){
         print QUERYOUT "$_\n";
+        if($ENV{'DEBUG'}){
+            print STDOUT "$_\n";
+        }
     }
     close(QUERYOUT);
     return 0;
@@ -63,6 +66,7 @@ sub ProcessArgs{
         }
     }
 
+    @ARGV=map(uc,@ARGV);
     if($#ARGV<1){
         print STDERR "Error: Insufficient argument";
         return 1;
@@ -71,10 +75,10 @@ sub ProcessArgs{
     $g_pid=$ARGV[0];
     $f_logdb="$cramplogdir/cramp#$g_pid.db";
 
-    if("DUMP" eq $ARGV[1]){
+    if($ARGV[1]=~/DUMP/){
         UpdateDB();
         return 0;
-    }elsif("QUERY" eq $ARGV[1]){
+    }elsif($ARGV[1]=~/QUERY/){
         $f_queryout="$cramplogdir/query.psf";
         unlink $f_queryout;
 
@@ -84,7 +88,7 @@ sub ProcessArgs{
         }
 
         my @tids=GetThreadIDs();
-        if("THREADS" eq $ARGV[2]){
+        if($ARGV[2]=~/THREAD[S]?/){
             WriteResults(@tids);
             return 0;
         }
@@ -103,18 +107,19 @@ sub ProcessArgs{
                 return 1;
             }
 
-            if("SORT" eq $ARGV[3]){
+            if($ARGV[3]=~/SORT/){
                 @values=GetTickSortedValues($key,$max);
-            }elsif("RAW" eq $ARGV[3]){
+            }elsif($ARGV[3]=~/RAW/){
                 @values=GetRawValues($key,$max);
             }
-        }elsif("COUNT" eq $ARGV[2]){
-            if($ARGV[3]=~/[0-9ABCDEF]+/i){
+        }elsif($ARGV[2]=~/COUNT/){
+            if($ARGV[3]=~/[0-9ABCDEF]+/){
                 $key=$ARGV[3];
                 @values=GetFunctionCalls($key,$max);
             }
         }
 
+        # Add the function name and module name for results
         AppendFuncInfoToLogs(@values);
         return WriteResults(@values);
     }else{
@@ -129,14 +134,14 @@ sub ProcessArgs{
 ##  Install DBM Filters to make NULL terminated strings
 ##-----------------------------------------------------------------------------
 sub SetDBFilters{
-    if(!defined(@_[0])){
+    if(!defined($_[0])){
         warn("SetDBFilters: Undefined DB handle");
         return 1;
     }
-    @_[0]->filter_fetch_key  ( sub { s/\0$//    } ) ;
-    @_[0]->filter_store_key  ( sub { $_ .= "\0" } ) ;
-    @_[0]->filter_fetch_value( sub { s/\0$//    } ) ;
-    @_[0]->filter_store_value( sub { $_ .= "\0" } ) ;
+    $_[0]->filter_fetch_key  ( sub { s/\0$//    } ) ;
+    $_[0]->filter_store_key  ( sub { $_ .= "\0" } ) ;
+    $_[0]->filter_fetch_value( sub { s/\0$//    } ) ;
+    $_[0]->filter_store_value( sub { $_ .= "\0" } ) ;
     return 0;
 }
 
@@ -153,15 +158,22 @@ sub UpdateDB{
     }
 
     if(! -f $f_logdb){
-        print "Creating Berkeley DB from logs\n";
-        DumpLogsToDB();
+        print "Creating Berkeley DB from logs";
+        if(DumpLogsToDB()){
+            print STDERR "Error: Failed to dump logs to DB";
+            exit 1;
+        }
+        print STDOUT "Successfully created Berkeley DB from logs";
+        exit 0;
     }else{
+        my $update=0;
         my @dbinfo=stat($f_logdb);
         my @loginfo=stat($f_logtxt);
         my @funinfo=stat($f_logfin);
 
         if($loginfo[9]>$dbinfo[9]){
-            print "Updating Berkeley DB from logs\n";
+            $update=1;
+            print STDOUT "Updating Berkeley DB from logs";
             if(AddRawLogs()){
                 print STDERR "Error: Failed in adding raw logs to DB";
                 exit 1;
@@ -171,11 +183,19 @@ sub UpdateDB{
             }
         }
         if($funinfo[9]>$dbinfo[9]){
-            print "Updating function information in Berkeley DB from logs\n";
+            $update=1;
+            print STDOUT "Updating function info in Berkeley DB from logs";
             if(AddFunctionInformation()){
                 print STDERR "Error: Failed in adding function info to DB";
                 exit 1;
             }
+        }
+        if($update){
+            print STDOUT "Successfully updated Berkeley DB from logs";
+            exit 0;
+        }else{
+            print STDOUT "Berkeley DB is upto date";
+            exit 0;
         }
     }
 }
@@ -231,7 +251,7 @@ sub GetRawValues{
         return ();
     }
 
-    my @results=GetDuplicateKeyValues($db,@_[0],@_[1]);
+    my @results=GetDuplicateKeyValues($db,$_[0],$_[1]);
     undef $db;
     return @results;
 }
@@ -257,7 +277,7 @@ sub GetTickSortedValues{
         return ();
     }
 
-    my @results=GetDuplicateKeyValues($db,@_[0],@_[1]);
+    my @results=GetDuplicateKeyValues($db,$_[0],$_[1]);
     undef $db;
     return @results;
 }
@@ -267,13 +287,13 @@ sub GetTickSortedValues{
 ##  0 => Handle to DB, 1 => Key, 2 => Max size (0 for all)
 ##-----------------------------------------------------------------------------
 sub GetDuplicateKeyValues{
-    if(!defined(@_[0])){
+    if(!defined($_[0])){
         warn("GetDuplicateKeyValues: Undefined DB handle");
         return ();
     }
 
-    my($k,$v)=(@_[1],"");
-    my $dbc=@_[0]->db_cursor();
+    my($k,$v)=($_[1],"");
+    my $dbc=$_[0]->db_cursor();
     if(0!=$dbc->c_get($k,$v,DB_SET)){
         undef $dbc;
         return ();
@@ -281,8 +301,8 @@ sub GetDuplicateKeyValues{
 
     my $max=0;
     $dbc->c_count($max);
-    if(@_[2] && @_[2]<$max){
-        $max=@_[2];
+    if($_[2] && $_[2]<$max){
+        $max=$_[2];
     }
 
     my $cc=1;
@@ -323,8 +343,8 @@ sub GetThreadIDs{
     foreach(@tie_TID){
         push(@results,$_);
     }
-    untie @tie_TID;
     undef $db;
+    untie @tie_TID;
 
     return @results;
 }
@@ -347,7 +367,7 @@ sub GetFunctionCalls{
         return ();
     }
 
-    my($k,$v)=(@_[0],"");
+    my($k,$v)=($_[0],"");
     my $dbc=$db->db_cursor();
     if(0!=$dbc->c_get($k,$v,DB_SET)){
         undef $dbc;
@@ -358,10 +378,10 @@ sub GetFunctionCalls{
     undef $dbc;
 
     my @results=();
-    if(@_[1]<0){
-        push(@results,"0|@_[0]|0|0|0|$count");
+    if($_[1]<0){
+        push(@results,"0|$_[0]|0|0|0|$count");
     }else{
-        @results=GetDuplicateKeyValues($db,@_[0],@_[1]);
+        @results=GetDuplicateKeyValues($db,$_[0],$_[1]);
     }
 
     undef $db;
@@ -376,9 +396,9 @@ sub TickCompare{
     my ($key1,$key2)=@_;
     my @l1=split(/\|/,$key1);
     my @l2=split(/\|/,$key2);
-    if($l1[-1]<$l2[-1]){
+    if($l1[-1] lt $l2[-1]){
         return 1;
-    }elsif($l1[-1]>$l2[-1]){
+    }elsif($l1[-1] gt $l2[-1]){
         return -1;
     }
     return 0;
@@ -392,9 +412,9 @@ sub DepthCompare{
     my ($key1,$key2)=@_;
     my @l1=split(/\|/,$key1);
     my @l2=split(/\|/,$key2);
-    if($l1[-4]<$l2[-4]){
+    if($l1[-4] lt $l2[-4]){
         return 1;
-    }elsif($l1[-4]>$l2[-4]){
+    }elsif($l1[-4] gt $l2[-4]){
         return -1;
     }
     return 0;
@@ -465,8 +485,8 @@ sub AddThreadIDs{
     foreach(@tids){
         push(@tie_TID,$_);
     }
-    untie @tie_TID;
     undef $db;
+    untie @tie_TID;
 
     return 0;
 }
@@ -574,14 +594,18 @@ sub AddFunctionInformation{
 sub DumpLogsToDB{
     if(AddRawLogs()){
         print STDERR "Error: Failed in adding raw logs to DB";
+        return 1;
     }elsif(AddAddrSortedData()){
         print STDERR "Error: Failed in adding sorted logs to DB";
+        return 1;
     }elsif(AddTickSortedData()){
         print STDERR "Error: Failed in adding sorted logs to DB";
+        return 1;
     }elsif(AddFunctionInformation()){
         print STDERR "Error: Failed in adding function information to DB";
+        return 1;
     }
-    return;
+    return 0;
 }
 
 ##------------------------ Execution starts here ------------------------------
