@@ -36,7 +36,7 @@ Begin VB.Form frmMainui
                Key             =   ""
             EndProperty
             BeginProperty ListImage2 {2C247F27-8591-11D1-B16A-00C0F0283628} 
-               Picture         =   "frmMainui.frx":0D9C
+               Picture         =   "frmMainui.frx":0D28
                Key             =   ""
             EndProperty
          EndProperty
@@ -393,9 +393,9 @@ Begin VB.Form frmMainui
       End
       Begin VB.ComboBox cboTrueFalse 
          Height          =   315
-         ItemData        =   "frmMainui.frx":0E6E
+         ItemData        =   "frmMainui.frx":0D86
          Left            =   6000
-         List            =   "frmMainui.frx":0E78
+         List            =   "frmMainui.frx":0D88
          TabIndex        =   9
          Text            =   "TRUE"
          Top             =   5400
