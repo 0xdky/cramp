@@ -1,5 +1,5 @@
 // -*-c++-*-
-// Time-stamp: <2003-10-23 13:49:38 dhruva>
+// Time-stamp: <2003-10-23 16:58:39 dhruva>
 //-----------------------------------------------------------------------------
 // File : DllMain.cpp
 // Desc : DllMain implementation for profiler and support code
@@ -21,6 +21,7 @@
 #define CRAMP_LOG_BUFFER_LIMIT 10000
 #endif
 
+FILE *g_fLogFile=0;
 long g_l_profile=0;
 long g_l_stoplogging=0;
 long g_l_calldepthlimit=10;
@@ -33,6 +34,7 @@ CRITICAL_SECTION g_cs_prof;
 
 // File static
 static char logpath[256]=".";
+static HANDLE h_logthread=0;
 
 void DumpLogsTH(void);
 void CALLBACK FlushLogCB(void *,BOOLEAN);
@@ -246,6 +248,13 @@ OnProcessStart(void){
     sprintf(logpath,"%s",getenv("CRAMP_LOGPATH"));
 
   do{
+    sprintf(filename,"%s/cramp_profile#%d.log",
+            logpath,
+            GetCurrentProcessId());
+    g_fLogFile=fopen(filename,"wc");
+    if(!g_fLogFile)
+      break;
+
     CallMonitor::queryTickFreq(&frequency);
     if(getenv("CRAMP_PROFILE"))
       InterlockedExchange(&g_l_profile,1);
@@ -266,16 +275,14 @@ OnProcessStart(void){
 
     // Start logging thread
     InterlockedExchange(&g_l_stoplogging,0);
-    HANDLE h_th=0;
-    h_th=chBEGINTHREADEX(NULL,0,DumpLogsTH,0,0,NULL);
-    if(!h_th){
+    h_logthread=chBEGINTHREADEX(NULL,0,DumpLogsTH,0,0,NULL);
+    if(!h_logthread){
       DeleteCriticalSection(&g_cs_log);
       DeleteCriticalSection(&g_cs_prof);
       break;
     }
     // This is not a critical thread
-    SetThreadPriority(h_th,THREAD_PRIORITY_BELOW_NORMAL);
-    CloseHandle(h_th);
+    SetThreadPriority(h_logthread,THREAD_PRIORITY_BELOW_NORMAL);
 
     // Set this if all succeeds
     valid=TRUE;
@@ -290,6 +297,15 @@ OnProcessStart(void){
 BOOL
 OnProcessEnd(void){
   InterlockedExchange(&g_l_stoplogging,1);
+
+  // Mop up the left over logs
+  while(!g_LogQueue.empty()){
+    EnterCriticalSection(&g_cs_log);
+    fprintf(g_fLogFile,"%s\n",g_LogQueue.front().c_str());
+    g_LogQueue.pop();
+    LeaveCriticalSection(&g_cs_log);
+  }
+
   CRAMP_DumpFunctionInfo();
   DeleteCriticalSection(&g_cs_log);
   DeleteCriticalSection(&g_cs_prof);
@@ -301,9 +317,9 @@ OnProcessEnd(void){
 //-----------------------------------------------------------------------------
 void CALLBACK
 FlushLogCB(void *flog,BOOLEAN itcb){
-  if(!flog)
+  if(!g_fLogFile)
     return;
-  fflush((FILE *)flog);
+  fflush(g_fLogFile);
   return;
 }
 
@@ -312,42 +328,34 @@ FlushLogCB(void *flog,BOOLEAN itcb){
 //-----------------------------------------------------------------------------
 void
 DumpLogsTH(void){
-  long dest=0;
-  FILE *fLogFile=0;
-  char filename[256];
-  sprintf(filename,"%s/cramp_profile#%d.log",
-          logpath,
-          GetCurrentProcessId());
-  fLogFile=fopen(filename,"wc");
-  if(!fLogFile)
+  if(!g_fLogFile)
     return;
 
+  long dest=0;
   HANDLE h_time=0;
-  if(!CreateTimerQueueTimer(&h_time,NULL,FlushLogCB,fLogFile,
+  if(!CreateTimerQueueTimer(&h_time,NULL,FlushLogCB,NULL,
                             500,500,
                             WT_EXECUTEINIOTHREAD))
     h_time=0;
 
   while(1){
+    dest=0;
     InterlockedCompareExchange(&dest,1,g_l_stoplogging);
-    if(!dest)
-      break;
     while(!g_LogQueue.empty()){
       EnterCriticalSection(&g_cs_log);
-      fprintf(fLogFile,"%s\n",g_LogQueue.front().c_str());
+      fprintf(g_fLogFile,"%s\n",g_LogQueue.front().c_str());
       g_LogQueue.pop();
       LeaveCriticalSection(&g_cs_log);
     }
+    if(!dest)
+      break;
   }
 
   if(h_time)
     DeleteTimerQueueTimer(NULL,h_time,NULL);
   h_time=0;
 
-  fflush(fLogFile);
-  fclose(fLogFile);
-  fLogFile=0;
-
+  fflush(g_fLogFile);
   return;
 }
 
