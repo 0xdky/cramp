@@ -14,6 +14,9 @@ XMLBASE=F:/Applications/xerces
 XMLBASE1=E:/Applications/xerces
 XML_LIB=xerces-c_2D.lib
 
+# DPE Cominc folder for DPE server header files
+DPE_COMINC=../../DPE/Cominc
+
 PROJ=CRAMP
 MAKEFILE=$(PROJ).mak
 ENGINE=$(PROJ)
@@ -55,7 +58,7 @@ POBJS=$(OBJDIR)/CallMon.obj $(OBJDIR)/CallMonLOG.obj $(OBJDIR)/DllMain.obj
 OBJS=$(COBJS) $(POBJS) $(XOBJS)
 
 all: cramp
-cramp: dirs engine library test
+cramp: dirs engine library baseclass test
 remake: clean cramp
 
 # Dependancy to force a re-build
@@ -108,8 +111,17 @@ $(SRCDIR)/CallMonLOG.cpp: $(SRCDIR)/CallMonLOG.h $(DEPS)
 $(SRCDIR)/CallMon.h: $(DEPS)
 $(SRCDIR)/CallMonLOG.h: $(SRCDIR)/CallMon.h $(DEPS)
 
+# Base class for test cases
+baseclass: $(OBJDIR)/DPEBaseClass.obj
+$(OBJDIR)/DPEBaseClass.obj: $(SRCDIR)/DPEBaseClass.cpp $(SRCDIR)/DPEBaseClass.h
+    @$(CPP)  /c $(CPP_DEBUG) /I$(DPE_COMINC) $(SRCDIR)/DPEBaseClass.cpp \
+             /Fo$(OBJDIR)/DPEBaseClass.obj
+$(SRCDIR)/DPEBaseClass.cpp:
+$(SRCDIR)/DPEBaseClass.h:
+
 # Build the test cases: Profiler, XML
-test: dirs $(BINDIR)/TestProf.exe $(BINDIR)/XMLtest.exe
+test: dirs $(BINDIR)/TestProf.exe $(BINDIR)/XMLtest.exe \
+           $(BINDIR)/DPEBaseClassTest.exe
 $(BINDIR)/TestProf.exe: library $(OBJDIR)/TestProf.obj
     @$(LINK) $(LINK_DEBUG) $(OBJDIR)/TestProf.obj $(BINDIR)/$(PROFLIB).lib \
              /OUT:$(BINDIR)/TestProf.exe
@@ -118,14 +130,22 @@ $(BINDIR)/XMLtest.exe: $(OBJDIR)/TestCaseInfo.obj $(OBJDIR)/XMLParse.obj \
     @$(LINK) $(LINK_DEBUG) $(E_LDFLAGS) $(OBJDIR)/XMLtest.obj \
              $(OBJDIR)/TestCaseInfo.obj $(OBJDIR)/XMLParse.obj \
              psapi.lib $(XML_LIB) /OUT:$(BINDIR)/XMLtest.exe
+$(BINDIR)/DPEBaseClassTest.exe: $(OBJDIR)/DPEBaseClass.obj \
+                                $(OBJDIR)/DPEBaseClassTest.obj
+    @$(LINK) $(LINK_DEBUG) $(OBJDIR)/DPEBaseClassTest.obj \
+             $(OBJDIR)/DPEBaseClass.obj /OUT:$(BINDIR)/DPEBaseClassTest.exe
 $(OBJDIR)/TestProf.obj: $(TSTDIR)/TestProf.cpp
     @$(CPP)  /c $(CPP_DEBUG) /GX /Gh $(TSTDIR)/TestProf.cpp \
              /Fo$(OBJDIR)/TestProf.obj
 $(OBJDIR)/XMLtest.obj: $(TSTDIR)/XMLtest.cpp
     @$(CPP)  /c $(CPP_DEBUG) $(E_CCFLAGS) $(TSTDIR)/XMLtest.cpp \
              /Fo$(OBJDIR)/XMLtest.obj
+$(OBJDIR)/DPEBaseClassTest.obj: $(TSTDIR)/DPEBaseClassTest.cpp
+    @$(CPP)  /c $(CPP_DEBUG) /GX /I$(DPE_COMINC) \
+             $(TSTDIR)/DPEBaseClassTest.cpp /Fo$(OBJDIR)/DPEBaseClassTest.obj
 $(TSTDIR)/TestProf.cpp: $(DEPS)
 $(TSTDIR)/XMLtest.cpp: $(DEPS)
+$(TSTDIR)/DPEBaseClassTest.cpp: $(DEPS)
 
 # Cleaning
 clean: mostly-clean clean-vc60
