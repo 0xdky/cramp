@@ -79,7 +79,6 @@ sub CustomCompare{
 
 ## Read the input query.psf file
 open(FILE,"$cramplogdir/query.psf") or dienice("Cannot open query.psf: $!");
-binmode(FILE);
 my @logData=();
 while(<FILE>){
     chomp();
